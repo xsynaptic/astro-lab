@@ -1,0 +1,42 @@
+{
+	"name": "@xsynaptic/word-count",
+	"version": "0.0.0",
+	"description": "A fast, dependency-free multilingual word counter with support for CJK, Thai, Lao, Burmese, Khmer, Javanese, and Vai scripts",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/word-count"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/word-count#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"word-count",
+		"wordcount",
+		"text",
+		"cjk",
+		"multilingual",
+		"i18n"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	}
+}
