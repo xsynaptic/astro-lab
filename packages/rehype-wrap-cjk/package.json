@@ -1,0 +1,56 @@
+{
+	"name": "@xsynaptic/rehype-wrap-cjk",
+	"version": "2.1.2",
+	"description": "Rehype plugin for wrapping CJK character sequences in an HTML element with a configurable attribute for styling or language tagging.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/rehype-wrap-cjk"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/rehype-wrap-cjk#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"unified",
+		"rehype",
+		"rehype-plugin",
+		"cjk"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@types/hast": "^3.0.4",
+		"hastscript": "^9.0.1",
+		"unist-util-visit-parents": "^6.0.2"
+	},
+	"peerDependencies": {
+		"unified": "^11.0.0"
+	},
+	"devDependencies": {
+		"rehype-parse": "^9.0.1",
+		"rehype-stringify": "^10.0.1",
+		"remark-parse": "^11.0.0",
+		"remark-rehype": "^11.1.2",
+		"unified": "^11.0.5",
+		"vfile": "^6.0.3"
+	}
+}
