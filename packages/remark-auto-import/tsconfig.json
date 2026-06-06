@@ -4,6 +4,6 @@
 		"outDir": "dist",
 		"types": ["node"]
 	},
-	"include": ["src"],
-	"exclude": ["dist", "tests", "**/*.test.ts", "**/__tests__/**"]
+	"include": ["src", "tests"],
+	"exclude": ["dist"]
 }

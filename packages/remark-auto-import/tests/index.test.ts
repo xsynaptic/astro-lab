@@ -3,9 +3,9 @@ import type { Root } from 'mdast';
 import nodePath from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-import type { RemarkAutoImportOptions } from '../src/index.ts';
+import type { RemarkAutoImportOptions } from '../src/index.js';
 
-import { remarkAutoImport } from '../src/index.ts';
+import { remarkAutoImport } from '../src/index.js';
 
 type SyncTransform = (tree: Root, file: { basename?: string }) => void;
 
