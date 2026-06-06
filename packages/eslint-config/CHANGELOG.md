@@ -1,5 +1,13 @@
 # @xsynaptic/eslint-config
 
+## 3.5.0
+
+### Minor Changes
+
+- Adopt perfectionist's full `recommended-natural` ruleset instead of enabling only `sort-imports`. The previous config turned nearly every perfectionist rule off; this takes advantage of the plugin's dependency-aware sorting and per-rule guards. The custom `sort-imports` options were dropped as redundant: perfectionist v5's default `internalPattern` already covers `~/`, `@/`, and `#`, and `recommended-natural` applies natural ordering globally.
+
+  Consumers can disable or adjust any individual rule via their own config (it overrides last). Note: this newly flags previously-passing code, though all violations are autofixable with `eslint --fix`.
+
 ## 3.4.1
 
 ### Patch Changes
