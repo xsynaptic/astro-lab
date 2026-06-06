@@ -1,0 +1,47 @@
+{
+	"name": "@xsynaptic/unpic-imagor",
+	"version": "0.1.0",
+	"description": "An experiment imagor provider prototype for unpic",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/unpic-imagor"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/unpic-imagor#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"unpic",
+		"imagor",
+		"image",
+		"cdn",
+		"thumbor"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"unpic": "^4.2.2"
+	},
+	"devDependencies": {
+		"unpic": "^4.2.2"
+	}
+}
