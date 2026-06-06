@@ -26,7 +26,6 @@ const config: Config = {
 			customSyntax: 'postcss-html',
 		},
 	],
-	reportDescriptionlessDisables: true,
 };
 
 export default config;

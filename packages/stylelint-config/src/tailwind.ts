@@ -3,7 +3,7 @@ import type { Config } from 'stylelint';
 // A set of config rules and extensions to help Stylelint tolerate Tailwind v4's CSS-first API
 const prelude = { prelude: '<any-value>' } as const;
 
-// at-rules, declared so at-rule-no-unknown accepts them
+// At-rules, declared so at-rule-no-unknown accepts them
 // @reference appears inside component <style> blocks (e.g. Astro scoped styles)
 // @config and @plugin bridge from a v3 JS config
 const atRules = {
@@ -18,7 +18,7 @@ const atRules = {
 	plugin: prelude,
 };
 
-// Functions, ignored both by name (function-no-unknown) and by value
+// Functions Tailwind adds, ignored by name so function-no-unknown accepts them
 const ignoreFunctions = ['theme', '--alpha', '--spacing', '--value', '--modifier', '--default'];
 
 export const tailwind = {
@@ -28,6 +28,5 @@ export const tailwind = {
 		// eslint-disable-next-line unicorn/no-null -- Stylelint needs null to turn off an inherited rule
 		'no-invalid-position-at-import-rule': null,
 		'function-no-unknown': [true, { ignoreFunctions }],
-		'declaration-property-value-no-unknown': [true, { ignoreFunctions }],
 	},
 } satisfies Config;
