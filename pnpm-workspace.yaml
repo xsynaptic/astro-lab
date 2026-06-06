@@ -7,6 +7,9 @@ packages:
 overrides:
   '@xsynaptic/remark-auto-import': workspace:*
 
+# Keep pnpm from rewriting the playground's published range to workspace:*
+saveWorkspaceProtocol: false
+
 # Intended to mitigate supply chain attacks
 minimumReleaseAge: 1440
 verifyDepsBeforeRun: error
