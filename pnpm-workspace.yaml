@@ -7,6 +7,11 @@ packages:
 overrides:
   '@xsynaptic/remark-auto-import': workspace:*
 
+# Intended to mitigate supply chain attacks
+minimumReleaseAge: 1440
+verifyDepsBeforeRun: error
+strictDepBuilds: true
+
 allowBuilds:
   esbuild: true
   sharp: true
