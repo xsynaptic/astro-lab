@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-build-logger",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Astro integration that appends build duration, page count, and output size to a JSONL log file",
 	"type": "module",
 	"license": "MIT",

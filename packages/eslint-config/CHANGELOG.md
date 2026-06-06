@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 3.4.1
+
+### Patch Changes
+
+- Configure `unicorn/number-literal-case` with `hexadecimalValue: 'lowercase'` so hexadecimal literals are enforced as lowercase, matching Prettier. This resolves the autofix oscillation where ESLint wanted uppercase hex digits and Prettier rewrote them to lowercase.
+
 ## 3.4.0
 
 ### Minor Changes
