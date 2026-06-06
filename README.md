@@ -4,11 +4,15 @@ A personal monorepo of reusable packages for my Astro projects, published to npm
 
 ## Packages
 
+- [`@xsynaptic/astro-build-logger`](packages/astro-build-logger): Astro integration that logs build duration, page count, and output size to JSONL
 - [`@xsynaptic/eslint-config`](packages/eslint-config): ESLint flat-config factory for TypeScript projects
-- [`@xsynaptic/unified-tools`](packages/unified-tools): remark/rehype/retext pipelines for markup and text
 - [`@xsynaptic/rehype-wrap-cjk`](packages/rehype-wrap-cjk): rehype plugin to wrap CJK character runs for styling
 - [`@xsynaptic/remark-auto-import`](packages/remark-auto-import): remark plugin that auto-imports components into MDX
+- [`@xsynaptic/remark-image-import`](packages/remark-image-import): remark plugin that auto-imports a component's image sources in MDX
+- [`@xsynaptic/stylelint-config`](packages/stylelint-config): shared Stylelint config for Astro projects using Tailwind CSS v4
+- [`@xsynaptic/unified-tools`](packages/unified-tools): remark/rehype/retext pipelines for markup and text
 - [`@xsynaptic/unpic-imagor`](packages/unpic-imagor): unpic URL provider for the imagor image server
+- [`@xsynaptic/word-count`](packages/word-count): fast, dependency-free multilingual word counter (CJK, Thai, Lao, Burmese, Khmer, Javanese, Vai)
 
 ## Development
 
