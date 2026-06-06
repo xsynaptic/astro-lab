@@ -6,6 +6,7 @@ packages:
 # On StackBlitz (which boots the playground subdir as its own root) it resolves the published package
 overrides:
   '@xsynaptic/remark-auto-import': workspace:*
+  '@xsynaptic/remark-image-import': workspace:*
 
 # Keep pnpm from rewriting the playground's published range to workspace:*
 saveWorkspaceProtocol: false

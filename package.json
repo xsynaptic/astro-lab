@@ -38,7 +38,8 @@
 		"check:pkg": "pnpm --filter './packages/*' --no-bail exec publint",
 		"changeset": "changeset",
 		"version-packages": "changeset version",
-		"release": "pnpm --filter './packages/*' build && pnpm check:pkg && changeset publish"
+		"release": "pnpm check && pnpm --filter './packages/*' build && pnpm check:pkg && changeset publish",
+		"postrelease": "git push --follow-tags origin main"
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.31.0",

@@ -6,6 +6,7 @@ settings:
 
 overrides:
   '@xsynaptic/remark-auto-import': workspace:*
+  '@xsynaptic/remark-image-import': workspace:*
 
 importers:
 
@@ -44,6 +45,16 @@ importers:
       vitest:
         specifier: ^4.1.8
         version: 4.1.8(@types/node@22.19.19)(vite@8.0.16(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
+
+  packages/astro-build-logger:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      astro:
+        specifier: ^6.4.4
+        version: 6.4.4(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
 
   packages/eslint-config:
     dependencies:
@@ -122,6 +133,43 @@ importers:
         specifier: ^11.0.5
         version: 11.0.5
 
+  packages/remark-image-import:
+    dependencies:
+      '@types/mdast':
+        specifier: ^4.0.4
+        version: 4.0.4
+      acorn:
+        specifier: ^8.16.0
+        version: 8.16.0
+      unist-util-visit:
+        specifier: ^5.0.0
+        version: 5.1.0
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.19
+      '@types/unist':
+        specifier: ^3.0.3
+        version: 3.0.3
+      mdast-util-mdx:
+        specifier: ^3.0.0
+        version: 3.0.0
+      remark-mdx:
+        specifier: ^3.1.1
+        version: 3.1.1
+      remark-parse:
+        specifier: ^11.0.0
+        version: 11.0.0
+      remark-stringify:
+        specifier: ^11.0.0
+        version: 11.0.0
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
+
   packages/stylelint-config:
     dependencies:
       '@double-great/stylelint-a11y':
@@ -188,6 +236,8 @@ importers:
         specifier: ^4.2.2
         version: 4.2.2
 
+  packages/word-count: {}
+
   playground/remark-auto-import:
     dependencies:
       '@astrojs/markdown-remark':
@@ -202,6 +252,24 @@ importers:
       astro:
         specifier: ^6.4.4
         version: 6.4.4(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
+
+  playground/remark-image-import:
+    dependencies:
+      '@astrojs/markdown-remark':
+        specifier: ^7.2.0
+        version: 7.2.0
+      '@astrojs/mdx':
+        specifier: ^6.0.2
+        version: 6.0.2(astro@6.4.4(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0))
+      '@xsynaptic/remark-image-import':
+        specifier: workspace:*
+        version: link:../../packages/remark-image-import
+      astro:
+        specifier: ^6.4.4
+        version: 6.4.4(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
 
 packages:
 
@@ -4341,8 +4409,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.34.5':
     optionalDependencies:
@@ -7283,7 +7350,6 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.5
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:
