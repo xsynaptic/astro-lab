@@ -1,0 +1,50 @@
+{
+	"name": "@xsynaptic/astro-build-logger",
+	"version": "0.0.0",
+	"description": "Astro integration that appends build duration, page count, and output size to a JSONL log file",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/astro-build-logger"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/astro-build-logger#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"astro",
+		"astro-integration",
+		"build",
+		"logging",
+		"metrics"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"astro": "^6.0.0"
+	},
+	"devDependencies": {
+		"astro": "^6.4.4"
+	}
+}
