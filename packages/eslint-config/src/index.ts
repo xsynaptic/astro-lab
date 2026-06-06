@@ -88,6 +88,7 @@ export function getConfig(
 			rules: {
 				'unicorn/filename-case': 'warn',
 				'unicorn/no-array-callback-reference': 'off', // I prefer this pattern for filtering/sorting content
+				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Lowercase hex to match Prettier
 				'unicorn/prevent-abbreviations': 'off', // I *like* abbreviations!
 			},
 		},
