@@ -1,0 +1,12 @@
+packages:
+  - packages/*
+  - playground/*
+
+# Local installs link the playground to the workspace package
+# On StackBlitz (which boots the playground subdir as its own root) it resolves the published package
+overrides:
+  '@xsynaptic/remark-auto-import': workspace:*
+
+allowBuilds:
+  esbuild: true
+  sharp: true

@@ -1,0 +1,6 @@
+dist
+pnpm-lock.yaml
+.changeset
+**/.astro
+test-results
+.claude

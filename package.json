@@ -1,0 +1,56 @@
+{
+	"name": "astro-lab",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "A library of plugins, utilities, and configs for use with Astro",
+	"keywords": [
+		"astro",
+		"unified",
+		"remark",
+		"rehype",
+		"eslint",
+		"unpic"
+	],
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git"
+	},
+	"packageManager": "pnpm@11.5.1",
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"scripts": {
+		"prepare": "pnpm --filter './packages/*' build",
+		"build": "pnpm --filter './packages/*' build",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:e2e": "pnpm -r --if-present test:e2e",
+		"check-types": "tsc -p tsconfig.json && pnpm -r check-types",
+		"lint": "eslint",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"knip": "knip",
+		"knip:fix": "knip --fix",
+		"check": "pnpm lint && pnpm check-types && pnpm format:check && pnpm knip",
+		"check:pkg": "pnpm --filter './packages/*' --no-bail exec publint",
+		"changeset": "changeset",
+		"version-packages": "changeset version",
+		"release": "pnpm --filter './packages/*' build && pnpm check:pkg && changeset publish"
+	},
+	"devDependencies": {
+		"@changesets/cli": "^2.31.0",
+		"@xsynaptic/eslint-config": "workspace:*",
+		"eslint": "^9.39.4",
+		"jiti": "^2.7.0",
+		"knip": "^6.15.0",
+		"prettier": "^3.8.3",
+		"publint": "^0.3.21",
+		"tsdown": "^0.22.2",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.59.3",
+		"vitest": "^4.1.8"
+	}
+}

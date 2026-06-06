@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"target": "es2022",
+		"lib": ["es2022", "dom"],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"strict": true,
+		"exactOptionalPropertyTypes": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noUncheckedIndexedAccess": true,
+		"useUnknownInCatchVariables": true,
+		"declaration": true,
+		"sourceMap": true,
+		"skipLibCheck": true,
+		"erasableSyntaxOnly": true
+	}
+}
