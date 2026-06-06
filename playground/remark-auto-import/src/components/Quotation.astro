@@ -1,0 +1,33 @@
+---
+interface Props {
+	cite?: string;
+}
+
+const { cite } = Astro.props;
+---
+
+<figure class="quotation">
+	<blockquote><slot /></blockquote>
+	{cite && <figcaption>&mdash; {cite}</figcaption>}
+</figure>
+
+<style>
+	.quotation {
+		margin: 2rem 0;
+		padding: 1rem 1.5rem;
+		border-left: 4px solid #6b46c1;
+		background: #f7f5ff;
+		font-style: italic;
+	}
+
+	.quotation blockquote {
+		margin: 0;
+	}
+
+	.quotation figcaption {
+		margin-top: 0.5rem;
+		font-style: normal;
+		font-weight: 600;
+		color: #6b46c1;
+	}
+</style>

@@ -1,0 +1,54 @@
+{
+	"name": "@xsynaptic/remark-auto-import",
+	"version": "1.0.0",
+	"description": "A remark plugin for auto-importing components into MDX files",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/remark-auto-import"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/remark-auto-import#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"unified",
+		"remark",
+		"remark-plugin",
+		"mdx",
+		"astro"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@types/mdast": "^4.0.4",
+		"acorn": "^8.16.0",
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"unified": "^11.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.0",
+		"mdast-util-mdx": "^3.0.0",
+		"unified": "^11.0.5"
+	}
+}
