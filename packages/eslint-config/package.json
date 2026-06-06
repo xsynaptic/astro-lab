@@ -1,0 +1,48 @@
+{
+	"name": "@xsynaptic/eslint-config",
+	"version": "3.3.2",
+	"description": "An ESLint config factory for TypeScript projects",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/eslint-config"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/eslint-config#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"eslint",
+		"eslint-config",
+		"typescript"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@eslint/config-helpers": "^0.6.0",
+		"@eslint/js": "^9.39.4",
+		"eslint-plugin-perfectionist": "^5.9.0",
+		"eslint-plugin-unicorn": "^64.0.0",
+		"eslint-plugin-wc": "^3.1.0",
+		"globals": "^17.6.0",
+		"typescript-eslint": "^8.59.3"
+	}
+}
