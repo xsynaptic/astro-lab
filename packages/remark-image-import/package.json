@@ -1,0 +1,60 @@
+{
+	"name": "@xsynaptic/remark-image-import",
+	"version": "0.0.0",
+	"description": "A remark plugin that auto-imports images referenced by a component in MDX files",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/remark-image-import"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/remark-image-import#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"unified",
+		"remark",
+		"remark-plugin",
+		"mdx",
+		"astro",
+		"image"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@types/mdast": "^4.0.4",
+		"acorn": "^8.16.0",
+		"unist-util-visit": "^5.0.0",
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"unified": "^11.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.0",
+		"@types/unist": "^3.0.3",
+		"mdast-util-mdx": "^3.0.0",
+		"remark-mdx": "^3.1.1",
+		"remark-parse": "^11.0.0",
+		"remark-stringify": "^11.0.0",
+		"unified": "^11.0.5"
+	}
+}
