@@ -1,0 +1,55 @@
+{
+	"name": "@xsynaptic/unified-tools",
+	"version": "4.2.1",
+	"description": "A common set of tools for transforming and manipulating markup and text",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/unified-tools"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/unified-tools#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"unified",
+		"rehype",
+		"rehype-plugin",
+		"remark",
+		"remark-plugin"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@xsynaptic/rehype-wrap-cjk": "workspace:*",
+		"ohash": "^2.0.11",
+		"rehype-parse": "^9.0.1",
+		"rehype-sanitize": "^6.0.0",
+		"rehype-stringify": "^10.0.1",
+		"remark-mdx": "^3.1.1",
+		"remark-parse": "^11.0.0",
+		"remark-rehype": "^11.1.2",
+		"remark-smartypants": "^3.0.2",
+		"retext": "^9.0.0",
+		"retext-smartypants": "^6.2.0",
+		"unified": "^11.0.5"
+	}
+}
