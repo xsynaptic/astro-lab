@@ -1,0 +1,50 @@
+{
+	"name": "@xsynaptic/stylelint-config",
+	"version": "0.1.0",
+	"description": "A shared Stylelint config for Astro projects using Tailwind CSS v4",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/stylelint-config"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/stylelint-config#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"stylelint",
+		"stylelint-config",
+		"astro",
+		"tailwindcss"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"stylelint": ">=17.0.0"
+	},
+	"dependencies": {
+		"@double-great/stylelint-a11y": "^3.4.14",
+		"postcss-html": "^1.8.1",
+		"stylelint-config-recess-order": "^7.7.0",
+		"stylelint-config-standard": "^40.0.0",
+		"stylelint-plugin-defensive-css": "^2.9.3"
+	}
+}

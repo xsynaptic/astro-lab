@@ -1,4 +1,15 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema.json",
-	"ignoreWorkspaces": ["playground/*"]
+	"ignoreWorkspaces": ["playground/*"],
+	"workspaces": {
+		"packages/stylelint-config": {
+			"ignoreDependencies": [
+				"@double-great/stylelint-a11y",
+				"postcss-html",
+				"stylelint-config-recess-order",
+				"stylelint-config-standard",
+				"stylelint-plugin-defensive-css"
+			]
+		}
+	}
 }
