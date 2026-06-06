@@ -15,28 +15,59 @@ const optionsSchema = z
 	})
 	.optional();
 
-type Options = z.input<typeof optionsSchema>;
-
 interface BuildLogEntry {
-	timestamp: string;
-	durationSeconds: number;
-	pageCount: number;
-	outputBytes: number;
 	astroVersion: string;
+	durationSeconds: number;
 	nodeVersion: string;
-	summary: string;
 	notes?: string;
+	outputBytes: number;
+	pageCount: number;
+	summary: string;
+	timestamp: string;
 }
 
-function formatDuration(totalSeconds: number): string {
-	const hours = Math.floor(totalSeconds / 3600);
-	const minutes = Math.floor((totalSeconds % 3600) / 60);
-	const seconds = Math.round(totalSeconds % 60);
+type Options = z.input<typeof optionsSchema>;
 
-	if (hours > 0) return `${String(hours)}h ${String(minutes)}m ${String(seconds)}s`;
-	if (minutes > 0) return `${String(minutes)}m ${String(seconds)}s`;
+export default function buildLogger(options?: Options): AstroIntegration {
+	const parsed = optionsSchema.parse(options);
+	const logFileName = parsed?.logFileName ?? 'astro-build.jsonl';
 
-	return `${String(seconds)}s`;
+	let buildStartTime: number;
+
+	return {
+		hooks: {
+			'astro:build:done': async ({ dir, logger, pages }) => {
+				const buildEndTime = Date.now();
+				const durationSeconds = Number(((buildEndTime - buildStartTime) / 1000).toFixed(2));
+				const outputBytes = await getDirectorySize(dir);
+				const summary = formatSummary(durationSeconds, pages.length, outputBytes);
+
+				const entry: BuildLogEntry = {
+					astroVersion: astroPackage.version,
+					durationSeconds,
+					nodeVersion: process.versions.node,
+					outputBytes,
+					pageCount: pages.length,
+					summary,
+					timestamp: new Date(buildEndTime).toISOString(),
+				};
+
+				try {
+					await appendFile(logFileName, JSON.stringify(entry) + '\n');
+					logger.info(`Build time logged: ${summary}`);
+				} catch (error) {
+					logger.error(
+						`Failed to write build log: ${error instanceof Error ? error.message : 'unknown error'}`,
+					);
+				}
+			},
+			'astro:build:start': ({ logger }) => {
+				buildStartTime = Date.now();
+				logger.info(`Build timing started at ${new Date(buildStartTime).toISOString()}`);
+			},
+		},
+		name: '@xsynaptic/astro-build-logger',
+	};
 }
 
 function formatBytes(bytes: number): string {
@@ -52,6 +83,17 @@ function formatBytes(bytes: number): string {
 	const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
 
 	return `${value.toFixed(precision)} ${units[unitIndex] ?? 'B'}`;
+}
+
+function formatDuration(totalSeconds: number): string {
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = Math.round(totalSeconds % 60);
+
+	if (hours > 0) return `${String(hours)}h ${String(minutes)}m ${String(seconds)}s`;
+	if (minutes > 0) return `${String(minutes)}m ${String(seconds)}s`;
+
+	return `${String(seconds)}s`;
 }
 
 function formatSummary(durationSeconds: number, pageCount: number, outputBytes: number): string {
@@ -73,46 +115,4 @@ async function getDirectorySize(dir: URL): Promise<number> {
 		}
 	}
 	return total;
-}
-
-export default function buildLogger(options?: Options): AstroIntegration {
-	const parsed = optionsSchema.parse(options);
-	const logFileName = parsed?.logFileName ?? 'astro-build.jsonl';
-
-	let buildStartTime: number;
-
-	return {
-		name: '@xsynaptic/astro-build-logger',
-		hooks: {
-			'astro:build:start': ({ logger }) => {
-				buildStartTime = Date.now();
-				logger.info(`Build timing started at ${new Date(buildStartTime).toISOString()}`);
-			},
-			'astro:build:done': async ({ logger, pages, dir }) => {
-				const buildEndTime = Date.now();
-				const durationSeconds = Number(((buildEndTime - buildStartTime) / 1000).toFixed(2));
-				const outputBytes = await getDirectorySize(dir);
-				const summary = formatSummary(durationSeconds, pages.length, outputBytes);
-
-				const entry: BuildLogEntry = {
-					timestamp: new Date(buildEndTime).toISOString(),
-					durationSeconds,
-					pageCount: pages.length,
-					outputBytes,
-					astroVersion: astroPackage.version,
-					nodeVersion: process.versions.node,
-					summary,
-				};
-
-				try {
-					await appendFile(logFileName, JSON.stringify(entry) + '\n');
-					logger.info(`Build time logged: ${summary}`);
-				} catch (error) {
-					logger.error(
-						`Failed to write build log: ${error instanceof Error ? error.message : 'unknown error'}`,
-					);
-				}
-			},
-		},
-	};
 }

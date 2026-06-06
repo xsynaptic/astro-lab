@@ -19,9 +19,9 @@ const optionsSchema = z.object({
 	imports: importsConfigSchema,
 });
 
-type NamedImportConfig = z.output<typeof namedImportSchema>;
-
 type ImportsConfig = z.output<typeof importsConfigSchema>;
+
+type NamedImportConfig = z.output<typeof namedImportSchema>;
 
 type RemarkAutoImportOptions = z.input<typeof optionsSchema>;
 
@@ -35,6 +35,41 @@ function resolveModulePath(path: string): string {
 // MDX restricts component names to valid JS identifiers with a leading capital letter
 // @link -- https://mdxjs.com/docs/using-mdx/
 const identifierPattern = /^[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u;
+
+export function remarkAutoImport(options: RemarkAutoImportOptions): Plugin<[], Root> {
+	const { imports } = optionsSchema.parse(options);
+	// Derive and validate import statements once up front so bad config fails at setup, not per file
+	const importsSource = processImportsConfig(imports).join('\n');
+
+	return function () {
+		return function (tree, file) {
+			// Only .mdx supports the ESM imports we inject; plain .md is left untouched
+			if (file.basename?.endsWith('.mdx')) {
+				// fresh node per file; the estree is mutable and must not be aliased across trees
+				tree.children.unshift(parseImportsNode(importsSource));
+			}
+		};
+	};
+}
+
+function formatImport(imported: string, module: string): string {
+	return `import ${imported} from ${JSON.stringify(module)};`;
+}
+
+function formatNamedImports(namedImports: Array<NamedImportConfig>): string {
+	const imports: Array<string> = [];
+
+	for (const namedImport of namedImports) {
+		if (typeof namedImport === 'string') {
+			imports.push(namedImport);
+		} else {
+			const [from, as] = namedImport;
+			imports.push(`${from} as ${as}`);
+		}
+	}
+
+	return `{ ${imports.join(', ')} }`;
+}
 
 // PascalCase the filename into a component name, *e.g.* 'complex-component.astro' => 'ComplexComponent'
 // Splitting on non-identifier characters keeps Unicode letters (e.g. 'señor' => 'Señor') intact
@@ -55,23 +90,15 @@ function getDefaultImportName(path: string): string {
 	return name;
 }
 
-function formatImport(imported: string, module: string): string {
-	return `import ${imported} from ${JSON.stringify(module)};`;
-}
+function parseImportsNode(js: string): MdxjsEsm {
+	const estree = parseJs(js, { ecmaVersion: 'latest', sourceType: 'module' });
 
-function formatNamedImports(namedImports: Array<NamedImportConfig>): string {
-	const imports: Array<string> = [];
-
-	for (const namedImport of namedImports) {
-		if (typeof namedImport === 'string') {
-			imports.push(namedImport);
-		} else {
-			const [from, as] = namedImport;
-			imports.push(`${from} as ${as}`);
-		}
-	}
-
-	return `{ ${imports.join(', ')} }`;
+	return {
+		// Acorn's AST nodes are structurally compatible with the estree types MDX expects
+		data: { estree: estree as unknown as NonNullable<MdxjsEsm['data']>['estree'] },
+		type: 'mdxjsEsm',
+		value: js,
+	};
 }
 
 function processImportsConfig(config: ImportsConfig): Array<string> {
@@ -95,33 +122,6 @@ function processImportsConfig(config: ImportsConfig): Array<string> {
 	}
 
 	return imports;
-}
-
-function parseImportsNode(js: string): MdxjsEsm {
-	const estree = parseJs(js, { ecmaVersion: 'latest', sourceType: 'module' });
-
-	return {
-		type: 'mdxjsEsm',
-		value: js,
-		// Acorn's AST nodes are structurally compatible with the estree types MDX expects
-		data: { estree: estree as unknown as NonNullable<MdxjsEsm['data']>['estree'] },
-	};
-}
-
-export function remarkAutoImport(options: RemarkAutoImportOptions): Plugin<[], Root> {
-	const { imports } = optionsSchema.parse(options);
-	// Derive and validate import statements once up front so bad config fails at setup, not per file
-	const importsSource = processImportsConfig(imports).join('\n');
-
-	return function () {
-		return function (tree, file) {
-			// Only .mdx supports the ESM imports we inject; plain .md is left untouched
-			if (file.basename?.endsWith('.mdx')) {
-				// fresh node per file; the estree is mutable and must not be aliased across trees
-				tree.children.unshift(parseImportsNode(importsSource));
-			}
-		};
-	};
 }
 
 export type { RemarkAutoImportOptions };

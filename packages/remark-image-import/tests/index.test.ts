@@ -8,6 +8,10 @@ import type { RemarkImageImportOptions } from '../src/index.js';
 
 import { remarkImageImport } from '../src/index.js';
 
+function countMatches(source: string, pattern: RegExp): number {
+	return source.match(pattern)?.length ?? 0;
+}
+
 function process(input: string, options?: RemarkImageImportOptions): Promise<string> {
 	return unified()
 		.use(remarkParse)
@@ -16,10 +20,6 @@ function process(input: string, options?: RemarkImageImportOptions): Promise<str
 		.use(remarkStringify)
 		.process(input)
 		.then(String);
-}
-
-function countMatches(source: string, pattern: RegExp): number {
-	return source.match(pattern)?.length ?? 0;
 }
 
 describe('remarkImageImport', () => {

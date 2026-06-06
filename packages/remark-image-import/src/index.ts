@@ -22,34 +22,9 @@ const optionsSchema = z.object({
 	importPrefix: z.string().default('Img'),
 });
 
-type RemarkImageImportOptions = z.input<typeof optionsSchema>;
-
 type Estree = NonNullable<MdxjsEsm['data']>['estree'];
 
-// Acorn's AST is structurally compatible with the estree types MDX expects
-function parseProgram(js: string): Estree {
-	return parseJs(js, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as Estree;
-}
-
-function isMdxJsxFlowElement(node: Node): node is MdxJsxFlowElement {
-	return node.type === 'mdxJsxFlowElement';
-}
-
-function isMdxJsxTextElement(node: Node): node is MdxJsxTextElement {
-	return node.type === 'mdxJsxTextElement';
-}
-
-// Remote URLs and data URIs can't be ESM-imported, so they're left as plain
-// string sources for the component (and Astro) to handle directly
-function isExternalSrc(src: string): boolean {
-	return src.startsWith('http') || src.startsWith('data:');
-}
-
-// Sources that already carry a path (relative, absolute, or alias) are imported
-// as-is; bare filenames get `defaultPath` prepended
-function hasExplicitPath(src: string): boolean {
-	return src.startsWith('.') || src.startsWith('/') || src.startsWith('@');
-}
+type RemarkImageImportOptions = z.input<typeof optionsSchema>;
 
 export function remarkImageImport(options?: RemarkImageImportOptions): Plugin<[], Root> {
 	const settings = optionsSchema.parse(options ?? {});
@@ -91,16 +66,16 @@ export function remarkImageImport(options?: RemarkImageImportOptions): Plugin<[]
 				const importName = `${settings.importPrefix}${String(importId)}`;
 
 				const valueExpression: MdxJsxAttributeValueExpression = {
+					data: { estree: parseProgram(importName) },
 					type: 'mdxJsxAttributeValueExpression',
 					value: importName,
-					data: { estree: parseProgram(importName) },
 				};
 
 				const index = node.attributes.indexOf(srcAttribute);
 
 				node.attributes[index] = {
-					type: 'mdxJsxAttribute',
 					name: 'src',
+					type: 'mdxJsxAttribute',
 					value: valueExpression,
 				};
 
@@ -108,9 +83,9 @@ export function remarkImageImport(options?: RemarkImageImportOptions): Plugin<[]
 					const js = `import ${importName} from ${JSON.stringify(src)};`;
 
 					importStatements.set(src, {
+						data: { estree: parseProgram(js) },
 						type: 'mdxjsEsm',
 						value: js,
-						data: { estree: parseProgram(js) },
 					});
 				}
 			});
@@ -122,6 +97,31 @@ export function remarkImageImport(options?: RemarkImageImportOptions): Plugin<[]
 			}
 		};
 	};
+}
+
+// Sources that already carry a path (relative, absolute, or alias) are imported
+// as-is; bare filenames get `defaultPath` prepended
+function hasExplicitPath(src: string): boolean {
+	return src.startsWith('.') || src.startsWith('/') || src.startsWith('@');
+}
+
+// Remote URLs and data URIs can't be ESM-imported, so they're left as plain
+// string sources for the component (and Astro) to handle directly
+function isExternalSrc(src: string): boolean {
+	return src.startsWith('http') || src.startsWith('data:');
+}
+
+function isMdxJsxFlowElement(node: Node): node is MdxJsxFlowElement {
+	return node.type === 'mdxJsxFlowElement';
+}
+
+function isMdxJsxTextElement(node: Node): node is MdxJsxTextElement {
+	return node.type === 'mdxJsxTextElement';
+}
+
+// Acorn's AST is structurally compatible with the estree types MDX expects
+function parseProgram(js: string): Estree {
+	return parseJs(js, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as Estree;
 }
 
 export type { RemarkImageImportOptions };

@@ -9,6 +9,17 @@ import { unified } from 'unified';
 // Cache frozen processors by options hash
 const processorCache = new Map<string, unknown>();
 
+export function sanitizeHtml(input: string, options?: RehypeSanitizeOptions): string {
+	const processor = getProcessor(options);
+
+	return String(processor.processSync(input));
+}
+
+// Handy shortcut for when you just want to strip tags from text
+export function stripTags(input: string, options?: RehypeSanitizeOptions): string {
+	return sanitizeHtml(input, { ...options, tagNames: [] });
+}
+
 function createProcessor(options?: RehypeSanitizeOptions) {
 	return unified()
 		.use(rehypeParse, { fragment: true })
@@ -28,15 +39,4 @@ function getProcessor(options?: RehypeSanitizeOptions) {
 	}
 
 	return processor as ReturnType<typeof createProcessor>;
-}
-
-export function sanitizeHtml(input: string, options?: RehypeSanitizeOptions): string {
-	const processor = getProcessor(options);
-
-	return String(processor.processSync(input));
-}
-
-// Handy shortcut for when you just want to strip tags from text
-export function stripTags(input: string, options?: RehypeSanitizeOptions): string {
-	return sanitizeHtml(input, { ...options, tagNames: [] });
 }

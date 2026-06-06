@@ -7,20 +7,20 @@ import type { RemarkAutoImportOptions } from '../src/index.js';
 
 import { remarkAutoImport } from '../src/index.js';
 
+interface InjectedImport {
+	source: string;
+	specifiers: Array<string>;
+}
+
 type SyncTransform = (tree: Root, file: { basename?: string }) => void;
 
 function inject(options: RemarkAutoImportOptions, basename: string): Root {
-	const tree: Root = { type: 'root', children: [{ type: 'paragraph', children: [] }] };
+	const tree: Root = { children: [{ children: [], type: 'paragraph' }], type: 'root' };
 	const createTransform = remarkAutoImport(options) as unknown as () => SyncTransform;
 
 	createTransform()(tree, { basename });
 
 	return tree;
-}
-
-interface InjectedImport {
-	source: string;
-	specifiers: Array<string>;
 }
 
 // Flatten the injected mdxjsEsm node back into a readable shape for assertions

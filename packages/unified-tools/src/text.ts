@@ -7,6 +7,10 @@ import retextSmartypants from 'retext-smartypants';
 // Cache frozen processors by options hash
 const processorCache = new Map<string, unknown>();
 
+export function stylizeText(input: string, options?: RetextSmartypantsOptions): string {
+	return String(getProcessor(options).processSync(input)).trim();
+}
+
 function createProcessor(options?: RetextSmartypantsOptions) {
 	return retext().use(retextSmartypants, options).freeze();
 }
@@ -22,8 +26,4 @@ function getProcessor(options?: RetextSmartypantsOptions) {
 	}
 
 	return processor as ReturnType<typeof createProcessor>;
-}
-
-export function stylizeText(input: string, options?: RetextSmartypantsOptions): string {
-	return String(getProcessor(options).processSync(input)).trim();
 }

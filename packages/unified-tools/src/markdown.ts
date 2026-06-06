@@ -17,6 +17,10 @@ interface TransformMarkdownOptions {
 // Cache frozen processors by options hash
 const processorCache = new Map<string, unknown>();
 
+export function transformMarkdown({ input, wrapCjkOptions }: TransformMarkdownOptions): string {
+	return getProcessor(wrapCjkOptions).processSync(input).toString().trim();
+}
+
 function createProcessorWithCjk(wrapCjkOptions: Partial<RehypeWrapCjkOptions>) {
 	return unified()
 		.use(remarkParse)
@@ -53,8 +57,4 @@ function getProcessor(wrapCjkOptions?: Partial<RehypeWrapCjkOptions>) {
 	}
 
 	return processor as ReturnType<typeof createProcessorWithoutCjk>;
-}
-
-export function transformMarkdown({ input, wrapCjkOptions }: TransformMarkdownOptions): string {
-	return getProcessor(wrapCjkOptions).processSync(input).toString().trim();
 }

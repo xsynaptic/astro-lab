@@ -5,11 +5,11 @@ import { h } from 'hastscript';
 import { visitParents } from 'unist-util-visit-parents';
 
 export interface RehypeWrapCjkOptions {
-	element?: string;
 	attribute?: string;
-	value?: string;
+	element?: string;
 	regex?: RegExp;
 	skipTags?: Array<string>;
+	value?: string;
 }
 
 const defaultSkipTags = ['code', 'pre', 'kbd', 'samp', 'script', 'style'];
@@ -43,19 +43,19 @@ export const cjkScriptRange = String.raw`\p{scx=Han}\p{scx=Hiragana}\p{scx=Katak
 export const fullwidthAsciiRange = String.raw`\uFF01-\uFF5E`;
 
 export const cjkRegexPresets = {
-	zh: new RegExp(`[${zhScriptRange}${fullwidthAsciiRange}]+`, 'gu'),
+	cjk: new RegExp(`[${cjkScriptRange}${fullwidthAsciiRange}]+`, 'gu'),
 	ja: new RegExp(`[${jaScriptRange}${fullwidthAsciiRange}]+`, 'gu'),
 	ko: new RegExp(`[${koScriptRange}${fullwidthAsciiRange}]+`, 'gu'),
-	cjk: new RegExp(`[${cjkScriptRange}${fullwidthAsciiRange}]+`, 'gu'),
+	zh: new RegExp(`[${zhScriptRange}${fullwidthAsciiRange}]+`, 'gu'),
 };
 
 export const rehypeWrapCjk: Plugin<[RehypeWrapCjkOptions?], Root> = (options) => {
 	const settings = {
-		element: options?.element ?? 'span',
 		attribute: options?.attribute ?? 'class',
-		value: options?.value ?? 'cjk',
+		element: options?.element ?? 'span',
 		regex: options?.regex,
 		skipTags: options?.skipTags ?? defaultSkipTags,
+		value: options?.value ?? 'cjk',
 	};
 
 	const baseRegex =

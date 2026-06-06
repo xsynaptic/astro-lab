@@ -50,14 +50,6 @@ export function wrapChinese(input: string): string {
 	return getProcessor(zhOptions).processSync(input).toString();
 }
 
-export function wrapJapanese(input: string): string {
-	return getProcessor(jaOptions).processSync(input).toString();
-}
-
-export function wrapKorean(input: string): string {
-	return getProcessor(koOptions).processSync(input).toString();
-}
-
 // wrapCjkOptions is required so a no-op call cannot be written; pass `{}` for the default `cjk` preset
 export function wrapCjk({
 	input,
@@ -67,4 +59,12 @@ export function wrapCjk({
 	wrapCjkOptions: Partial<RehypeWrapCjkOptions>;
 }): string {
 	return getProcessor(wrapCjkOptions).processSync(input).toString();
+}
+
+export function wrapJapanese(input: string): string {
+	return getProcessor(jaOptions).processSync(input).toString();
+}
+
+export function wrapKorean(input: string): string {
+	return getProcessor(koOptions).processSync(input).toString();
 }

@@ -180,19 +180,19 @@ const processWith = async (
 describe('rehype wrap CJK plugin option configuration', () => {
 	test('custom element, attribute, and value', async () => {
 		await expect(
-			processWith({ element: 'em', attribute: 'data-lang', value: 'zh-Hans' }, '你好'),
+			processWith({ attribute: 'data-lang', element: 'em', value: 'zh-Hans' }, '你好'),
 		).resolves.toEqual('<p><em data-lang="zh-Hans">你好</em></p>');
 	});
 
 	test('custom regex without g flag is normalized', async () => {
 		await expect(
-			processWith({ regex: /[你好]+/, attribute: 'lang', value: 'zh' }, '你好 世界'),
+			processWith({ attribute: 'lang', regex: /[你好]+/, value: 'zh' }, '你好 世界'),
 		).resolves.toEqual('<p><span lang="zh">你好</span> 世界</p>');
 	});
 
 	test('skipTags: [] disables default exclusions', async () => {
 		await expect(
-			processWith({ attribute: 'lang', value: 'zh', skipTags: [] }, '`中文`'),
+			processWith({ attribute: 'lang', skipTags: [], value: 'zh' }, '`中文`'),
 		).resolves.toEqual('<p><code><span lang="zh">中文</span></code></p>');
 	});
 
