@@ -1,5 +1,15 @@
 # @xsynaptic/eslint-config
 
+## 3.7.0
+
+### Minor Changes
+
+- Require a description on every ESLint disable directive via `@eslint-community/eslint-comments/require-description` (e.g. `// eslint-disable-next-line no-foo -- reason`). `eslint-enable` is exempt. This newly flags existing disable comments that lack a description.
+
+### Patch Changes
+
+- Document `getAstroConfig()`'s two cwd-resolved peers in the README: `eslint-plugin-jsx-a11y` (for a11y) and `@typescript-eslint/parser` (for TypeScript in `.astro` `<script>` tags). Both must be installed in the consuming project directly, since eslint-plugin-astro resolves them from the project root rather than transitively.
+
 ## 3.6.0
 
 ### Minor Changes
