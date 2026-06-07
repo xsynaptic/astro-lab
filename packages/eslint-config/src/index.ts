@@ -1,5 +1,6 @@
 import type { Config, ConfigWithExtends, ConfigWithExtendsArray } from '@eslint/config-helpers';
 
+import eslintComments from '@eslint-community/eslint-plugin-eslint-comments';
 import { defineConfig } from '@eslint/config-helpers';
 import eslint from '@eslint/js';
 import astroPlugin from 'eslint-plugin-astro';
@@ -121,6 +122,15 @@ export function getConfig(
 			},
 		},
 		perfectionist.configs['recommended-natural'],
+		{
+			plugins: { '@eslint-community/eslint-comments': eslintComments },
+			rules: {
+				'@eslint-community/eslint-comments/require-description': [
+					'error',
+					{ ignore: ['eslint-enable'] },
+				],
+			},
+		},
 	] satisfies Array<ConfigWithExtends>;
 
 	return defineConfig(...baseConfig, ...(customConfig ?? []));

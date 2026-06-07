@@ -37,6 +37,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
 		"@eslint/config-helpers": "^0.6.0",
 		"@eslint/js": "^9.39.4",
 		"eslint-plugin-astro": "^1.7.0",
