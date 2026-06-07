@@ -1,5 +1,12 @@
 # @xsynaptic/eslint-config
 
+## 3.6.0
+
+### Minor Changes
+
+- Forbid JSX `&&` conditional rendering by default and make `no-restricted-syntax` extendable. The base config now flags `condition && <Element />` inside JSX, steering toward a ternary returning `undefined`. A new `restrictedSyntax` option concatenates extra selectors onto the defaults so consumers can add their own restrictions without clobbering the built-in entries (ESLint's `rules` keys replace wholesale rather than merging). The default selectors are also exported as `restrictedSyntaxDefaults`.
+- Add `getAstroConfig()`: Astro plugin rules, `.astro` parser wiring, and the disableTypeChecked blocks `.astro` files need. Opt into a11y by passing a config (e.g. `astroPlugin.configs['flat/jsx-a11y-strict']`). Bundles `eslint-plugin-astro`.
+
 ## 3.5.0
 
 ### Minor Changes
