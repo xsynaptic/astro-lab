@@ -2,20 +2,74 @@ import type { Config, ConfigWithExtends, ConfigWithExtendsArray } from '@eslint/
 
 import { defineConfig } from '@eslint/config-helpers';
 import eslint from '@eslint/js';
+import astroPlugin from 'eslint-plugin-astro';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unicornPlugin from 'eslint-plugin-unicorn';
 import { configs as webComponentConfigs } from 'eslint-plugin-wc';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+type RestrictedSyntaxOption = string | { message?: string; selector: string };
+
+// Extend via `getConfig(_, { restrictedSyntax })`
+// Redefining the rule clobbers these, as ESLint replaces rule keys wholesale
+export const restrictedSyntaxDefaults: Array<RestrictedSyntaxOption> = [
+	{
+		message: 'Separate type imports into their own `import type` statement.',
+		selector: 'ImportDeclaration[importKind="value"] ImportSpecifier[importKind="type"]',
+	},
+	{
+		message:
+			'Use a ternary returning undefined (condition ? <Element /> : undefined) instead of && for conditional rendering.',
+		selector:
+			':matches(JSXElement, JSXFragment) > JSXExpressionContainer > LogicalExpression[operator="&&"]',
+	},
+];
+
+// Astro plugin rules plus the `.astro` parser wiring and disableTypeChecked blocks it needs
+// Types can't resolve through the Astro parser so `astro check` owns type checking
+// For a11y, install eslint-plugin-jsx-a11y and pass a config (e.g. `astroPlugin.configs['flat/jsx-a11y-strict']`)
+export function getAstroConfig(options?: {
+	a11y?: ConfigWithExtendsArray;
+}): ConfigWithExtendsArray {
+	return [
+		...astroPlugin.configs['flat/recommended'],
+		...(options?.a11y ?? []),
+		// Split from the disableTypeChecked block below so it doesn't clobber these parserOptions
+		{
+			files: ['**/*.astro'],
+			languageOptions: {
+				parserOptions: {
+					extraFileExtensions: ['.astro'],
+					parser: tseslint.parser,
+				},
+			},
+		},
+		{
+			files: ['**/*.astro'],
+			...tseslint.configs.disableTypeChecked,
+		},
+		{
+			files: ['**/*.astro/*.ts', '*.astro/*.ts'],
+			...tseslint.configs.disableTypeChecked,
+		},
+		{
+			files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
+			...tseslint.configs.disableTypeChecked,
+		},
+	];
+}
+
 export function getConfig(
 	customConfig?: ConfigWithExtendsArray,
 	options?: {
 		customGlobals?: Record<string, 'readonly' | 'writeable'>;
 		parserOptions?: NonNullable<Config['languageOptions']>['parserOptions'];
+		restrictedSyntax?: Array<RestrictedSyntaxOption>;
 	},
 ): ConfigWithExtendsArray {
 	const customGlobals = options?.customGlobals ?? {};
+	const restrictedSyntax = [...restrictedSyntaxDefaults, ...(options?.restrictedSyntax ?? [])];
 
 	const baseConfig = [
 		eslint.configs.recommended,
@@ -54,13 +108,7 @@ export function getConfig(
 					},
 				],
 				'@typescript-eslint/prefer-nullish-coalescing': 'off',
-				'no-restricted-syntax': [
-					'error',
-					{
-						message: 'Separate type imports into their own `import type` statement.',
-						selector: 'ImportDeclaration[importKind="value"] ImportSpecifier[importKind="type"]',
-					},
-				],
+				'no-restricted-syntax': ['error', ...restrictedSyntax],
 			},
 		},
 		unicornPlugin.configs.recommended,
