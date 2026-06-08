@@ -1,14 +1,8 @@
-// Pure, isomorphic unpic provider for imagor (https://github.com/cshum/imagor)
-//
-// imagor uses a positional, thumbor-derived URL grammar like unpic's storyblok provider
-// Geometry is typed as path segments; the `filters:` segment is a flat name -> args map
-// Explicit-provider only: no canonical domain or path marker, so no auto-detect
-
 import type { ImageFormat, Operations, TransformerFunction } from 'unpic';
 
 export type ImagorFormats = ImageFormat | 'gif' | 'tiff' | 'jp2' | 'jxl' | 'heif' | (string & {});
 
-/** imagor operations: typed positional geometry plus a `filters:` name -> args map */
+/** imagor uses a positional, thumbor-derived URL grammar; the `filters:` segment is a flat name -> args map. */
 export interface ImagorOperations extends Operations<ImagorFormats> {
 	/** Resize fit, mapped to imagor: contain=fit-in, inside=fit-in+no_upscale, outside=full-fit-in, fill=stretch */
 	fit?: 'cover' | 'contain' | 'inside' | 'outside' | 'fill';
@@ -23,13 +17,13 @@ export interface ImagorOperations extends Operations<ImagorFormats> {
 	hAlign?: 'left' | 'center' | 'right';
 	vAlign?: 'top' | 'middle' | 'bottom';
 
-	/** Trim a surrounding single-colour border; `true` is top-left, the object form sets corner and 0-442 tolerance */
+	/** Trim a surrounding single-colour border. The object form sets corner and 0-442 tolerance. */
 	trim?: boolean | { tolerance?: number; corner?: 'top-left' | 'bottom-right' };
 
-	/** Manual crop before resizing; values below 1 are source ratios, 1 or greater are pixels */
+	/** Manual crop before resizing. Values below 1 are source ratios, 1 or greater are pixels. */
 	crop?: { left: number; top: number; right: number; bottom: number };
 
-	/** Padding around the resized image in pixels; a single number pads all sides equally */
+	/** Padding in pixels. A single number pads all sides equally. */
 	padding?: number | { left: number; top: number; right: number; bottom: number };
 
 	/** imagor filters as name -> args, e.g. `{ blur: '5', grayscale: '', rgb: '10,20,30' }` */
@@ -37,8 +31,14 @@ export interface ImagorOperations extends Operations<ImagorFormats> {
 }
 
 export interface ImagorOptions {
-	/** Mount prefix stripped from an incoming src; never emitted (imagor signs the bare path) */
+	/** Mount prefix prepended to generated URLs and stripped from incoming ones */
 	baseURL?: string;
+	/**
+	 * Emit imagor's unsigned `unsafe` form (default true), which the server
+	 * accepts only when run with IMAGOR_UNSAFE. For production, set IMAGOR_SECRET
+	 * and sign at your edge, or set this false to emit the bare signable path.
+	 */
+	unsafe?: boolean;
 }
 
 type ImagorExtractor = (
@@ -67,19 +67,28 @@ export const generate: TransformerFunction<ImagorOperations, ImagorOptions> = (
 
 	segments.push(escapeSource(normaliseSource(src, options?.baseURL)));
 
-	return segments.join('/');
+	const path =
+		options?.unsafe === false ? segments.join('/') : `unsafe/${segments.join('/')}`;
+
+	const baseURL = options?.baseURL;
+	if (baseURL === undefined) return path;
+	const trimmedBase = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
+	return `${trimmedBase}/${path}`;
 };
 
 export const extract: ImagorExtractor = (url, options) => {
 	const baseURL = options?.baseURL;
 
 	const path = normaliseSource(url, baseURL);
-	// eslint-disable-next-line unicorn/no-null -- Upstream contract returns null on no match
+	// eslint-disable-next-line unicorn/no-null -- null signals no match
 	if (path === '') return null;
 
 	const segments = path.split('/');
 	const operations: ImagorOperations = {};
 	let index = 0;
+
+	// Drop imagor's unsigned sentinel so a re-generate adds exactly one
+	if (segments[index] === 'unsafe') index += 1;
 
 	const trimToken = segments[index];
 	if (trimToken !== undefined && trimRegex.test(trimToken)) {
@@ -157,7 +166,7 @@ export const extract: ImagorExtractor = (url, options) => {
 	if (Object.keys(filters).length > 0) operations.filters = filters;
 
 	const src = decodeSource(segments.slice(index).join('/'));
-	// eslint-disable-next-line unicorn/no-null -- Upstream contract returns null on no match
+	// eslint-disable-next-line unicorn/no-null -- null signals no match
 	if (src === '') return null;
 
 	return {
@@ -255,7 +264,7 @@ function appendAlign(
 	if (vAlign === 'top' || vAlign === 'bottom') segments.push(vAlign);
 }
 
-// Quality/format are standard unpic operations but imagor has no native slot, so they become filters
+// Quality and format have no native imagor slot, so they become filters
 function buildFilters(operations: ImagorOperations): Array<string> {
 	const entries: Record<string, string> = {};
 	if (operations.quality !== undefined) entries.quality = String(operations.quality);
@@ -391,6 +400,7 @@ const reservedSourcePrefixes = [
 	'meta/',
 	'fit-in/',
 	'stretch/',
+	'unsafe/',
 	'top/',
 	'left/',
 	'right/',

@@ -122,6 +122,14 @@ describe('extract: source and edge cases', () => {
 		expect(extract('photo.jpg')).toEqual({ src: 'photo.jpg', operations: {}, options: {} });
 	});
 
+	test('the unsafe sentinel is dropped before parsing', () => {
+		expect(extract('unsafe/800x600/photo.jpg')).toEqual({
+			src: 'photo.jpg',
+			operations: { width: 800, height: 600 },
+			options: {},
+		});
+	});
+
 	test('nested source path is rejoined', () => {
 		expect(extract('800x0/folder/sub/photo.jpg')?.src).toBe('folder/sub/photo.jpg');
 	});
@@ -199,18 +207,20 @@ describe('extract: round-trips generate output', () => {
 
 describe('transform', () => {
 	test('regenerates fresh when the src does not match baseURL', () => {
-		expect(transform('photo.jpg', { width: 800 })).toBe('800x0/photo.jpg');
+		expect(transform('photo.jpg', { width: 800 })).toBe('unsafe/800x0/photo.jpg');
 	});
 
 	test('merges operations onto an existing baseURL-prefixed path', () => {
 		const existing = `/_imagor/${generate('photo.jpg', { width: 800, quality: 80 })}`;
 		expect(transform(existing, { quality: 50 }, { baseURL: '/_imagor' })).toBe(
-			'800x0/filters:quality(50)/photo.jpg',
+			'/_imagor/unsafe/800x0/filters:quality(50)/photo.jpg',
 		);
 	});
 
 	test('new operations override extracted ones', () => {
 		const existing = `/_imagor/${generate('photo.jpg', { width: 800, height: 600 })}`;
-		expect(transform(existing, { width: 400 }, { baseURL: '/_imagor' })).toBe('400x600/photo.jpg');
+		expect(transform(existing, { width: 400 }, { baseURL: '/_imagor' })).toBe(
+			'/_imagor/unsafe/400x600/photo.jpg',
+		);
 	});
 });

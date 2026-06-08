@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/unpic-imagor",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "An experiment imagor provider prototype for unpic",
 	"type": "module",
 	"license": "MIT",
