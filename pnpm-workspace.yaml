@@ -2,13 +2,9 @@ packages:
   - packages/*
   - playground/*
 
-# Local installs link the playground to the workspace package
-# On StackBlitz (which boots the playground subdir as its own root) it resolves the published package
-overrides:
-  '@xsynaptic/remark-auto-import': workspace:*
-  '@xsynaptic/remark-image-import': workspace:*
-
-# Keep pnpm from rewriting the playground's published range to workspace:*
+# Link the playground to the local workspace package by range; StackBlitz boots the
+# playground subdir as its own root and resolves the published package from npm instead
+linkWorkspacePackages: true
 saveWorkspaceProtocol: false
 
 # Intended to mitigate supply chain attacks
