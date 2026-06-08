@@ -67,8 +67,7 @@ export const generate: TransformerFunction<ImagorOperations, ImagorOptions> = (
 
 	segments.push(escapeSource(normaliseSource(src, options?.baseURL)));
 
-	const path =
-		options?.unsafe === false ? segments.join('/') : `unsafe/${segments.join('/')}`;
+	const path = options?.unsafe === false ? segments.join('/') : `unsafe/${segments.join('/')}`;
 
 	const baseURL = options?.baseURL;
 	if (baseURL === undefined) return path;
