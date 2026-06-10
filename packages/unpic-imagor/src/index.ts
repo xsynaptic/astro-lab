@@ -17,7 +17,7 @@ export interface ImagorOperations extends Operations<ImagorFormats> {
 	hAlign?: 'left' | 'center' | 'right';
 	vAlign?: 'top' | 'middle' | 'bottom';
 
-	/** Trim a surrounding single-colour border. The object form sets corner and 0-442 tolerance. */
+	/** Trim surrounding border pixels. The object form sets the reference corner and tolerance. */
 	trim?: boolean | { tolerance?: number; corner?: 'top-left' | 'bottom-right' };
 
 	/** Manual crop before resizing. Values below 1 are source ratios, 1 or greater are pixels. */
@@ -86,7 +86,7 @@ export const extract: ImagorExtractor = (url, options) => {
 	const operations: ImagorOperations = {};
 	let index = 0;
 
-	// Drop imagor's unsigned sentinel so a re-generate adds exactly one
+	// `unsafe` is imagor's unsigned-mode marker, not an operation, so skip it
 	if (segments[index] === 'unsafe') index += 1;
 
 	const trimToken = segments[index];
@@ -181,10 +181,10 @@ export const transform: TransformerFunction<ImagorOperations, ImagorOptions> = (
 	options,
 ) => {
 	const baseURL = options?.baseURL;
-	const raw = typeof src === 'string' ? src : src.toString();
+	const rawSource = typeof src === 'string' ? src : src.toString();
 
 	// no path marker, so only re-extract when src carries the known baseURL prefix
-	if (baseURL !== undefined && raw.startsWith(baseURL)) {
+	if (baseURL !== undefined && rawSource.startsWith(baseURL)) {
 		const extracted = extract(src, options);
 		if (extracted) {
 			return generate(
@@ -290,15 +290,15 @@ function splitFilters(filterList: string): Array<string> {
 	const result: Array<string> = [];
 	let depth = 0;
 	let current = '';
-	for (const char of filterList) {
-		if (char === '(') depth += 1;
-		else if (char === ')') depth -= 1;
-		if (char === ':' && depth === 0) {
+	for (const character of filterList) {
+		if (character === '(') depth += 1;
+		else if (character === ')') depth -= 1;
+		if (character === ':' && depth === 0) {
 			result.push(current);
 			current = '';
 			continue;
 		}
-		current += char;
+		current += character;
 	}
 	if (current !== '') result.push(current);
 	return result;
@@ -361,8 +361,8 @@ function applyDimensions(operations: ImagorOperations, token: string): void {
 }
 
 function applyPadding(operations: ImagorOperations, token: string): void {
-	const [main, rightBottom] = token.split(':');
-	const [left, top] = (main ?? '').split('x');
+	const [leftTop, rightBottom] = token.split(':');
+	const [left, top] = (leftTop ?? '').split('x');
 	const leftValue = Number(left);
 	const topValue = Number(top);
 	if (rightBottom === undefined) {
@@ -389,8 +389,10 @@ function toNumber(value: string | number | undefined): number | undefined {
 }
 
 function normaliseSource(src: string | URL, baseURL?: string): string {
-	const raw = typeof src === 'string' ? src : src.toString();
-	const withoutBase = baseURL && raw.startsWith(baseURL) ? raw.slice(baseURL.length) : raw;
+	const rawSource = typeof src === 'string' ? src : src.toString();
+	const withoutBase = baseURL && rawSource.startsWith(baseURL)
+		? rawSource.slice(baseURL.length)
+		: rawSource;
 	return withoutBase.startsWith('/') ? withoutBase.slice(1) : withoutBase;
 }
 
