@@ -28,12 +28,15 @@ export function transformMarkdown({
 }: TransformMarkdownOptions): string {
 	const resolvedSmartypantsOptions = { ...defaultSmartypantsOptions, ...smartypantsOptions };
 
-	return getProcessor(resolvedSmartypantsOptions, wrapCjkOptions).processSync(input).toString().trim();
+	return getProcessor(resolvedSmartypantsOptions, wrapCjkOptions)
+		.processSync(input)
+		.toString()
+		.trim();
 }
 
 function createProcessorWithCjk(
 	smartypantsOptions: SmartypantsOptions,
-	wrapCjkOptions: Partial<RehypeWrapCjkOptions>
+	wrapCjkOptions: Partial<RehypeWrapCjkOptions>,
 ) {
 	return unified()
 		.use(remarkParse)
@@ -58,7 +61,7 @@ function createProcessorWithoutCjk(smartypantsOptions: SmartypantsOptions) {
 
 function getProcessor(
 	smartypantsOptions: SmartypantsOptions,
-	wrapCjkOptions?: Partial<RehypeWrapCjkOptions>
+	wrapCjkOptions?: Partial<RehypeWrapCjkOptions>,
 ) {
 	const cacheKey = hash({ smartypantsOptions, wrapCjkOptions });
 
