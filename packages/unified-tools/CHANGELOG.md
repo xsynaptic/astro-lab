@@ -1,5 +1,11 @@
 # @xsynaptic/unified-tools
 
+## 5.1.0
+
+### Minor Changes
+
+- Default smartypants to `dashes: 'oldschool'` in both `stylizeText` and `transformMarkdown`, and expose `smartypantsOptions` on `transformMarkdown` so callers can override (e.g. `{ dashes: true }`). Note the default output change: `--` now renders as an en-dash (`–`) and `---` as an em-dash (`—`), where previously `--` rendered as an em-dash. Pass `{ dashes: true }` to restore the prior behavior.
+
 ## 5.0.0
 
 ### Major Changes

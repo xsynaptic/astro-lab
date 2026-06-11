@@ -1,4 +1,5 @@
 import type { RehypeWrapCjkOptions } from '@xsynaptic/rehype-wrap-cjk';
+import type { Options as SmartypantsOptions } from 'retext-smartypants';
 
 import { rehypeWrapCjk } from '@xsynaptic/rehype-wrap-cjk';
 import { hash } from 'ohash';
@@ -12,19 +13,31 @@ import { unified } from 'unified';
 interface TransformMarkdownOptions {
 	input: string;
 	wrapCjkOptions?: Partial<RehypeWrapCjkOptions> | undefined;
+	smartypantsOptions?: SmartypantsOptions | undefined;
 }
+
+const defaultSmartypantsOptions: SmartypantsOptions = { dashes: 'oldschool' };
 
 // Cache frozen processors by options hash
 const processorCache = new Map<string, unknown>();
 
-export function transformMarkdown({ input, wrapCjkOptions }: TransformMarkdownOptions): string {
-	return getProcessor(wrapCjkOptions).processSync(input).toString().trim();
+export function transformMarkdown({
+	input,
+	wrapCjkOptions,
+	smartypantsOptions,
+}: TransformMarkdownOptions): string {
+	const resolvedSmartypantsOptions = { ...defaultSmartypantsOptions, ...smartypantsOptions };
+
+	return getProcessor(resolvedSmartypantsOptions, wrapCjkOptions).processSync(input).toString().trim();
 }
 
-function createProcessorWithCjk(wrapCjkOptions: Partial<RehypeWrapCjkOptions>) {
+function createProcessorWithCjk(
+	smartypantsOptions: SmartypantsOptions,
+	wrapCjkOptions: Partial<RehypeWrapCjkOptions>
+) {
 	return unified()
 		.use(remarkParse)
-		.use(remarkSmartyPants)
+		.use(remarkSmartyPants, smartypantsOptions)
 		.use(remarkRehype)
 		.use(rehypeSanitize)
 		.use(rehypeWrapCjk, wrapCjkOptions)
@@ -33,26 +46,28 @@ function createProcessorWithCjk(wrapCjkOptions: Partial<RehypeWrapCjkOptions>) {
 }
 
 // Processor without CJK wrapping
-function createProcessorWithoutCjk() {
+function createProcessorWithoutCjk(smartypantsOptions: SmartypantsOptions) {
 	return unified()
 		.use(remarkParse)
-		.use(remarkSmartyPants)
+		.use(remarkSmartyPants, smartypantsOptions)
 		.use(remarkRehype)
 		.use(rehypeSanitize)
 		.use(rehypeStringify)
 		.freeze();
 }
 
-function getProcessor(wrapCjkOptions?: Partial<RehypeWrapCjkOptions>) {
-	// Generate stable cache key from options (empty string for no options)
-	const cacheKey = wrapCjkOptions ? hash(wrapCjkOptions) : '';
+function getProcessor(
+	smartypantsOptions: SmartypantsOptions,
+	wrapCjkOptions?: Partial<RehypeWrapCjkOptions>
+) {
+	const cacheKey = hash({ smartypantsOptions, wrapCjkOptions });
 
 	let processor = processorCache.get(cacheKey);
 
 	if (!processor) {
 		processor = wrapCjkOptions
-			? createProcessorWithCjk(wrapCjkOptions)
-			: createProcessorWithoutCjk();
+			? createProcessorWithCjk(smartypantsOptions, wrapCjkOptions)
+			: createProcessorWithoutCjk(smartypantsOptions);
 		processorCache.set(cacheKey, processor);
 	}
 

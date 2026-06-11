@@ -4,19 +4,23 @@ import { hash } from 'ohash';
 import { retext } from 'retext';
 import retextSmartypants from 'retext-smartypants';
 
+const defaultOptions: RetextSmartypantsOptions = { dashes: 'oldschool' };
+
 // Cache frozen processors by options hash
 const processorCache = new Map<string, unknown>();
 
 export function stylizeText(input: string, options?: RetextSmartypantsOptions): string {
-	return String(getProcessor(options).processSync(input)).trim();
+	const resolvedOptions = { ...defaultOptions, ...options };
+
+	return String(getProcessor(resolvedOptions).processSync(input)).trim();
 }
 
-function createProcessor(options?: RetextSmartypantsOptions) {
+function createProcessor(options: RetextSmartypantsOptions) {
 	return retext().use(retextSmartypants, options).freeze();
 }
 
-function getProcessor(options?: RetextSmartypantsOptions) {
-	const cacheKey = options ? hash(options) : '';
+function getProcessor(options: RetextSmartypantsOptions) {
+	const cacheKey = hash(options);
 
 	let processor = processorCache.get(cacheKey);
 
