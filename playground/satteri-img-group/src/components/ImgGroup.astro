@@ -1,0 +1,38 @@
+---
+// `imageCount` is stamped by the satteri-img-group plugin
+interface Props {
+	layout?: string;
+	imageCount?: string;
+}
+
+const { layout = 'default', imageCount } = Astro.props;
+---
+
+<div class="img-group" data-layout={layout}>
+	<p class="img-group__meta">layout=<code>{layout}</code> imageCount=<code>{imageCount}</code></p>
+	<div class="img-group__items">
+		<slot />
+	</div>
+</div>
+
+<style>
+	.img-group {
+		margin: 2rem 0;
+		padding: 1rem;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+	}
+
+	.img-group__meta {
+		margin: 0 0 0.75rem;
+		font-family: monospace;
+		font-size: 0.85rem;
+		color: #555;
+	}
+
+	.img-group__items {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+</style>

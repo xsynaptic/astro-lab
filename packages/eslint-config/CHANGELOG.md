@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 3.8.0
+
+### Minor Changes
+
+- Bump bundled dependencies: `eslint-plugin-unicorn` to v65 (a major bump that changes the spread `recommended` rule set consumers inherit) and `typescript-eslint` to ^8.61.
+
 ## 3.7.0
 
 ### Minor Changes

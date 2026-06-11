@@ -1,0 +1,18 @@
+import Img from '../components/Img.astro';
+import ImgGroup from '../components/ImgGroup.astro';
+
+# satteri-img-group
+
+The plugin stamps `imageCount` on each `<ImgGroup>` and `context` (`grid`/`carousel`) on each `<Img>`
+at build time. The values rendered below are stamped, not authored.
+
+<ImgGroup>
+	<Img src="/a.jpg" />
+	<Img src="/b.jpg" />
+</ImgGroup>
+
+<ImgGroup layout="carousel">
+	<Img src="/c.jpg" />
+	<Img src="/d.jpg" />
+	<Img src="/e.jpg" />
+</ImgGroup>

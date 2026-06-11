@@ -1,0 +1,31 @@
+---
+// `context` (grid/carousel) is stamped by the satteri-img-group plugin
+interface Props {
+	src: string;
+	context?: string;
+}
+
+const { src, context } = Astro.props;
+---
+
+<figure class="img" data-context={context}>
+	<img src={src} alt="" width="120" height="80" />
+	<figcaption>context=<code>{context}</code></figcaption>
+</figure>
+
+<style>
+	.img {
+		margin: 0;
+	}
+
+	.img img {
+		display: block;
+		background: #eee;
+	}
+
+	.img figcaption {
+		font-family: monospace;
+		font-size: 0.75rem;
+		color: #555;
+	}
+</style>

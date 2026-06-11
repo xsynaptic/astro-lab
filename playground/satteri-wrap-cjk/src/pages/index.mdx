@@ -1,0 +1,11 @@
+# satteri-wrap-cjk
+
+The plugin wraps CJK runs in `<span class="cjk">`. Code is left alone.
+
+A paragraph mixing English and 中文字符, with **强调文字** in emphasis. 日本語 and 한국어 wrap too.
+
+```js
+const greeting = '你好世界';
+```
+
+Inline code like `日本語` is skipped, since `pre`/`code` are off the allowlist.
