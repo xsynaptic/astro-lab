@@ -1,0 +1,52 @@
+{
+	"name": "@xsynaptic/satteri-auto-import",
+	"version": "0.0.0",
+	"description": "Sätteri mdast plugin that injects ESM imports into MDX so components can be used without importing them in every file.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/satteri-auto-import"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/satteri-auto-import#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"satteri",
+		"satteri-plugin",
+		"mdast",
+		"mdx",
+		"astro",
+		"auto-import"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"satteri": "^0.8.1"
+	},
+	"devDependencies": {
+		"@types/node": "^22.19.20",
+		"satteri": "^0.8.1"
+	}
+}
