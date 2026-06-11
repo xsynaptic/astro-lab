@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/satteri-auto-import",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Sätteri mdast plugin that injects ESM imports into MDX so components can be used without importing them in every file.",
 	"type": "module",
 	"license": "MIT",

@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/satteri-img-group",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Sätteri plugin for MDX that handles custom image layout for Spectral Codex.",
 	"type": "module",
 	"license": "MIT",
