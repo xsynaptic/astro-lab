@@ -147,7 +147,7 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>): HastPluginIn
 				parts.push({ type: 'text', value: child.value.slice(lastIndex) });
 			}
 
-			// eslint-disable-next-line unicorn/prefer-modern-dom-apis -- ctx.insertBefore is satteri's hast visitor API, not the DOM node method
+			// eslint-disable-next-line unicorn/prefer-modern-dom-apis -- ctx.insertBefore is Sätteri's hast visitor API, not the DOM node method
 			ctx.insertBefore(child, parts);
 			ctx.removeNode(child);
 		}

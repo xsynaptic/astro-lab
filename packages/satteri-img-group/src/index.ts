@@ -73,7 +73,7 @@ function imgGroupSatteriPlugin(
 			let imageCount = 0;
 
 			// Sätteri rejects setProperty on the structured `attributes` array
-			// Rebuild the subtree and return it; satteri swaps the visited node for the returned one
+			// Rebuild the subtree and return it; Sätteri swaps the visited node for the returned one
 			const children = groupNode.children.map((child) => {
 				if (child.type === 'mdxJsxFlowElement' && child.name === settings.imgComponentId) {
 					if (hasAttribute(child, settings.layoutAttributeName)) {
