@@ -12,8 +12,8 @@ import { unified } from 'unified';
 
 interface TransformMarkdownOptions {
 	input: string;
-	wrapCjkOptions?: Partial<RehypeWrapCjkOptions> | undefined;
 	smartypantsOptions?: SmartypantsOptions | undefined;
+	wrapCjkOptions?: Partial<RehypeWrapCjkOptions> | undefined;
 }
 
 const defaultSmartypantsOptions: SmartypantsOptions = { dashes: 'oldschool' };
@@ -23,8 +23,8 @@ const processorCache = new Map<string, unknown>();
 
 export function transformMarkdown({
 	input,
-	wrapCjkOptions,
 	smartypantsOptions,
+	wrapCjkOptions,
 }: TransformMarkdownOptions): string {
 	const resolvedSmartypantsOptions = { ...defaultSmartypantsOptions, ...smartypantsOptions };
 
