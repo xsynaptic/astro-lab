@@ -127,12 +127,14 @@ export const extract: ImagorExtractor = (url, options) => {
 	}
 
 	const hAlignToken = segments[index];
+	// eslint-disable-next-line unicorn/prefer-includes-over-repeated-comparisons -- the chain narrows hAlignToken to the union for the assignment
 	if (hAlignToken === 'left' || hAlignToken === 'right' || hAlignToken === 'center') {
 		operations.hAlign = hAlignToken;
 		index += 1;
 	}
 
 	const vAlignToken = segments[index];
+	// eslint-disable-next-line unicorn/prefer-includes-over-repeated-comparisons -- the chain narrows vAlignToken to the union for the assignment
 	if (vAlignToken === 'top' || vAlignToken === 'bottom' || vAlignToken === 'middle') {
 		operations.vAlign = vAlignToken;
 		index += 1;

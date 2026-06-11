@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { stripTags } from '../html.js';
+import { stripTags } from '../src/html.js';
 
 const sampleText = [
 	[`No change to plain text`, `No change to plain text`],

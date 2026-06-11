@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { transformMarkdown } from '../markdown.js';
+import { transformMarkdown } from '../src/markdown.js';
 
 describe('transformMarkdown', () => {
 	test('converts markdown to sanitized HTML with oldschool dashes by default', () => {

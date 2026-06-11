@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { sanitizeMdx } from '../mdx.js';
+import { sanitizeMdx } from '../src/mdx.js';
 
 describe('sanitizeMdx', () => {
 	test('strips MDX components from content', () => {

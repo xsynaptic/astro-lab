@@ -66,7 +66,8 @@ describe('remarkAutoImport', () => {
 			'post.mdx',
 		);
 
-		expect(tree.children[0]?.type).toBe('mdxjsEsm');
+		const [firstChild] = tree.children;
+		expect(firstChild?.type).toBe('mdxjsEsm');
 		expect(injectedImports(tree)).toEqual([
 			{
 				source: nodePath.resolve('./src/components/mdx/img.astro'),

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { stylizeText } from '../text.js';
+import { stylizeText } from '../src/text.js';
 
 describe('stylizeText', () => {
 	test('converts straight quotes to curly quotes and uses oldschool dashes by default', () => {

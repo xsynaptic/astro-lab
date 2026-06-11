@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { wrapChinese, wrapCjk } from '../html-cjk.js';
+import { wrapChinese, wrapCjk } from '../src/html-cjk.js';
 
 describe('CJK wrapping', () => {
 	test('wrapChinese tags Han runs with lang and leaves other text alone', () => {

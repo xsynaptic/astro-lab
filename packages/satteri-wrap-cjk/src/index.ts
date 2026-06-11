@@ -22,7 +22,7 @@ const koScriptRange = String.raw`\p{scx=Hangul}\p{scx=Han}`;
 const cjkScriptRange = String.raw`\p{scx=Han}\p{scx=Hiragana}\p{scx=Katakana}\p{scx=Hangul}\p{scx=Bopomofo}`;
 
 // Full-width ASCII variants (U+FF01-U+FF5E), common in CJK text but outside the script ranges
-const fullwidthAsciiRange = String.raw`！-～`;
+const fullwidthAsciiRange = '！-～';
 
 const cjkRegexPresets = {
 	cjk: new RegExp(`[${cjkScriptRange}${fullwidthAsciiRange}]+`, 'gu'),

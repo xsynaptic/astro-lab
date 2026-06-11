@@ -30,7 +30,7 @@
 		"test:e2e": "pnpm -r --if-present test:e2e",
 		"check-types": "tsc -p tsconfig.json && pnpm -r check-types",
 		"lint": "eslint",
-		"format": "prettier --write .",
+		"format": "eslint --fix && prettier --write .",
 		"format:check": "prettier --check .",
 		"knip": "knip",
 		"knip:fix": "knip --fix",
