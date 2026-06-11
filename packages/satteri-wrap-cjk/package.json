@@ -1,0 +1,52 @@
+{
+	"name": "@xsynaptic/satteri-wrap-cjk",
+	"version": "0.0.0",
+	"description": "Sätteri hast plugin that wraps CJK character runs in an element with a configurable attribute for styling or language tagging.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/satteri-wrap-cjk"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/satteri-wrap-cjk#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"satteri",
+		"satteri-plugin",
+		"hast",
+		"cjk",
+		"astro"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@types/hast": "^3.0.4",
+		"hastscript": "^9.0.1",
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"satteri": "^0.8.1"
+	},
+	"devDependencies": {
+		"satteri": "^0.8.1"
+	}
+}
