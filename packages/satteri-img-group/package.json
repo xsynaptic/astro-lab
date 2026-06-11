@@ -1,0 +1,51 @@
+{
+	"name": "@xsynaptic/satteri-img-group",
+	"version": "0.0.0",
+	"description": "Sätteri plugin for MDX that handles custom image layout for Spectral Codex.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/satteri-img-group"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/satteri-img-group#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"satteri",
+		"satteri-plugin",
+		"mdast",
+		"mdx",
+		"astro",
+		"images"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"satteri": "^0.8.1"
+	},
+	"devDependencies": {
+		"satteri": "^0.8.1"
+	}
+}
