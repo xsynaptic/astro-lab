@@ -57,12 +57,6 @@ describe('imgGroupSatteriPlugin', () => {
 		expect(code).not.toContain('imageCount');
 	});
 
-	test('compiles even when authoring is invalid (diagnostics are non-blocking)', async () => {
-		const code = await compile('<ImgGroup layout="bogus">\n<Img src="a" />\n</ImgGroup>\n');
-
-		expect(code).toContain('ImgGroup');
-	});
-
 	test('stamps multiple groups in one document independently', async () => {
 		const code = await compile(
 			'<ImgGroup>\n<Img src="a" />\n<Img src="b" />\n</ImgGroup>\n\n<ImgGroup layout="carousel">\n<Img src="c" />\n<Img src="d" />\n</ImgGroup>\n',
@@ -70,5 +64,51 @@ describe('imgGroupSatteriPlugin', () => {
 
 		expect(imageCounts(code)).toEqual(['2', '2']);
 		expect(contexts(code)).toEqual(['grid', 'grid', 'carousel', 'carousel']);
+	});
+
+	describe('blocking validation (throws, like the unified original)', () => {
+		test('throws on an invalid layout', async () => {
+			await expect(
+				compile('<ImgGroup layout="bogus">\n<Img src="a" />\n</ImgGroup>\n'),
+			).rejects.toThrow(/must be one of/);
+		});
+
+		test('throws when a group contains a non-Img child', async () => {
+			await expect(compile('<ImgGroup>\n<Video src="a" />\n</ImgGroup>\n')).rejects.toThrow(
+				/may only contain <Img> children/,
+			);
+		});
+
+		test('throws on an empty group', async () => {
+			await expect(compile('<ImgGroup></ImgGroup>\n')).rejects.toThrow(
+				/contains no <Img> children/,
+			);
+		});
+
+		test('throws when a carousel has fewer than two images', async () => {
+			await expect(
+				compile('<ImgGroup layout="carousel">\n<Img src="a" />\n</ImgGroup>\n'),
+			).rejects.toThrow(/needs at least two images/);
+		});
+
+		test('throws when an Img inside a group sets its own layout', async () => {
+			await expect(
+				compile('<ImgGroup>\n<Img src="a" layout="wide" />\n<Img src="b" />\n</ImgGroup>\n'),
+			).rejects.toThrow(/has no effect inside an <ImgGroup>/);
+		});
+
+		test('throws when columns is set on a carousel', async () => {
+			await expect(
+				compile(
+					'<ImgGroup layout="carousel" columns="3">\n<Img src="a" />\n<Img src="b" />\n</ImgGroup>\n',
+				),
+			).rejects.toThrow(/has no effect on a carousel/);
+		});
+
+		test('reports the source position in the thrown message', async () => {
+			await expect(
+				compile('<ImgGroup layout="bogus">\n<Img src="a" />\n</ImgGroup>\n'),
+			).rejects.toThrow(/test\.mdx:1:1/);
+		});
 	});
 });

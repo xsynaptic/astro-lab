@@ -1,4 +1,4 @@
-import type { MdastPluginInput, MdxJsxAttributeUnion, MdxJsxFlowElement } from 'satteri';
+import type { MdastNode, MdastPluginInput, MdxJsxAttributeUnion, MdxJsxFlowElement } from 'satteri';
 
 import { defineMdastPlugin } from 'satteri';
 import { z } from 'zod';
@@ -23,6 +23,19 @@ const validGroupLayouts = new Set([
 	'wide',
 ]);
 const carouselLayouts = new Set(['carousel', 'carousel-full', 'carousel-wide']);
+
+// Sätteri diagnostics don't block or reach the caller, so authoring mistakes throw to fail the build
+function fail(
+	ctx: { readonly fileURL: undefined | URL },
+	node: Readonly<MdastNode>,
+	message: string,
+): never {
+	const start = node.position?.start;
+	const file = ctx.fileURL ? `${ctx.fileURL.pathname}:` : '';
+	const location = start ? ` (${file}${String(start.line)}:${String(start.column)})` : '';
+
+	throw new Error(`${message}${location}`);
+}
 
 function getStringAttribute(node: MdxJsxFlowElement, name: string): string | undefined {
 	const attribute = node.attributes.find(
@@ -51,74 +64,63 @@ function imgGroupSatteriPlugin(
 			const layout = getStringAttribute(groupNode, settings.layoutAttributeName) ?? defaultLayoutId;
 
 			if (!validGroupLayouts.has(layout)) {
-				ctx.report({
-					message: `<ImgGroup> "${settings.layoutAttributeName}" must be one of ${[...validGroupLayouts].join(', ')}, received "${layout}"`,
-					node: groupNode,
-					severity: 'error',
-				});
+				fail(
+					ctx,
+					groupNode,
+					`<ImgGroup> "${settings.layoutAttributeName}" must be one of ${[...validGroupLayouts].join(', ')}, received "${layout}"`,
+				);
 			}
 
 			const isCarousel = carouselLayouts.has(layout);
 
 			if (isCarousel && hasAttribute(groupNode, settings.columnsAttributeName)) {
-				ctx.report({
-					message: `<ImgGroup> "${settings.columnsAttributeName}" has no effect on a carousel`,
-					node: groupNode,
-					severity: 'error',
-				});
+				fail(
+					ctx,
+					groupNode,
+					`<ImgGroup> "${settings.columnsAttributeName}" has no effect on a carousel`,
+				);
 			}
 
 			const context = isCarousel ? 'carousel' : 'grid';
 
 			let imageCount = 0;
 
+			// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Sätteri materializes an empty element's children as undefined, not []
+			const sourceChildren = groupNode.children ?? [];
+
 			// Sätteri rejects setProperty on the structured `attributes` array
 			// Rebuild the subtree and return it; Sätteri swaps the visited node for the returned one
-			const children = groupNode.children.map((child) => {
-				if (child.type === 'mdxJsxFlowElement' && child.name === settings.imgComponentId) {
-					if (hasAttribute(child, settings.layoutAttributeName)) {
-						ctx.report({
-							message: `<Img> "${settings.layoutAttributeName}" has no effect inside an <ImgGroup>; set it on the <ImgGroup> instead`,
-							node: child,
-							severity: 'error',
-						});
-					}
-
-					imageCount += 1;
-
-					return {
-						...child,
-						attributes: withStringAttribute(
-							child.attributes,
-							settings.contextAttributeName,
-							context,
-						),
-					};
+			const children = sourceChildren.map((child) => {
+				if (child.type !== 'mdxJsxFlowElement' || child.name !== settings.imgComponentId) {
+					fail(ctx, child, `<ImgGroup> may only contain <Img> children`);
 				}
 
-				ctx.report({
-					message: `<ImgGroup> may only contain <Img> children`,
-					node: child,
-					severity: 'error',
-				});
+				if (hasAttribute(child, settings.layoutAttributeName)) {
+					fail(
+						ctx,
+						child,
+						`<Img> "${settings.layoutAttributeName}" has no effect inside an <ImgGroup>; set it on the <ImgGroup> instead`,
+					);
+				}
 
-				return child;
+				imageCount += 1;
+
+				return {
+					...child,
+					attributes: withStringAttribute(child.attributes, settings.contextAttributeName, context),
+				};
 			});
 
 			if (imageCount === 0) {
-				ctx.report({
-					message: `<ImgGroup> contains no <Img> children`,
-					node: groupNode,
-					severity: 'error',
-				});
+				fail(ctx, groupNode, `<ImgGroup> contains no <Img> children`);
 			}
 
 			if (isCarousel && imageCount < 2) {
-				ctx.report({
-					message: `<ImgGroup> carousel needs at least two images, found ${String(imageCount)}`,
-					node: groupNode,
-					severity: 'error',
-				});
+				fail(
+					ctx,
+					groupNode,
+					`<ImgGroup> carousel needs at least two images, found ${String(imageCount)}`,
+				);
 			}
 
 			return {

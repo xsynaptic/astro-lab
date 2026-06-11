@@ -4,7 +4,7 @@ A [Sätteri][] mdast plugin for MDX, specific to the [Spectral Codex][spectralco
 a pair of bespoke MDX components, `<Img>` and `<ImgGroup>`, that are not part of any shared library.
 Because MDX renders inside-out, an `<ImgGroup>` can't pass props to its `<Img>` children at render
 time, so this plugin stamps the `context` (`grid`/`carousel`) and `imageCount` they need at the mdast
-stage, and reports invalid authoring as a non-blocking diagnostic.
+stage, and throws on invalid authoring to fail the build, matching the unified original's `file.fail()`.
 
 This is the live plugin Spectral Codex runs; the unified reference implementation is
 [`@xsynaptic/remark-img-group`][remark-img-group].
