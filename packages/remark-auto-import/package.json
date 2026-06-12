@@ -47,7 +47,7 @@
 		"unified": "^11.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^22.19.20",
+		"@types/node": "^22.19.21",
 		"mdast-util-mdx": "^3.0.0",
 		"unified": "^11.0.5"
 	}
