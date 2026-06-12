@@ -18,7 +18,7 @@
 		"type": "git",
 		"url": "git+https://github.com/xsynaptic/astro-lab.git"
 	},
-	"packageManager": "pnpm@11.5.2+sha512.71c631e382066efc25625d5cf029075de07b61b37f6e27350fbd84b1bda5864c8c1967adc280776b45c30a715c0359a3be08fef42d5bb09e2b99029979692916",
+	"packageManager": "pnpm@11.6.0+sha512.9a36518224080c6fe5165afdcfe79bfa118c29be703f3f462b1e32efe1e98e47e8750b148e08286250aad4113cc7993ca413c4e2cd447752708c2ee5751bc95f",
 	"engines": {
 		"node": ">=22.12.0"
 	},
@@ -29,7 +29,7 @@
 		"test:watch": "vitest",
 		"test:e2e": "pnpm -r --if-present test:e2e",
 		"check-types": "tsc -p tsconfig.json && pnpm -r check-types",
-		"lint": "eslint",
+		"lint": "eslint --max-warnings 0",
 		"format": "prettier --write . && eslint --fix && pnpm check-types && knip",
 		"format:check": "prettier --check .",
 		"knip": "knip",
