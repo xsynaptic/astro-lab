@@ -1,5 +1,5 @@
 import type { Element, ElementContent, Text } from 'hast';
-import type { HastPluginInput, HastVisitorContext, MdxJsxAttributeUnion } from 'satteri';
+import type { HastVisitorContext, MdxJsxAttributeUnion } from 'satteri';
 
 import { h } from 'hastscript';
 import { defineHastPlugin } from 'satteri';
@@ -77,7 +77,7 @@ const textBearingTags = [
 	'time',
 ];
 
-export function wrapCjk(options?: null | Readonly<WrapCjkOptions>): HastPluginInput {
+export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 	const settings = optionsSchema.parse(options ?? {});
 	const targetsClass = settings.attribute === 'class' || settings.attribute === 'className';
 
