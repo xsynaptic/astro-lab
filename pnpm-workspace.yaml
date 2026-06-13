@@ -12,6 +12,13 @@ minimumReleaseAge: 1440
 verifyDepsBeforeRun: error
 strictDepBuilds: true
 
+minimumReleaseAgeExclude:
+  # Bypass the 24h guard while Astro 7 prereleases still churn
+  - 'astro'
+  - '@astrojs/mdx'
+  - '@astrojs/markdown-satteri'
+  - 'satteri'
+
 allowBuilds:
   esbuild: true
   sharp: true
