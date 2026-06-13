@@ -32,13 +32,9 @@
 		"lint": "eslint --max-warnings 0",
 		"format": "prettier --write . && eslint --fix && pnpm check-types && knip",
 		"format:check": "prettier --check .",
-		"knip": "knip",
-		"knip:fix": "knip --fix",
-		"check": "pnpm lint && pnpm check-types && pnpm format:check && pnpm knip",
+		"check": "pnpm lint && pnpm check-types && pnpm format:check && knip",
 		"check:pkg": "pnpm --filter './packages/*' --no-bail exec publint",
-		"changeset": "changeset",
-		"version-packages": "changeset version",
-		"release": "pnpm check && pnpm --filter './packages/*' build && pnpm check:pkg && changeset publish",
+		"release": "pnpm check && pnpm --filter './packages/*' build && pnpm test && pnpm test:e2e && pnpm check:pkg && changeset publish",
 		"postrelease": "git push --follow-tags origin main"
 	},
 	"devDependencies": {

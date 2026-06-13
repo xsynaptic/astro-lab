@@ -33,6 +33,6 @@ Versioning and publishing are managed by [changesets](https://github.com/changes
 
 ```sh
 pnpm changeset          # describe a change + pick semver bumps
-pnpm version-packages   # apply bumps and update changelogs
+pnpm changeset version  # apply bumps and update changelogs
 pnpm release            # build all, then publish changed packages to npm
 ```
