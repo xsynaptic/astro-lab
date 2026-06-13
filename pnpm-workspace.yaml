@@ -9,12 +9,6 @@ saveWorkspaceProtocol: false
 
 # Intended to mitigate supply chain attacks
 minimumReleaseAge: 1440
-# Astro 7 / Sätteri prereleases (satteri playgrounds); these are <24h old, temporary exclusion
-minimumReleaseAgeExclude:
-  - 'astro'
-  - '@astrojs/mdx'
-  - '@astrojs/markdown-satteri'
-  - 'satteri'
 verifyDepsBeforeRun: error
 strictDepBuilds: true
 

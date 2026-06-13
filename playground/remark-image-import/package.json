@@ -13,6 +13,6 @@
 		"@astrojs/mdx": "^6.0.3",
 		"@xsynaptic/remark-image-import": "*",
 		"astro": "^6.4.6",
-		"sharp": "^0.34.5"
+		"sharp": "^0.35.1"
 	}
 }
