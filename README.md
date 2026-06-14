@@ -24,7 +24,8 @@ A personal monorepo of reusable packages for my Astro projects, published to npm
 pnpm install      # install dependencies and build every package
 pnpm build        # rebuild packages (tsdown -> dist)
 pnpm test         # run all tests (vitest)
-pnpm check        # lint, type-check, format, and knip
+pnpm check        # report-only: prettier check, lint, type-check, knip
+pnpm fix          # auto-fix: prettier write + eslint --fix, then type-check + knip
 ```
 
 ## Releasing

@@ -30,9 +30,8 @@
 		"test:e2e": "pnpm -r --if-present test:e2e",
 		"check-types": "tsc -p tsconfig.json && pnpm -r check-types",
 		"lint": "eslint --max-warnings 0",
-		"format": "prettier --write . && eslint --fix && pnpm check-types && knip",
-		"format:check": "prettier --check .",
-		"check": "pnpm lint && pnpm check-types && pnpm format:check && knip",
+		"fix": "prettier --write . && eslint --fix && pnpm check-types && knip",
+		"check": "prettier --check . && eslint --max-warnings 0 && pnpm check-types && knip",
 		"check:pkg": "pnpm --filter './packages/*' --no-bail exec publint",
 		"release": "pnpm check && pnpm --filter './packages/*' build && pnpm test && pnpm test:e2e && pnpm check:pkg && changeset publish",
 		"postrelease": "git push --follow-tags origin main"
