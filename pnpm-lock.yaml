@@ -49,8 +49,8 @@ importers:
         version: 4.4.3
     devDependencies:
       astro:
-        specifier: ^6.4.6
-        version: 6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
+        specifier: ^6.4.7
+        version: 6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
 
   packages/eslint-config:
     dependencies:
@@ -236,8 +236,8 @@ importers:
   packages/stylelint-config:
     dependencies:
       '@double-great/stylelint-a11y':
-        specifier: ^3.4.14
-        version: 3.4.14(stylelint@17.12.0(typescript@6.0.3))
+        specifier: ^3.4.15
+        version: 3.4.15(stylelint@17.12.0(typescript@6.0.3))
       postcss-html:
         specifier: ^1.8.1
         version: 1.8.1
@@ -308,13 +308,13 @@ importers:
         version: 7.2.0
       '@astrojs/mdx':
         specifier: ^6.0.3
-        version: 6.0.3(astro@6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0))
+        version: 6.0.3(astro@6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0))
       '@xsynaptic/remark-auto-import':
         specifier: '*'
         version: link:../../packages/remark-auto-import
       astro:
-        specifier: ^6.4.6
-        version: 6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
+        specifier: ^6.4.7
+        version: 6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
 
   playground/remark-image-import:
     dependencies:
@@ -323,13 +323,13 @@ importers:
         version: 7.2.0
       '@astrojs/mdx':
         specifier: ^6.0.3
-        version: 6.0.3(astro@6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0))
+        version: 6.0.3(astro@6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0))
       '@xsynaptic/remark-image-import':
         specifier: '*'
         version: link:../../packages/remark-image-import
       astro:
-        specifier: ^6.4.6
-        version: 6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
+        specifier: ^6.4.7
+        version: 6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
       sharp:
         specifier: ^0.35.1
         version: 0.35.1
@@ -686,8 +686,8 @@ packages:
     peerDependencies:
       postcss-selector-parser: ^7.1.1
 
-  '@double-great/stylelint-a11y@3.4.14':
-    resolution: {integrity: sha512-yytlwspk4QCm9KcdlNtO+2zfZsThiciXEI+sAZrKV4OY35SLrvJHUWUkk1pVQ9FUY+xkQxXU6BD9gdbohmESlw==}
+  '@double-great/stylelint-a11y@3.4.15':
+    resolution: {integrity: sha512-yMpE5UpdXt4ezKv7fxf69k61ycOrJ7xa+Wt6p1XuV8r1y2PKWyVGp1qxFcc4BMEpptOA0XhWPhKHrpbP3+tmuw==}
     engines: {node: '>=18.12.0'}
     peerDependencies:
       stylelint: '>=16.0.0'
@@ -2360,8 +2360,8 @@ packages:
     resolution: {integrity: sha512-+QDcgc7e+au6EZ0YjMmRRjNoQo5bDMlaR45aWDoFsuxQTCM9qmCHRoiKJPELgckJ8Wmr7vcfpa9eCDHBFh6G4w==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  astro@6.4.6:
-    resolution: {integrity: sha512-48OBTBKR9ctbf+DQxpOuxGl8ebfn59zTuNQMBzptmG/Mi/H8IdfMSbJgGuX1I/4U6g9yazG1p4BHlf4+2hWU4Q==}
+  astro@6.4.7:
+    resolution: {integrity: sha512-5vsXx0H52u23Jpshs9tM81D03Tb3Oh2Vt2Zo0bpqjXN+njkAWjFyGjTfmWJLAcrCQd9Q+iWB1eqfhR1sZJEaUA==}
     engines: {node: '>=22.12.0', npm: '>=9.6.5', pnpm: '>=7.1.0'}
     hasBin: true
 
@@ -4687,13 +4687,13 @@ snapshots:
       github-slugger: 2.0.0
       satteri: 0.8.1
 
-  '@astrojs/mdx@6.0.3(astro@6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0))':
+  '@astrojs/mdx@6.0.3(astro@6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0))':
     dependencies:
       '@astrojs/internal-helpers': 0.10.0
       '@astrojs/markdown-remark': 7.2.0
       '@mdx-js/mdx': 3.1.1
       acorn: 8.17.0
-      astro: 6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
+      astro: 6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0)
       es-module-lexer: 2.1.0
       estree-util-visit: 2.0.0
       hast-util-to-html: 9.0.5
@@ -5002,7 +5002,7 @@ snapshots:
     dependencies:
       postcss-selector-parser: 7.1.1
 
-  '@double-great/stylelint-a11y@3.4.14(stylelint@17.12.0(typescript@6.0.3))':
+  '@double-great/stylelint-a11y@3.4.15(stylelint@17.12.0(typescript@6.0.3))':
     dependencies:
       postcss: 8.5.15
       stylelint: 17.12.0(typescript@6.0.3)
@@ -6276,7 +6276,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  astro@6.4.6(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0):
+  astro@6.4.7(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.61.1)(yaml@2.9.0):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@astrojs/internal-helpers': 0.10.0

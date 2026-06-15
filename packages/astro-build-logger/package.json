@@ -45,6 +45,6 @@
 		"astro": "^6.0.0"
 	},
 	"devDependencies": {
-		"astro": "^6.4.6"
+		"astro": "^6.4.7"
 	}
 }
