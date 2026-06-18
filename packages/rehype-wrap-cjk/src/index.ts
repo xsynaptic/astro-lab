@@ -49,6 +49,14 @@ export const cjkRegexPresets = {
 	zh: new RegExp(`[${zhScriptRange}${fullwidthAsciiRange}]+`, 'gu'),
 };
 
+function presetFor(value: string): RegExp | undefined {
+	if (value === 'cjk') return cjkRegexPresets.cjk;
+	if (value === 'ja') return cjkRegexPresets.ja;
+	if (value === 'ko') return cjkRegexPresets.ko;
+	if (value === 'zh') return cjkRegexPresets.zh;
+	return undefined;
+}
+
 export const rehypeWrapCjk: Plugin<[RehypeWrapCjkOptions?], Root> = (options) => {
 	const settings = {
 		attribute: options?.attribute ?? 'class',
@@ -58,11 +66,7 @@ export const rehypeWrapCjk: Plugin<[RehypeWrapCjkOptions?], Root> = (options) =>
 		value: options?.value ?? 'cjk',
 	};
 
-	const baseRegex =
-		settings.regex ??
-		(settings.value in cjkRegexPresets
-			? cjkRegexPresets[settings.value as keyof typeof cjkRegexPresets]
-			: cjkRegexPresets.cjk);
+	const baseRegex = settings.regex ?? presetFor(settings.value) ?? cjkRegexPresets.cjk;
 
 	// always clone so a caller-supplied global regex never carries its lastIndex into matchAll
 	const flags = baseRegex.flags.includes('g') ? baseRegex.flags : baseRegex.flags + 'g';

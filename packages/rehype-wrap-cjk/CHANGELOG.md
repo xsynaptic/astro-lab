@@ -1,5 +1,11 @@
 # @xsynaptic/rehype-wrap-cjk
 
+## 3.0.1
+
+### Patch Changes
+
+- Look up regex presets by explicit name instead of an `in` check. The previous `settings.value in cjkRegexPresets` test also matched inherited `Object.prototype` keys, so a `value` of `'constructor'`, `'toString'`, etc. would resolve to a function and throw. Lookup now falls back to the `cjk` preset for any unrecognized value.
+
 ## 3.0.0
 
 ### Major Changes

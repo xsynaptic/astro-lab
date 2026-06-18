@@ -33,17 +33,25 @@ const cjkProcessor = unified()
 	.use(rehypeWrapCjk, { attribute: 'class', value: 'cjk' })
 	.use(rehypeStringify);
 
-const processChinese = async (contents: VFileCompatible): Promise<VFileCompatible> =>
-	chineseProcessor.process(contents).then(({ value }) => value);
+const processChinese = async (contents: VFileCompatible): Promise<VFileCompatible> => {
+	const { value } = await chineseProcessor.process(contents);
+	return value;
+};
 
-const processJapanese = async (contents: VFileCompatible): Promise<VFileCompatible> =>
-	japaneseProcessor.process(contents).then(({ value }) => value);
+const processJapanese = async (contents: VFileCompatible): Promise<VFileCompatible> => {
+	const { value } = await japaneseProcessor.process(contents);
+	return value;
+};
 
-const processKorean = async (contents: VFileCompatible): Promise<VFileCompatible> =>
-	koreanProcessor.process(contents).then(({ value }) => value);
+const processKorean = async (contents: VFileCompatible): Promise<VFileCompatible> => {
+	const { value } = await koreanProcessor.process(contents);
+	return value;
+};
 
-const processCjk = async (contents: VFileCompatible): Promise<VFileCompatible> =>
-	cjkProcessor.process(contents).then(({ value }) => value);
+const processCjk = async (contents: VFileCompatible): Promise<VFileCompatible> => {
+	const { value } = await cjkProcessor.process(contents);
+	return value;
+};
 
 const chineseMarkdownText: Array<[string, string]> = [
 	[
@@ -144,8 +152,10 @@ const chineseHtmlProcessor = unified()
 	.use(rehypeWrapCjk, { attribute: 'lang', value: 'zh' })
 	.use(rehypeStringify);
 
-const processChineseHtml = async (contents: VFileCompatible): Promise<VFileCompatible> =>
-	chineseHtmlProcessor.process(contents).then(({ value }) => value);
+const processChineseHtml = async (contents: VFileCompatible): Promise<VFileCompatible> => {
+	const { value } = await chineseHtmlProcessor.process(contents);
+	return value;
+};
 
 const chineseHtmlText: Array<[string, string]> = [
 	// Ancestor check: text inside a nested element within a lang-tagged ancestor must not be re-wrapped
@@ -168,14 +178,15 @@ describe('rehype wrap CJK plugin for HTML inputs', () => {
 const processWith = async (
 	options: NonNullable<Parameters<typeof rehypeWrapCjk>[0]>,
 	input: string,
-): Promise<VFileCompatible> =>
-	unified()
+): Promise<VFileCompatible> => {
+	const { value } = await unified()
 		.use(remarkParse)
 		.use(remarkRehype)
 		.use(rehypeWrapCjk, options)
 		.use(rehypeStringify)
-		.process(input)
-		.then(({ value }) => value);
+		.process(input);
+	return value;
+};
 
 describe('rehype wrap CJK plugin option configuration', () => {
 	test('custom element, attribute, and value', async () => {
@@ -206,13 +217,14 @@ describe('rehype wrap CJK plugin option configuration', () => {
 const processHtmlWith = async (
 	options: NonNullable<Parameters<typeof rehypeWrapCjk>[0]>,
 	input: string,
-): Promise<VFileCompatible> =>
-	unified()
+): Promise<VFileCompatible> => {
+	const { value } = await unified()
 		.use(rehypeParse, { fragment: true })
 		.use(rehypeWrapCjk, options)
 		.use(rehypeStringify)
-		.process(input)
-		.then(({ value }) => value);
+		.process(input);
+	return value;
+};
 
 describe('rehype wrap CJK plugin skip behavior', () => {
 	test('class attribute: wraps with class instead of lang', async () => {
