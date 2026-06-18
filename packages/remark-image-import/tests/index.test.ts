@@ -12,14 +12,14 @@ function countMatches(source: string, pattern: RegExp): number {
 	return source.match(pattern)?.length ?? 0;
 }
 
-function process(input: string, options?: RemarkImageImportOptions): Promise<string> {
-	return unified()
+async function process(input: string, options?: RemarkImageImportOptions): Promise<string> {
+	const file = await unified()
 		.use(remarkParse)
 		.use(remarkMdx)
 		.use(remarkImageImport(options))
 		.use(remarkStringify)
-		.process(input)
-		.then(String);
+		.process(input);
+	return String(file);
 }
 
 describe('remarkImageImport', () => {

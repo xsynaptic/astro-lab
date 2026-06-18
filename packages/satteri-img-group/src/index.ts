@@ -143,7 +143,9 @@ function withStringAttribute(
 	name: string,
 	value: string,
 ): Array<MdxJsxAttributeUnion> {
-	const present = attributes.some((attr) => attr.type === 'mdxJsxAttribute' && attr.name === name);
+	const isPresent = attributes.some(
+		(attr) => attr.type === 'mdxJsxAttribute' && attr.name === name,
+	);
 
 	const next = attributes.map((attr): MdxJsxAttributeUnion => {
 		if (attr.type === 'mdxJsxAttribute' && attr.name === name) {
@@ -152,7 +154,7 @@ function withStringAttribute(
 		return attr;
 	});
 
-	if (!present) {
+	if (!isPresent) {
 		next.push({ name, type: 'mdxJsxAttribute', value });
 	}
 

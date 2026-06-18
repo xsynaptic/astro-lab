@@ -13,9 +13,9 @@ import { z } from 'zod';
 const namedImportSchema = z.union([z.string(), z.tuple([z.string(), z.string()])]);
 
 // Bare path, or a path mapped to a namespace alias or a list of named imports
-const importsConfigSchema = z.array(
-	z.union([z.string(), z.record(z.string(), z.union([z.string(), z.array(namedImportSchema)]))]),
-);
+const importMapSchema = z.record(z.string(), z.union([z.string(), z.array(namedImportSchema)]));
+
+const importsConfigSchema = z.array(z.union([z.string(), importMapSchema]));
 
 const optionsSchema = z.object({ imports: importsConfigSchema });
 
@@ -69,11 +69,11 @@ export function autoImport(options: SatteriAutoImportOptions): MdastPluginInput 
 	// MDX then hoists the injected node into a real top-level import
 	// Factory form: Sätteri calls it once per document so `handled` resets between documents
 	return () => {
-		let handled = false;
+		let isHandled = false;
 
 		const visit = (node: Readonly<MdastNode>, ctx: MdastVisitorContext): void => {
-			if (handled) return;
-			handled = true;
+			if (isHandled) return;
+			isHandled = true;
 
 			// Only .mdx supports the ESM imports we inject
 			if (!ctx.fileURL || !fileURLToPath(ctx.fileURL).endsWith('.mdx')) return;

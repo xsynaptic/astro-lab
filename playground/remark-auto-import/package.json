@@ -12,6 +12,6 @@
 		"@astrojs/markdown-remark": "^7.2.0",
 		"@astrojs/mdx": "^6.0.3",
 		"@xsynaptic/remark-auto-import": "*",
-		"astro": "^6.4.7"
+		"astro": "^6.4.8"
 	}
 }

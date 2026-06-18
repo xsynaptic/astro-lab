@@ -79,7 +79,7 @@ const textBearingTags = [
 
 export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 	const settings = optionsSchema.parse(options ?? {});
-	const targetsClass = settings.attribute === 'class' || settings.attribute === 'className';
+	const isTargetsClass = settings.attribute === 'class' || settings.attribute === 'className';
 
 	const baseRegex = settings.regex ?? presetFor(settings.value) ?? cjkRegexPresets.cjk;
 
@@ -88,25 +88,25 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 	const regex = new RegExp(baseRegex.source, flags);
 
 	// A class list reaches us as an array or a space-separated string
-	function classListHasMarker(value: unknown): boolean {
+	function hasMarkerInClassList(value: unknown): boolean {
 		if (Array.isArray(value)) return value.includes(settings.value);
 		if (typeof value === 'string') return value.split(/\s+/).includes(settings.value);
 		return false;
 	}
 
 	// An element already carrying the marker is a wrapper (ours or the author's); skip it
-	function elementIsWrapper(node: Element): boolean {
-		if (targetsClass) return classListHasMarker(node.properties.className);
+	function isElementWrapper(node: Element): boolean {
+		if (isTargetsClass) return hasMarkerInClassList(node.properties.className);
 		return node.properties[settings.attribute] === settings.value;
 	}
 
 	// Same check for an MDX component, whose attributes are mdxJsx nodes rather than hast properties
-	function componentIsWrapper(node: {
+	function isComponentWrapper(node: {
 		readonly attributes: ReadonlyArray<MdxJsxAttributeUnion>;
 	}): boolean {
 		for (const attribute of node.attributes) {
 			if (attribute.type !== 'mdxJsxAttribute' || typeof attribute.value !== 'string') continue;
-			if (targetsClass) {
+			if (isTargetsClass) {
 				if (
 					(attribute.name === 'class' || attribute.name === 'className') &&
 					attribute.value.split(/\s+/).includes(settings.value)
@@ -159,19 +159,19 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 		element: {
 			filter: textBearingTags,
 			visit: (node, ctx) => {
-				if (!elementIsWrapper(node)) wrapTextChildren(node, ctx);
+				if (!isElementWrapper(node)) wrapTextChildren(node, ctx);
 			},
 		},
 		mdxJsxFlowElement: {
 			filter: [],
 			visit: (node, ctx) => {
-				if (!componentIsWrapper(node)) wrapTextChildren(node, ctx);
+				if (!isComponentWrapper(node)) wrapTextChildren(node, ctx);
 			},
 		},
 		mdxJsxTextElement: {
 			filter: [],
 			visit: (node, ctx) => {
-				if (!componentIsWrapper(node)) wrapTextChildren(node, ctx);
+				if (!isComponentWrapper(node)) wrapTextChildren(node, ctx);
 			},
 		},
 		name: 'wrap-cjk',

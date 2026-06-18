@@ -11,9 +11,9 @@ const namedImportSchema = z.union([z.string(), z.tuple([z.string(), z.string()])
 // This plugin accepts either:
 // 1) a bare path
 // 2) a path mapped to either a namespace alias (`* as X`) or a list of named imports
-const importsConfigSchema = z.array(
-	z.union([z.string(), z.record(z.string(), z.union([z.string(), z.array(namedImportSchema)]))]),
-);
+const importMapSchema = z.record(z.string(), z.union([z.string(), z.array(namedImportSchema)]));
+
+const importsConfigSchema = z.array(z.union([z.string(), importMapSchema]));
 
 const optionsSchema = z.object({
 	imports: importsConfigSchema,
@@ -34,7 +34,7 @@ function resolveModulePath(path: string): string {
 
 // MDX restricts component names to valid JS identifiers with a leading capital letter
 // @link -- https://mdxjs.com/docs/using-mdx/
-const identifierPattern = /^[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u;
+const identifierPattern = /^[$_\p{ID_Start}][$\u{200C}\u{200D}\p{ID_Continue}]*$/u;
 
 export function remarkAutoImport(options: RemarkAutoImportOptions): Plugin<[], Root> {
 	const { imports } = optionsSchema.parse(options);

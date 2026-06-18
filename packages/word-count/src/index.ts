@@ -11,48 +11,54 @@ import { UNICODE_RANGES } from './unicode-ranges.js';
 const maxCodePoint = 205_743;
 const byteSize = 8;
 
-const bitmap = new Uint8Array(maxCodePoint / byteSize + 1);
+function buildBitmap(): Uint8Array {
+	const bitmap = new Uint8Array(maxCodePoint / byteSize + 1);
 
-function insertCharsIntoBitmap(...chars: Array<string>) {
-	for (const char of chars) {
-		const charCode = char.codePointAt(0) ?? 0;
-		const byteIndex = Math.floor(charCode / byteSize);
-		const bitIndex = charCode % byteSize;
+	function insertCharsIntoBitmap(...chars: Array<string>) {
+		for (const char of chars) {
+			const charCode = char.codePointAt(0) ?? 0;
+			const byteIndex = Math.floor(charCode / byteSize);
+			const bitIndex = charCode % byteSize;
 
-		bitmap[byteIndex] = (bitmap[byteIndex] ?? 0) ^ (1 << bitIndex);
+			bitmap[byteIndex] = (bitmap[byteIndex] ?? 0) ^ (1 << bitIndex);
+		}
 	}
-}
 
-function insertRangeIntoBitmap(from: number, to: number) {
-	for (let index = from / byteSize; index < Math.ceil(to / byteSize); index++) {
-		bitmap[index] = 0b1111_1111;
+	function insertRangeIntoBitmap(from: number, to: number) {
+		for (let index = from / byteSize; index < Math.ceil(to / byteSize); index++) {
+			bitmap[index] = 0b1111_1111;
+		}
 	}
+
+	// Word boundary characters
+	insertCharsIntoBitmap(
+		' ',
+		'\n',
+		'\t',
+		'\v',
+		'*',
+		'/',
+		'&',
+		':',
+		';',
+		'.',
+		',',
+		'?',
+		'=',
+		'\u{F0B}', // Tibetan mark intersyllabic tsheg (signals end of syllable)
+		'\u{1361}', // Ethiopic wordspace (indicates word boundaries)
+		'\u{200B}', // Zero-width space (can also be a word boundary)
+	);
+
+	// Unicode language ranges where each character is a word/syllable
+	for (const range of UNICODE_RANGES) {
+		insertRangeIntoBitmap(range[0], range[1]);
+	}
+
+	return bitmap;
 }
 
-// Word boundary characters
-insertCharsIntoBitmap(
-	' ',
-	'\n',
-	'\t',
-	'\v',
-	'*',
-	'/',
-	'&',
-	':',
-	';',
-	'.',
-	',',
-	'?',
-	'=',
-	'\u0F0B', // Tibetan mark intersyllabic tsheg (signals end of syllable)
-	'\u1361', // Ethiopic wordspace (indicates word boundaries)
-	'\u200B', // Zero-width space (can also be a word boundary)
-);
-
-// Unicode language ranges where each character is a word/syllable
-for (const range of UNICODE_RANGES) {
-	insertRangeIntoBitmap(range[0], range[1]);
-}
+const bitmap = buildBitmap();
 
 /**
  * Count words in a string with multilingual support

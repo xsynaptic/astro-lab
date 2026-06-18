@@ -108,9 +108,9 @@ export const extract: ImagorExtractor = (url, options) => {
 		index += 1;
 	}
 
-	let stretchSeen = false;
+	let isStretchSeen = false;
 	if (segments[index] === 'stretch') {
-		stretchSeen = true;
+		isStretchSeen = true;
 		index += 1;
 	}
 
@@ -161,7 +161,7 @@ export const extract: ImagorExtractor = (url, options) => {
 		delete filters.format;
 	}
 
-	resolveFit(operations, fitToken, stretchSeen, filters.no_upscale !== undefined);
+	resolveFit(operations, fitToken, isStretchSeen, filters.no_upscale !== undefined);
 	if (operations.fit === 'inside') delete filters.no_upscale;
 
 	if (Object.keys(filters).length > 0) operations.filters = filters;
@@ -183,7 +183,7 @@ export const transform: TransformerFunction<ImagorOperations, ImagorOptions> = (
 	options,
 ) => {
 	const baseURL = options?.baseURL;
-	const rawSource = typeof src === 'string' ? src : src.toString();
+	const rawSource = typeof src === 'string' ? src : src.href;
 
 	// no path marker, so only re-extract when src carries the known baseURL prefix
 	if (baseURL !== undefined && rawSource.startsWith(baseURL)) {
@@ -223,22 +223,34 @@ function appendCrop(segments: Array<string>, crop: ImagorOperations['crop']): vo
 }
 
 function appendFit(segments: Array<string>, fit: ImagorOperations['fit']): void {
-	if (fit === 'contain' || fit === 'inside') segments.push('fit-in');
-	if (fit === 'outside') segments.push('full-fit-in');
-	if (fit === 'fill') segments.push('stretch');
+	switch (fit) {
+		case 'contain':
+		case 'inside': {
+			segments.push('fit-in');
+			break;
+		}
+		case 'outside': {
+			segments.push('full-fit-in');
+			break;
+		}
+		case 'fill': {
+			segments.push('stretch');
+			break;
+		}
+	}
 }
 
 function appendDimensions(segments: Array<string>, operations: ImagorOperations): void {
 	const width = toNumber(operations.width) ?? 0;
 	const height = toNumber(operations.height) ?? 0;
-	const flip = operations.flip === true;
-	const flop = operations.flop === true;
+	const isFlip = operations.flip === true;
+	const isFlop = operations.flop === true;
 	const hasPadding = operations.padding !== undefined;
 
-	if (width === 0 && height === 0 && !flip && !flop && !hasPadding) return;
+	if (width === 0 && height === 0 && !isFlip && !isFlop && !hasPadding) return;
 
-	const widthPrefix = flop ? '-' : '';
-	const heightPrefix = flip ? '-' : '';
+	const widthPrefix = isFlop ? '-' : '';
+	const heightPrefix = isFlip ? '-' : '';
 	segments.push(`${widthPrefix}${String(width)}x${heightPrefix}${String(height)}`);
 }
 
@@ -309,10 +321,10 @@ function splitFilters(filterList: string): Array<string> {
 function resolveFit(
 	operations: ImagorOperations,
 	fitToken: string | undefined,
-	stretchSeen: boolean,
+	isStretchSeen: boolean,
 	hasNoUpscale: boolean,
 ): void {
-	if (stretchSeen) {
+	if (isStretchSeen) {
 		operations.fit = 'fill';
 		return;
 	}
@@ -414,14 +426,15 @@ const reservedSourcePrefixes = [
 // imagor only escapes a source that would otherwise be mis-parsed; clean keys pass through
 // Mirrors imagor's GeneratePath condition plus url.PathEscape
 function escapeSource(source: string): string {
-	const needsEscape =
+	const isNeedsEscape =
 		/[?(),]/.test(source) || reservedSourcePrefixes.some((prefix) => source.startsWith(prefix));
-	return needsEscape ? pathEscape(source) : source;
+	return isNeedsEscape ? pathEscape(source) : source;
 }
 
 function pathEscape(value: string): string {
 	let result = '';
-	for (const byte of new TextEncoder().encode(value)) {
+	const bytes = new TextEncoder().encode(value);
+	for (const byte of bytes) {
 		result += isPathSegmentByte(byte)
 			? String.fromCodePoint(byte)
 			: `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
