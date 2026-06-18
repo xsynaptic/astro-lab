@@ -1,5 +1,15 @@
 # @xsynaptic/eslint-config
 
+## 4.0.0
+
+### Major Changes
+
+- Require ESLint 10. `@eslint/js` is bumped to v10 and the bundled `eslint-plugin-unicorn` now sits at v67, which peers on `eslint >=10.4`. Consumers must upgrade to `eslint@^10` (and bump `@eslint/js` to v10 if they pin it directly).
+
+  The unicorn v67 `recommended` set (up from v65 in 3.8.0) adds several rules that consumers inherit through the spread config, including `consistent-boolean-name`, `prefer-await`, `prefer-switch`, `max-nested-calls`, and `no-top-level-side-effects`. Expect new findings on existing code.
+
+  `unicorn/prefer-iterator-to-array` is disabled. It steers `[...iterable]` toward `Iterator#toArray()`, an ES2025 iterator helper that requires the `esnext.iterator` TypeScript lib and lacks support in older browsers, so the plain spread is kept instead.
+
 ## 3.8.0
 
 ### Minor Changes

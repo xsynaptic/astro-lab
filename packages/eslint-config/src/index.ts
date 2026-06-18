@@ -118,6 +118,7 @@ export function getConfig(
 				'unicorn/filename-case': 'warn',
 				'unicorn/no-array-callback-reference': 'off', // I prefer this pattern for filtering/sorting content
 				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Lowercase hex to match Prettier
+				'unicorn/prefer-iterator-to-array': 'off', // Pushes Iterator#toArray(), which needs the esnext.iterator lib; spreads stay browser-safe
 				'unicorn/prevent-abbreviations': 'off', // I *like* abbreviations!
 			},
 		},
