@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 4.0.1
+
+### Patch Changes
+
+- Fold commonly-disabled unicorn v67 rules into the shared config so downstream apps stop duplicating them: turn off `consistent-class-member-order`, `no-invalid-argument-count`, `no-top-level-assignment-in-function`, and `prefer-uint8array-base64`; set `max-nested-calls` to `max: 5`; turn off `wc/guard-super-call` in `getWebComponentConfig`.
+
 ## 4.0.0
 
 ### Major Changes
