@@ -1,5 +1,5 @@
-import type { Element, ElementContent, Text } from 'hast';
-import type { HastVisitorContext, MdxJsxAttributeUnion } from 'satteri';
+import type { Element, Root, Text } from 'hast';
+import type { HastVisitorContext, MdxJsxFlowElementHast, MdxJsxTextElementHast } from 'satteri';
 
 import { h } from 'hastscript';
 import { defineHastPlugin } from 'satteri';
@@ -39,43 +39,11 @@ function presetFor(value: string): RegExp | undefined {
 	return undefined;
 }
 
-// Sätteri's hast visitor has no ancestor context, so we visit an allowlist of text-bearing elements
-// Each visit wraps the element's direct text children; code-like tags are off the list so they are never reached
-// Elements already carrying the marker are skipped (see isWrapper), so existing wrappers are never doubled
-const textBearingTags = [
-	'p',
-	'li',
-	'h1',
-	'h2',
-	'h3',
-	'h4',
-	'h5',
-	'h6',
-	'blockquote',
-	'td',
-	'th',
-	'dd',
-	'dt',
-	'figcaption',
-	'caption',
-	'summary',
-	'span',
-	'a',
-	'em',
-	'strong',
-	'b',
-	'i',
-	'mark',
-	'sup',
-	'sub',
-	'small',
-	'abbr',
-	'cite',
-	'q',
-	'del',
-	'ins',
-	'time',
-];
+// Code-like elements whose CJK must stay verbatim
+const skipTags = new Set(['code', 'kbd', 'pre', 'samp', 'script', 'style']);
+
+// Lowercase MDX elements stay as mdxJsx nodes at hast time, so an author's <span class="cjk"> is one of these
+type Ancestor = Readonly<Element | MdxJsxFlowElementHast | MdxJsxTextElementHast | Root>;
 
 export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 	const settings = optionsSchema.parse(options ?? {});
@@ -94,16 +62,16 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 		return false;
 	}
 
-	// An element already carrying the marker is a wrapper (ours or the author's); skip it
-	function isElementWrapper(node: Element): boolean {
+	// An element already carrying the marker is a wrapper (ours or the author's)
+	function isElementWrapper(node: Readonly<Element>): boolean {
 		if (isTargetsClass) return hasMarkerInClassList(node.properties.className);
 		return node.properties[settings.attribute] === settings.value;
 	}
 
-	// Same check for an MDX component, whose attributes are mdxJsx nodes rather than hast properties
-	function isComponentWrapper(node: {
-		readonly attributes: ReadonlyArray<MdxJsxAttributeUnion>;
-	}): boolean {
+	// Same check for an MDX element, whose attributes are mdxJsx nodes rather than hast properties
+	function isComponentWrapper(
+		node: Readonly<MdxJsxFlowElementHast | MdxJsxTextElementHast>,
+	): boolean {
 		for (const attribute of node.attributes) {
 			if (attribute.type !== 'mdxJsxAttribute' || typeof attribute.value !== 'string') continue;
 			if (isTargetsClass) {
@@ -120,15 +88,27 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 		return false;
 	}
 
-	function wrapTextChildren(
-		node: { readonly children: ReadonlyArray<ElementContent> },
-		ctx: HastVisitorContext,
-	): void {
-		for (const child of node.children) {
-			if (child.type !== 'text' || typeof child.value !== 'string') continue;
+	// ctx.parent climbs to the root, letting us shield text under code or an existing wrapper
+	function isShielded(node: Readonly<Text>, ctx: HastVisitorContext): boolean {
+		let ancestor: Ancestor | undefined = ctx.parent(node);
+		while (ancestor) {
+			if (ancestor.type === 'element') {
+				if (skipTags.has(ancestor.tagName) || isElementWrapper(ancestor)) return true;
+			} else if (ancestor.type !== 'root' && isComponentWrapper(ancestor)) {
+				return true;
+			}
+			ancestor = ctx.parent(ancestor);
+		}
+		return false;
+	}
 
-			const matches = [...child.value.matchAll(regex)];
-			if (matches.length === 0) continue;
+	return defineHastPlugin({
+		name: 'wrap-cjk',
+		text: (node, ctx) => {
+			if (isShielded(node, ctx)) return;
+
+			const matches = [...node.value.matchAll(regex)];
+			if (matches.length === 0) return;
 
 			const parts: Array<Element | Text> = [];
 			let lastIndex = 0;
@@ -137,44 +117,20 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 				const matchIndex = match.index;
 
 				if (matchIndex > lastIndex) {
-					parts.push({ type: 'text', value: child.value.slice(lastIndex, matchIndex) });
+					parts.push({ type: 'text', value: node.value.slice(lastIndex, matchIndex) });
 				}
 				parts.push(h(settings.element, { [settings.attribute]: settings.value }, match[0]));
 				lastIndex = matchIndex + match[0].length;
 			}
 
-			if (lastIndex < child.value.length) {
-				parts.push({ type: 'text', value: child.value.slice(lastIndex) });
+			if (lastIndex < node.value.length) {
+				parts.push({ type: 'text', value: node.value.slice(lastIndex) });
 			}
 
 			// eslint-disable-next-line unicorn/prefer-modern-dom-apis -- ctx.insertBefore is Sätteri's hast visitor API, not the DOM node method
-			ctx.insertBefore(child, parts);
-			ctx.removeNode(child);
-		}
-	}
-
-	// An empty filter matches every MDX component, whose children are still mdxJsx nodes at plugin time
-	// This reaches CJK in component children such as an <Img> caption
-	return defineHastPlugin({
-		element: {
-			filter: textBearingTags,
-			visit: (node, ctx) => {
-				if (!isElementWrapper(node)) wrapTextChildren(node, ctx);
-			},
+			ctx.insertBefore(node, parts);
+			ctx.removeNode(node);
 		},
-		mdxJsxFlowElement: {
-			filter: [],
-			visit: (node, ctx) => {
-				if (!isComponentWrapper(node)) wrapTextChildren(node, ctx);
-			},
-		},
-		mdxJsxTextElement: {
-			filter: [],
-			visit: (node, ctx) => {
-				if (!isComponentWrapper(node)) wrapTextChildren(node, ctx);
-			},
-		},
-		name: 'wrap-cjk',
 	});
 }
 

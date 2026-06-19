@@ -130,6 +130,13 @@ describe('wrapCjk does not re-wrap already-wrapped content', () => {
 		expect((code.match(/className: "cjk"/g) ?? []).length).toBe(1);
 	});
 
+	// Pins the multi-level ctx.parent() climb: the marker is a grandparent, not the direct parent
+	test('skips CJK nested below an already-wrapped ancestor', async () => {
+		const code = await compileMdx('<span className="cjk">A <strong>中文</strong> B</span>\n');
+
+		expect((code.match(/className: "cjk"/g) ?? []).length).toBe(1);
+	});
+
 	test('still wraps CJK inside a component with an unrelated class', async () => {
 		const code = await compileMdx('A <span className="highlight">中文</span> caption.\n');
 

@@ -5,11 +5,10 @@ A [Sätteri][] hast plugin that wraps runs of [CJK characters][cjk-wiki] in an e
 
 ## How it works
 
-Sätteri's hast visitor has no ancestor context, so rather than walking up from each text node, the
-plugin visits an allowlist of text-bearing elements (and MDX components) and wraps the CJK runs in
-their direct text children. Code-like tags (`code`, `pre`, …) are left off the allowlist, so their
-text is never reached. Any element or component already carrying the target attribute and value is
-skipped, so existing wrappers are never doubled.
+The plugin visits every text node and wraps its CJK runs in place. It uses `ctx.parent()` to climb
+each node's ancestors, skipping text inside code-like tags (`code`, `pre`, `kbd`, `samp`, `script`,
+`style`) so their content stays verbatim, and skipping any element or component already carrying the
+target attribute and value so existing wrappers are never doubled.
 
 ## Install
 
