@@ -18,6 +18,7 @@ minimumReleaseAgeExclude:
   - '@astrojs/mdx'
   - '@astrojs/markdown-satteri'
   - 'satteri'
+  - '@bruits/satteri-*'
 
 allowBuilds:
   esbuild: true
