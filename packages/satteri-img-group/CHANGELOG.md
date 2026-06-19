@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-img-group
 
+## 0.2.1
+
+### Patch Changes
+
+- Support `satteri@^0.9.0`.
+
 ## 0.2.0
 
 ### Minor Changes
