@@ -1,5 +1,11 @@
 # @xsynaptic/astro-build-logger
 
+## 0.2.0
+
+### Minor Changes
+
+- Widen the `astro` peer dependency to `^6.0.0 || ^7.0.0-beta.0` so the integration formally supports Astro 7 (including the current 7.0 prereleases) alongside Astro 6. The `astro:build:start` and `astro:build:done` hooks it relies on are unchanged across both majors, so no runtime code changed.
+
 ## 0.1.0
 
 ### Minor Changes
