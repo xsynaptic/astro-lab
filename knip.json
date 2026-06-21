@@ -2,6 +2,9 @@
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"ignoreWorkspaces": ["playground/*"],
 	"workspaces": {
+		"packages/og-image-generator": {
+			"ignoreDependencies": ["@fontsource/archivo"]
+		},
 		"packages/stylelint-config": {
 			"ignoreDependencies": [
 				"@double-great/stylelint-a11y",

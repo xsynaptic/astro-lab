@@ -1,0 +1,52 @@
+{
+	"name": "@xsynaptic/og-image-generator",
+	"version": "0.1.0",
+	"description": "A framework-neutral engine for generating Open Graph images with Satori and sharp.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/og-image-generator"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/og-image-generator#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"satori",
+		"sharp",
+		"opengraph",
+		"og-image",
+		"social-card"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"satori": "^0.26.0"
+	},
+	"peerDependencies": {
+		"sharp": "^0.35.0"
+	},
+	"devDependencies": {
+		"@fontsource/archivo": "^5.2.8",
+		"@types/node": "^22.19.21",
+		"sharp": "^0.35.2"
+	}
+}
