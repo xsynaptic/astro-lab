@@ -1,3 +1,5 @@
+import type { Sharp } from 'sharp';
+
 import sharp from 'sharp';
 
 import type { ImageFormat } from './renderer.js';
@@ -16,8 +18,6 @@ export interface ToDataUrlOptions {
 	format?: ImageFormat;
 	quality?: number;
 }
-
-type Sharp = ReturnType<typeof sharp>;
 
 export function encodeDataUrl(buffer: Buffer, format: ImageFormat = 'jpeg'): string {
 	return `data:image/${format};base64,${buffer.toString('base64')}`;

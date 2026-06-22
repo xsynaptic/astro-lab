@@ -23,3 +23,7 @@ minimumReleaseAgeExclude:
 allowBuilds:
   esbuild: true
   sharp: true
+
+# Dedupe sharp to one version; astro pulls an older range, og-image-generator needs 0.35.x
+overrides:
+  sharp: ^0.35.2

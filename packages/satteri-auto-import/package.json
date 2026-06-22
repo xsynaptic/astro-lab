@@ -46,7 +46,7 @@
 		"satteri": "^0.9.0"
 	},
 	"devDependencies": {
-		"@types/node": "^22.19.21",
+		"@types/node": "^22.20.0",
 		"satteri": "^0.9.1"
 	}
 }

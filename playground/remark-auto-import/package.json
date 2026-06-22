@@ -10,8 +10,8 @@
 	},
 	"dependencies": {
 		"@astrojs/markdown-remark": "^7.2.0",
-		"@astrojs/mdx": "^6.0.3",
+		"@astrojs/mdx": "^7.0.0",
 		"@xsynaptic/remark-auto-import": "*",
-		"astro": "^6.4.8"
+		"astro": "^7.0.0"
 	}
 }

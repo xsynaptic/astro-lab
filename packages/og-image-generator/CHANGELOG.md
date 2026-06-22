@@ -1,5 +1,11 @@
 # @xsynaptic/og-image-generator
 
+## 0.1.1
+
+### Patch Changes
+
+- Import the `Sharp` type directly from `sharp` instead of deriving it via `ReturnType<typeof sharp>`. Sharp 0.35's ESM type declarations export `Sharp` as a named type, which resolves correctly under TypeScript 6 and `nodenext`. No runtime or type-shape change.
+
 ## 0.1.0
 
 ### Minor Changes
