@@ -116,6 +116,7 @@ export function getConfig(
 		{
 			rules: {
 				'unicorn/consistent-class-member-order': 'off', // Hoists private helpers above public lifecycle methods
+				'unicorn/consistent-conditional-object-spread': ['error', 'ternary'], // Conditional inclusion stays a ternary, never &&, matching our JSX rendering rule
 				'unicorn/filename-case': 'warn',
 				'unicorn/max-nested-calls': ['error', { max: 5 }], // Zod schema composition and data pipelines legitimately nest past the default of 3
 				'unicorn/name-replacements': 'off', // I *like* abbreviations!

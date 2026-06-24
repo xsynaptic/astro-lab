@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 5.0.1
+
+### Patch Changes
+
+- Enforce ternary-style conditional object spreads via `unicorn/consistent-conditional-object-spread: ['error', 'ternary']`, consistent with the existing no-`&&`-in-JSX rendering rule.
+
 ## 5.0.0
 
 ### Major Changes
