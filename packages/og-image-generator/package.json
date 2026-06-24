@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/og-image-generator",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "A framework-neutral engine for generating Open Graph images with Satori and sharp.",
 	"type": "module",
 	"license": "MIT",
@@ -42,11 +42,11 @@
 		"satori": "^0.26.0"
 	},
 	"peerDependencies": {
-		"sharp": "^0.35.0"
+		"sharp": "^0.35.2"
 	},
 	"devDependencies": {
 		"@fontsource/archivo": "^5.2.8",
-		"@types/node": "^22.20.0",
+		"@types/node": "^24.13.2",
 		"sharp": "^0.35.2"
 	}
 }

@@ -1,5 +1,11 @@
 # @xsynaptic/og-image-generator
 
+## 0.1.2
+
+### Patch Changes
+
+- Raise the `sharp` peer dependency to `^0.35.2`.
+
 ## 0.1.1
 
 ### Patch Changes

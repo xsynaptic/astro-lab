@@ -118,13 +118,13 @@ export function getConfig(
 				'unicorn/consistent-class-member-order': 'off', // Hoists private helpers above public lifecycle methods
 				'unicorn/filename-case': 'warn',
 				'unicorn/max-nested-calls': ['error', { max: 5 }], // Zod schema composition and data pipelines legitimately nest past the default of 3
+				'unicorn/name-replacements': 'off', // I *like* abbreviations!
 				'unicorn/no-array-callback-reference': 'off', // I prefer this pattern for filtering/sorting content
 				'unicorn/no-invalid-argument-count': 'off', // Off for performance (~1s per run); call arity is already enforced by tsc
 				'unicorn/no-top-level-assignment-in-function': 'off', // Flags the legitimate lazy-singleton (instance ??= load()) cache pattern
 				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Lowercase hex to match Prettier
 				'unicorn/prefer-iterator-to-array': 'off', // Pushes Iterator#toArray(), which needs the esnext.iterator lib; spreads stay browser-safe
 				'unicorn/prefer-uint8array-base64': 'off', // Uint8Array#toBase64() has thin browser support (Safari 18.4+)
-				'unicorn/prevent-abbreviations': 'off', // I *like* abbreviations!
 			},
 		},
 		perfectionist.configs['recommended-natural'],

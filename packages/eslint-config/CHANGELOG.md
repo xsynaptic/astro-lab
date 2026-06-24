@@ -1,5 +1,18 @@
 # @xsynaptic/eslint-config
 
+## 5.0.0
+
+### Major Changes
+
+- Upgrade `eslint-plugin-astro` to v2 and `eslint-plugin-unicorn` to v68.
+
+  Breaking:
+
+  - `eslint-plugin-astro` v2 requires ESLint `>=10` and Node `^22.22.3 || ^24.16.0 || >=26.3.0`, and adds `astro/no-prerender-export-outside-pages` to the recommended config.
+  - `eslint-plugin-unicorn` v68 renames `prevent-abbreviations` to `name-replacements` and adds rules to the recommended preset.
+
+  Consumers must be on ESLint 10 and a supported Node version, and may need to triage newly reported lint errors.
+
 ## 4.0.1
 
 ### Patch Changes
