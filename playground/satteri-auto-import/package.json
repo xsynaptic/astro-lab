@@ -12,7 +12,7 @@
 		"@astrojs/markdown-satteri": "0.3.2",
 		"@astrojs/mdx": "7.0.0",
 		"@xsynaptic/satteri-auto-import": "*",
-		"astro": "7.0.2",
-		"satteri": "0.9.2"
+		"astro": "^7.0.3",
+		"satteri": "^0.9.3"
 	}
 }

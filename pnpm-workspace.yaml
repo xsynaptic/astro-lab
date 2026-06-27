@@ -15,10 +15,8 @@ strictDepBuilds: true
 minimumReleaseAgeExclude:
   # Bypass the 24h guard while Astro 7 prereleases still churn
   - 'astro'
-  - '@astrojs/mdx'
-  - '@astrojs/markdown-satteri'
+  - '@astrojs/*'
   - 'satteri'
-  - '@bruits/satteri-*'
 
 allowBuilds:
   esbuild: true

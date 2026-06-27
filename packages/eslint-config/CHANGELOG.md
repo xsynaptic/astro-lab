@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 5.1.0
+
+### Minor Changes
+
+- Update `eslint-plugin-unicorn` to v69 and `eslint-plugin-astro` to v2.1. The unicorn major may surface new lint warnings in consuming projects.
+
 ## 5.0.1
 
 ### Patch Changes
