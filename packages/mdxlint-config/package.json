@@ -1,0 +1,63 @@
+{
+	"name": "@xsynaptic/mdxlint-config",
+	"version": "0.2.0",
+	"description": "Shared mdxlint config and a conditional-write CLI for formatting and linting MDX content",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/mdxlint-config"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/mdxlint-config#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"mdx",
+		"mdxlint",
+		"remark",
+		"textlint",
+		"lint",
+		"format",
+		"content"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"bin": {
+		"mdxlint-content": "./dist/cli.mjs"
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^24.13.2"
+	},
+	"dependencies": {
+		"chalk": "^5.6.2",
+		"mdxlint": "^1.0.0",
+		"remark-frontmatter": "^5.0.0",
+		"remark-gfm": "^4.0.1",
+		"remark-lint-list-item-indent": "^4.0.1",
+		"remark-preset-lint-consistent": "^6.0.1",
+		"remark-preset-lint-recommended": "^7.0.1",
+		"textlint": "^15.7.1",
+		"unified": "^11.0.5"
+	}
+}
