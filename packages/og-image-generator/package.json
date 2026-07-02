@@ -47,6 +47,6 @@
 	"devDependencies": {
 		"@fontsource/archivo": "^5.2.8",
 		"@types/node": "^24.13.2",
-		"sharp": "^0.35.2"
+		"sharp": "^0.35.3"
 	}
 }

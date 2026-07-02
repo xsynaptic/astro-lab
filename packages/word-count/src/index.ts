@@ -68,7 +68,7 @@ export function countWords(str: string): number {
 	let count = 0;
 	let shouldCount = false;
 
-	for (let index = 0; index < str.length; ) {
+	for (let index = 0; index < str.length;) {
 		const charCode = str.codePointAt(index) ?? 0;
 		const byteIndex = Math.floor(charCode / byteSize);
 		const bitIndex = charCode % byteSize;
