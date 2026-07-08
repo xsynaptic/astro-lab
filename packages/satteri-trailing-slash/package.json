@@ -1,0 +1,52 @@
+{
+	"name": "@xsynaptic/satteri-trailing-slash",
+	"version": "0.1.0",
+	"description": "Sätteri hast plugin that normalizes trailing slashes on internal markdown links to match an Astro project's trailingSlash setting.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/satteri-trailing-slash"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/satteri-trailing-slash#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"satteri",
+		"satteri-plugin",
+		"hast",
+		"trailing-slash",
+		"astro",
+		"seo"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@types/hast": "^3.0.4",
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"satteri": "^0.9.0"
+	},
+	"devDependencies": {
+		"satteri": "^0.9.5"
+	}
+}

@@ -5,6 +5,9 @@
 		"packages/og-image-generator": {
 			"ignoreDependencies": ["@fontsource/archivo"]
 		},
+		"packages/satteri-trailing-slash": {
+			"ignoreDependencies": ["@types/hast"]
+		},
 		"packages/stylelint-config": {
 			"ignoreDependencies": [
 				"@double-great/stylelint-a11y",
