@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 5.2.0
+
+### Minor Changes
+
+- Bump plugin dependencies: `eslint-plugin-unicorn` `^69` → `^71.1`, `eslint-plugin-perfectionist` `^5.9.1` → `^5.10.0`, and `typescript-eslint` `^8.62.1` → `^8.63.0`. Dropped the `unicorn/prefer-uint8array-base64` override; unicorn 71.0.0 removed that rule from its presets, so the override was a no-op.
+
 ## 5.1.0
 
 ### Minor Changes
