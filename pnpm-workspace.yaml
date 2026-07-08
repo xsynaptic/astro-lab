@@ -16,6 +16,7 @@ minimumReleaseAgeExclude:
   # Bypass the 24h guard while Astro 7 prereleases still churn
   - 'astro'
   - '@astrojs/*'
+  - '@bruits/*'
   - 'satteri'
 
 allowBuilds:

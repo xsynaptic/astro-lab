@@ -47,6 +47,6 @@
 	},
 	"devDependencies": {
 		"@types/node": "^24.13.2",
-		"satteri": "^0.9.4"
+		"satteri": "^0.9.5"
 	}
 }
