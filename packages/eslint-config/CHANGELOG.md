@@ -1,5 +1,13 @@
 # @xsynaptic/eslint-config
 
+## 6.0.0
+
+### Major Changes
+
+- Upgrade `eslint-plugin-astro` to v3 (`astro-eslint-parser` v3, Astro's Rust `@astrojs/compiler-rs`; adds `astro/no-prerender-export-outside-pages` to recommended, drops the deprecated `no-omitted-end-tags` and `valid-compile` rules).
+
+  BREAKING: `getAstroConfig`'s `a11y` option now takes a level string (`'strict' | 'recommended'`) instead of a jsx-a11y config array. The plugin resolves the config internally, so consumers no longer import `eslint-plugin-astro` themselves. Migrate `getAstroConfig({ a11y: astroPlugin.configs['jsx-a11y-strict'] })` to `getAstroConfig({ a11y: 'strict' })` and drop the direct `eslint-plugin-astro` dependency. Consumers using `a11y` must have `eslint-plugin-jsx-a11y` installed.
+
 ## 5.2.0
 
 ### Minor Changes

@@ -20,6 +20,7 @@
 		"mdast",
 		"mdx",
 		"astro",
+		"withastro",
 		"images"
 	],
 	"main": "./dist/index.mjs",

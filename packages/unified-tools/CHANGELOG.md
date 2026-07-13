@@ -1,5 +1,12 @@
 # @xsynaptic/unified-tools
 
+## 5.1.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @xsynaptic/rehype-wrap-cjk@3.0.2
+
 ## 5.1.1
 
 ### Patch Changes

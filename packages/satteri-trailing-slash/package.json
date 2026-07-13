@@ -20,6 +20,7 @@
 		"hast",
 		"trailing-slash",
 		"astro",
+		"withastro",
 		"seo"
 	],
 	"main": "./dist/index.mjs",
@@ -40,7 +41,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@types/hast": "^3.0.4",
+		"@types/hast": "^3.0.5",
 		"zod": "^4.4.3"
 	},
 	"peerDependencies": {

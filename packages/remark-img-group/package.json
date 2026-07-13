@@ -20,7 +20,8 @@
 		"remark-plugin",
 		"mdx",
 		"images",
-		"astro"
+		"astro",
+		"withastro"
 	],
 	"main": "./dist/index.mjs",
 	"types": "./dist/index.d.mts",

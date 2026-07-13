@@ -20,6 +20,7 @@
 		"remark-plugin",
 		"mdx",
 		"astro",
+		"withastro",
 		"image"
 	],
 	"main": "./dist/index.mjs",
@@ -49,7 +50,7 @@
 		"unified": "^11.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.2",
+		"@types/node": "^24.13.3",
 		"@types/unist": "^3.0.3",
 		"mdast-util-mdx": "^3.0.0",
 		"remark-mdx": "^3.1.1",

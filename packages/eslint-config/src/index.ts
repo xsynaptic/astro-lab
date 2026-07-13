@@ -29,13 +29,13 @@ export const restrictedSyntaxDefaults: Array<RestrictedSyntaxOption> = [
 
 // Astro plugin rules plus the `.astro` parser wiring and disableTypeChecked blocks it needs
 // Types can't resolve through the Astro parser so `astro check` owns type checking
-// For a11y, install eslint-plugin-jsx-a11y and pass a config (e.g. `astroPlugin.configs['flat/jsx-a11y-strict']`)
+// Pass a11y: 'strict' | 'recommended' to layer jsx-a11y rules; consumers using it must install eslint-plugin-jsx-a11y
 export function getAstroConfig(options?: {
-	a11y?: ConfigWithExtendsArray;
+	a11y?: 'recommended' | 'strict';
 }): ConfigWithExtendsArray {
 	return [
 		...astroPlugin.configs['flat/recommended'],
-		...(options?.a11y ?? []),
+		...(options?.a11y ? astroPlugin.configs[`flat/jsx-a11y-${options.a11y}`] : []),
 		// Split from the disableTypeChecked block below so it doesn't clobber these parserOptions
 		{
 			files: ['**/*.astro'],

@@ -12,7 +12,7 @@
 		"@astrojs/markdown-satteri": "^0.3.3",
 		"@astrojs/mdx": "^7.0.2",
 		"@xsynaptic/satteri-wrap-cjk": "*",
-		"astro": "^7.0.6",
+		"astro": "^7.0.7",
 		"satteri": "^0.9.5"
 	}
 }

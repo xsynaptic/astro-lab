@@ -1,5 +1,11 @@
 # @xsynaptic/rehype-wrap-cjk
 
+## 3.0.2
+
+### Patch Changes
+
+- Fix build under `@types/hast` 3.0.5, which types `className` as `Array<string>`. No behavior change.
+
 ## 3.0.1
 
 ### Patch Changes

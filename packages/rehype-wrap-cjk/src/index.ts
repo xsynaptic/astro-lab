@@ -18,11 +18,7 @@ function isAncestorWrapped(ancestor: Element, attribute: string, value: string):
 	if (attribute === 'class' || attribute === 'className') {
 		const classes = ancestor.properties.className;
 
-		if (Array.isArray(classes)) return classes.includes(value);
-
-		if (typeof classes === 'string') return classes.split(/\s+/).includes(value);
-
-		return false;
+		return Array.isArray(classes) && classes.includes(value);
 	}
 	return ancestor.properties[attribute] === value;
 }
