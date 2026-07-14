@@ -5,6 +5,7 @@ A personal monorepo of reusable packages for my Astro projects, published to npm
 ## Packages
 
 - [`@xsynaptic/astro-build-logger`](packages/astro-build-logger): Astro integration that logs build duration, page count, and output size to JSONL
+- [`@xsynaptic/astro-image-loader`](packages/astro-image-loader): Astro loader treating images as content entries, with incremental sync, caching, and pluggable EXIF/dimensions extraction
 - [`@xsynaptic/eslint-config`](packages/eslint-config): ESLint flat-config factory for TypeScript projects
 - [`@xsynaptic/rehype-wrap-cjk`](packages/rehype-wrap-cjk): rehype plugin to wrap CJK character runs for styling
 - [`@xsynaptic/remark-auto-import`](packages/remark-auto-import): remark plugin that auto-imports components into MDX

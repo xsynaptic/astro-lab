@@ -1,0 +1,45 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+
+const images = await getCollection('images');
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>astro-image-loader playground</title>
+	</head>
+	<body>
+		<h1>astro-image-loader</h1>
+		<p>{images.length} images loaded as content entries.</p>
+
+		{
+			images.map((entry) => (
+				<section>
+					<h2>{entry.id}</h2>
+					{/* Mode B: image() field rendered through astro:assets */}
+					<Image src={entry.data.image} alt={entry.data.title ?? entry.id} />
+					{/* Mode A: queryable metadata (URL/data mode) */}
+					<dl>
+						<dt>src</dt>
+						<dd>{entry.data.src}</dd>
+						<dt>dimensions</dt>
+						<dd>{entry.data.width} × {entry.data.height}</dd>
+						<dt>title</dt>
+						<dd>{entry.data.title ?? '(none)'}</dd>
+						<dt>camera</dt>
+						<dd>{[entry.data.make, entry.data.model].filter(Boolean).join(' ') || '(none)'}</dd>
+						<dt>gps</dt>
+						<dd>
+							{entry.data.latitude !== undefined
+								? `${entry.data.latitude}, ${entry.data.longitude}`
+								: '(none)'}
+						</dd>
+					</dl>
+				</section>
+			))
+		}
+	</body>
+</html>
