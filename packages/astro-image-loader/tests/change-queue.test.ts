@@ -7,16 +7,6 @@ import { createChangeQueue } from '../src/change-queue.js';
 
 const debounceMs = 10;
 
-// A manually-resolved promise to gate batch processing
-function createGate() {
-	let resolve!: () => void;
-	const promise = new Promise<void>((resolveFn) => {
-		resolve = resolveFn;
-	});
-
-	return { promise, resolve };
-}
-
 function makeChange(filePath: string, type: FileChangeQueueItem['type'] = 'change') {
 	return { filePath, id: filePath, type };
 }
@@ -52,7 +42,7 @@ describe('createChangeQueue', () => {
 
 	test('items queued mid-batch are processed by the next batch, not lost', async () => {
 		const processed: Array<string> = [];
-		const firstGate = createGate();
+		const firstGate: PromiseWithResolvers<void> = Promise.withResolvers();
 
 		const queue = createChangeQueue({
 			debounceMs: debounceMs,
@@ -84,7 +74,7 @@ describe('createChangeQueue', () => {
 
 	test('batches never overlap', async () => {
 		const events: Array<string> = [];
-		const firstGate = createGate();
+		const firstGate: PromiseWithResolvers<void> = Promise.withResolvers();
 
 		const queue = createChangeQueue({
 			debounceMs: debounceMs,

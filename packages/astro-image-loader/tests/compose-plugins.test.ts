@@ -44,7 +44,7 @@ describe('composePlugins', () => {
 			],
 		});
 
-		expect(Object.keys(schema.shape).sort((a, b) => a.localeCompare(b))).toEqual([
+		expect(Object.keys(schema.shape).toSorted((a, b) => a.localeCompare(b))).toEqual([
 			'height',
 			'modifiedTime',
 			'src',
@@ -158,7 +158,7 @@ describe('composePlugins', () => {
 		expect(entries.get('a.jpg')?.data.title).toBe('from-plugin');
 		expect(beforeLoad).toHaveBeenCalledTimes(1);
 		expect(afterLoad).toHaveBeenCalledTimes(1);
-		expect(Object.keys(loader.schema.shape).sort((a, b) => a.localeCompare(b))).toEqual([
+		expect(Object.keys(loader.schema.shape).toSorted((a, b) => a.localeCompare(b))).toEqual([
 			'modifiedTime',
 			'src',
 			'title',

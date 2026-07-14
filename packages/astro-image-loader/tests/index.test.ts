@@ -97,7 +97,7 @@ describe('imageLoader', () => {
 
 		await imageLoader({}).load(context);
 
-		expect([...entries.keys()].sort((a, b) => a.localeCompare(b))).toEqual([
+		expect([...entries.keys()].toSorted((a, b) => a.localeCompare(b))).toEqual([
 			'a.jpg',
 			'nested/b.png',
 		]);
