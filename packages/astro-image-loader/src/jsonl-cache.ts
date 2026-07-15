@@ -19,6 +19,9 @@ export function createJsonlCache({ filePath }: { filePath: string }): ImageLoade
 	let hydration: Promise<Map<string, ImageLoaderCacheValue>> | undefined;
 	let appendStream: undefined | WriteStream;
 
+	// Tracks non-empty file lines so prune can tell when the file diverges from the live map
+	let fileLineCount = 0;
+
 	// Memoize the promise, not the map, or concurrent callers see an empty cache mid-read
 	function hydrate() {
 		if (hydration) return hydration;
@@ -27,11 +30,20 @@ export function createJsonlCache({ filePath }: { filePath: string }): ImageLoade
 			const entries = new Map<string, ImageLoaderCacheValue>();
 
 			if (existsSync(filePath)) {
-				const contents = await readFile(filePath, 'utf8');
+				let contents = '';
+
+				// A failed read degrades to an empty cache rather than poisoning every later call
+				// Whatever broke the read will surface loudly when the append stream opens
+				try {
+					contents = await readFile(filePath, 'utf8');
+				} catch (error) {
+					console.warn(`[astro-image-loader] cache read failed, starting empty: ${String(error)}`);
+				}
 
 				// Later lines win; malformed lines (e.g. from an interrupted write) are skipped
 				for (const line of contents.split('\n')) {
 					if (!line) continue;
+					fileLineCount++;
 					try {
 						const parsed = JSON.parse(line) as JsonlCacheLine;
 
@@ -65,9 +77,18 @@ export function createJsonlCache({ filePath }: { filePath: string }): ImageLoade
 			const cache = await hydrate();
 			const liveKeySet = new Set(liveKeys);
 
+			let removedCount = 0;
+
 			for (const key of cache.keys()) {
-				if (!liveKeySet.has(key)) cache.delete(key);
+				if (liveKeySet.has(key)) continue;
+
+				cache.delete(key);
+				removedCount++;
 			}
+
+			// Rewrite only when the file diverges from the live map
+			// Divergence means dead keys just removed, or excess lines (superseded duplicates, junk)
+			if (removedCount === 0 && fileLineCount === cache.size) return;
 
 			// Compact: rewrite with live keys only, atomically via temp file + rename
 			if (appendStream) {
@@ -83,6 +104,8 @@ export function createJsonlCache({ filePath }: { filePath: string }): ImageLoade
 			await mkdir(path.dirname(filePath), { recursive: true });
 			await writeFile(tempPath, lines.length > 0 ? `${lines.join('\n')}\n` : '');
 			await rename(tempPath, filePath);
+
+			fileLineCount = cache.size;
 		},
 		set: async (key, value) => {
 			const cache = await hydrate();
@@ -101,6 +124,8 @@ export function createJsonlCache({ filePath }: { filePath: string }): ImageLoade
 					}
 				});
 			});
+
+			fileLineCount++;
 		},
 	};
 }

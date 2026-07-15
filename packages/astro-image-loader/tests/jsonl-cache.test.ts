@@ -1,7 +1,7 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import { createJsonlCache } from '../src/jsonl-cache.js';
 
@@ -97,12 +97,69 @@ describe('createJsonlCache', () => {
 		const cache = createJsonlCache({ filePath });
 
 		await cache.set('a.jpg', { data: {}, digest: 'd1' });
+		await cache.set('stale.jpg', { data: {}, digest: 'd2' });
 		await cache.prune?.(['a.jpg']);
-		await cache.set('b.jpg', { data: {}, digest: 'd2' });
+		await cache.set('b.jpg', { data: {}, digest: 'd3' });
 
 		const rereadCache = createJsonlCache({ filePath });
 
 		expect(await rereadCache.get('a.jpg')).toEqual({ data: {}, digest: 'd1' });
-		expect(await rereadCache.get('b.jpg')).toEqual({ data: {}, digest: 'd2' });
+		expect(await rereadCache.get('b.jpg')).toEqual({ data: {}, digest: 'd3' });
+		expect(await rereadCache.get('stale.jpg')).toBeUndefined();
+	});
+
+	test('prune skips the rewrite when the file already mirrors live entries', async () => {
+		const filePath = await getTempCachePath();
+		const seed = createJsonlCache({ filePath });
+
+		await seed.set('a.jpg', { data: {}, digest: 'd1' });
+		await seed.set('b.jpg', { data: {}, digest: 'd2' });
+
+		// Warm-load shape: fresh instance hydrates, every key is live
+		const cache = createJsonlCache({ filePath });
+
+		await cache.get('a.jpg');
+
+		const statsBefore = await stat(filePath);
+
+		await cache.prune?.(['a.jpg', 'b.jpg']);
+
+		// Compaction rewrites via temp file + rename, which changes the inode
+		const statsAfter = await stat(filePath);
+
+		expect(statsAfter.ino).toBe(statsBefore.ino);
+	});
+
+	test('prune compacts superseded duplicate lines even when every key is live', async () => {
+		const filePath = await getTempCachePath();
+		const cache = createJsonlCache({ filePath });
+
+		await cache.set('a.jpg', { data: {}, digest: 'd1' });
+		await cache.set('a.jpg', { data: {}, digest: 'd2' });
+
+		await cache.prune?.(['a.jpg']);
+
+		const contents = await readFile(filePath, 'utf8');
+		const lines = contents.split('\n').filter(Boolean);
+
+		expect(lines).toHaveLength(1);
+		expect(await cache.get('a.jpg')).toEqual({ data: {}, digest: 'd2' });
+	});
+
+	test('a failed initial read degrades to an empty cache instead of throwing', async () => {
+		const filePath = await getTempCachePath();
+
+		// A directory at the cache path makes readFile fail while existsSync passes
+		await mkdir(filePath, { recursive: true });
+
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+			// Silence the expected warning
+		});
+		const cache = createJsonlCache({ filePath });
+
+		expect(await cache.get('a.jpg')).toBeUndefined();
+		expect(warnSpy).toHaveBeenCalledOnce();
+
+		warnSpy.mockRestore();
 	});
 });

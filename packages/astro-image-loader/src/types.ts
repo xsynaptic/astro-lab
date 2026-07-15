@@ -15,7 +15,10 @@ export interface ImageLoaderCache {
 	get: (
 		key: string,
 	) => ImageLoaderCacheValue | Promise<ImageLoaderCacheValue | undefined> | undefined;
-	/** Called after every full load with all live keys; evict the rest */
+	/**
+	 * Called at most once per load, after reconciliation, with all live keys; evict the rest
+	 * No set calls are in flight during prune, so concurrent mutation needn't be handled
+	 */
 	prune?: (liveKeys: Array<string>) => Promise<void> | void;
 	set: (key: string, value: ImageLoaderCacheValue) => Promise<void> | void;
 }

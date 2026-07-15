@@ -41,7 +41,7 @@ Without a `schema`, the base schema (`src`, `modifiedTime`) plus any plugin frag
 - `generateId`: entry ID factory, defaults to the relative file path
 - `dataHandler`: metadata extraction callback; its output is merged into entry data and validated by the schema
 - `plugins`: prepackaged option bundles (see below)
-- `cache`: storage for dataHandler output; a JSONL file under Astro's `cacheDir` by default. Pass a `{ get, set, prune? }` implementation, `createJsonlCache({ filePath })` to relocate the default, or `false` to disable
+- `cache`: storage for dataHandler output; a JSONL file under Astro's `cacheDir` by default. Pass a `{ get, set, prune? }` implementation, `createJsonlCache({ filePath })` to relocate the default, or `false` to disable. `prune` is called at most once per load, after all `set` calls have settled, so implementations need not handle concurrent mutation
 - `beforeLoad` / `afterLoad`: batch lifecycle hooks
 
 ## Plugins

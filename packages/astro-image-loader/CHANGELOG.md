@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-loader
 
+## 0.1.1
+
+### Patch Changes
+
+- JSONL cache hardening: a failed initial read degrades to an empty cache (with a warning) instead of poisoning every later call; prune skips the full-file rewrite when the file already mirrors live entries; the prune calling contract (at most once per load, no concurrent sets) is now documented on the cache interface
+
 ## 0.1.0
 
 ### Minor Changes
