@@ -18,7 +18,7 @@
 		"type": "git",
 		"url": "git+https://github.com/xsynaptic/astro-lab.git"
 	},
-	"packageManager": "pnpm@11.10.0",
+	"packageManager": "pnpm@11.13.0",
 	"engines": {
 		"node": ">=24.0.0"
 	},
@@ -44,9 +44,9 @@
 		"knip": "^6.26.0",
 		"prettier": "^3.9.5",
 		"publint": "^0.3.21",
-		"tsdown": "^0.22.5",
+		"tsdown": "^0.22.7",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.63.0",
+		"typescript-eslint": "^8.64.0",
 		"vitest": "^4.1.10"
 	}
 }
