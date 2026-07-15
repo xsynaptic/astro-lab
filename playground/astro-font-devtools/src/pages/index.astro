@@ -1,0 +1,59 @@
+---
+
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>astro-font-devtools playground</title>
+		<style>
+			:root {
+				--font-heading: system-ui, sans-serif;
+				--font-title: system-ui, sans-serif;
+				--font-body: system-ui, sans-serif;
+			}
+			body {
+				font-family: var(--font-body);
+				max-width: 42rem;
+				margin: 4rem auto;
+				padding: 0 1.5rem;
+				line-height: 1.6;
+			}
+			h1 {
+				font-family: var(--font-title);
+			}
+			h2 {
+				font-family: var(--font-heading);
+			}
+			code {
+				font-family: ui-monospace, monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Astro Font Devtools Playground</h1>
+		<p>
+			Open the dev toolbar at the bottom of the screen, pick <strong>Font Devtools</strong>, and
+			swap fonts <em>live</em>. Three targets are pre-seeded:
+		</p>
+		<ul>
+			<li><code>--font-heading</code></li>
+			<li><code>h1</code></li>
+			<li><code>p</code></li>
+			<li><code>code</code></li>
+			<li><code>.additional-notes</code></li>
+		</ul>
+		<p>
+			You can also arbitrarily specify fonts for <code>--font-title</code> and <code
+				>--font-body</code
+			>.
+		</p>
+		<h2>Additional Notes</h2>
+		<p class="additional-notes">
+			For regular selectors you can also apply weight and italic styles. Custom properties only
+			accept a font family.
+		</p>
+	</body>
+</html>

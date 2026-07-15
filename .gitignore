@@ -4,3 +4,9 @@ dist
 .DS_Store
 .astro
 .claude
+
+# Playwright
+test-results
+playwright-report
+blob-report
+.playwright
