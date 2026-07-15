@@ -9,7 +9,7 @@ export interface FileChangeQueueItem {
 
 /**
  * Durable cache for dataHandler output, surviving Astro data store wipes
- * Keys are base-joined relative file paths; the loader owns all orchestration
+ * Keys are root-relative file paths; the loader owns all orchestration
  */
 export interface ImageLoaderCache {
 	get: (
@@ -80,7 +80,10 @@ export const VALID_INPUT_FORMATS = [
 export interface ImageLoaderOptions {
 	/** Run once after loading all images and after each watch-mode batch (e.g. tear down a resource) */
 	afterLoad?: () => Promise<void> | void;
-	/** Directory to resolve images from, relative to the root or an absolute file URL; defaults to `.` */
+	/**
+	 * Directory to resolve images from, relative to the project root or absolute; defaults to `.`
+	 * Entries are stored root-relative, so images must sit inside the root for image() fields to resolve
+	 */
 	base: string;
 	/** Run once before loading all images and before each watch-mode batch (e.g. set up a resource) */
 	beforeLoad?: () => Promise<void> | void;

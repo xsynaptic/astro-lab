@@ -117,6 +117,8 @@ export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 				return;
 			}
 
+			const rootPath = fileURLToPath(config.root);
+
 			const filePaths = await glob(options.pattern, {
 				cwd: baseDirPath,
 				expandDirectories: false,
@@ -138,6 +140,7 @@ export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 				logger,
 				options,
 				parseData,
+				root: config.root,
 				store,
 			});
 
@@ -159,8 +162,10 @@ export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 				store.delete(id);
 			}
 
-			// Evict cache rows for deleted or renamed files
-			await cache?.prune?.(filePaths.map((filePath) => path.join(options.base, filePath)));
+			// Evict cache rows for deleted or renamed files; keys must match syncData's cache keys
+			await cache?.prune?.(
+				filePaths.map((filePath) => toRootRelativePath(rootPath, baseDirPath, filePath)),
+			);
 
 			await options.afterLoad?.();
 
@@ -253,14 +258,19 @@ function getSyncDataFunction({
 	logger,
 	options,
 	parseData,
+	root,
 	store,
 }: Pick<LoaderContext, 'generateDigest' | 'logger' | 'parseData' | 'store'> & {
 	baseDir: URL;
 	cache?: ImageLoaderCache | undefined;
 	options: ImageLoaderOptions;
+	root: URL;
 }) {
 	// Limit the concurrency of files processed to reduce memory usage
 	const limit = pLimit(options.concurrency);
+
+	const rootPath = fileURLToPath(root);
+	const basePath = fileURLToPath(baseDir);
 
 	return async function syncData({ filePath, id }: { filePath: string; id: string }) {
 		return limit(async () => {
@@ -304,8 +314,8 @@ function getSyncDataFunction({
 				return;
 			}
 
-			// Relative to the project root, where is this image found; it needs to be importable
-			const filePathRelative = path.join(options.base, filePath);
+			// Root-relative path for the store; importable and used as the cache key
+			const filePathRelative = toRootRelativePath(rootPath, basePath, filePath);
 
 			let handlerData: Record<string, unknown> = {};
 
@@ -348,4 +358,11 @@ function getSyncDataFunction({
 			});
 		});
 	};
+}
+
+// Root-relative, forward-slashed path for the store, matching Astro's own loaders
+// Works whether `base` is root-relative or absolute; the store rejects absolute paths
+// Pure path math (no file URL) so `#`/`?`/`%` in filenames aren't mangled by URL encoding
+function toRootRelativePath(rootPath: string, basePath: string, filePath: string) {
+	return path.relative(rootPath, path.join(basePath, filePath)).split(path.sep).join('/');
 }

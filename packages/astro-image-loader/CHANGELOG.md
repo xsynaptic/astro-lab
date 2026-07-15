@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-loader
 
+## 0.1.2
+
+### Patch Changes
+
+- Fix crash when `base` is an absolute path. Entry and cache paths are now always root-relative, so the store no longer rejects them.
+
 ## 0.1.1
 
 ### Patch Changes

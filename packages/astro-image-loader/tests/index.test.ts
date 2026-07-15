@@ -91,6 +91,24 @@ describe('imageLoader', () => {
 		);
 	});
 
+	test('stores root-relative paths and cache keys for an absolute base', async () => {
+		const { dir, root } = await createFixtureDir(['images/a.jpg']);
+		const { context, entries } = createMockLoaderContext({ root });
+
+		const prune = vi.fn();
+		const cache = { get: vi.fn(), prune, set: vi.fn() };
+
+		// Absolute base previously produced absolute, store-rejected paths
+		await imageLoader({ base: path.join(dir, 'images'), cache, dataHandler: () => ({}) }).load(
+			context,
+		);
+
+		// Id stays glob-relative; src, cache key, and prune key are all root-relative
+		expect(entries.get('a.jpg')?.data.src).toBe('images/a.jpg');
+		expect(cache.set).toHaveBeenCalledWith('images/a.jpg', expect.any(Object));
+		expect(prune).toHaveBeenLastCalledWith(['images/a.jpg']);
+	});
+
 	test('discovers matching files, ignoring other extensions and svg by default', async () => {
 		const { root } = await createFixtureDir(['a.jpg', 'notes.txt', 'icon.svg', 'nested/b.png']);
 		const { context, entries } = createMockLoaderContext({ root });

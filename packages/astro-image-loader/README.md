@@ -33,7 +33,7 @@ Without a `schema`, the base schema (`src`, `modifiedTime`) plus any plugin frag
 
 ## Options
 
-- `base`: directory to resolve images from, relative to the project root
+- `base`: directory to resolve images from, either relative to the project root or absolute; entries are always stored and cached with a root-relative path, so images must resolve inside the project root for `image()` fields to work
 - `pattern`: glob pattern(s) relative to `base`; defaults to Astro's raster formats (no SVG)
 - `concurrency`: how many images are processed at once
 - `debounceMs`: debounce window for watch-mode file events
@@ -76,5 +76,5 @@ const images = defineCollection({
 - An entry re-processes only when `{ id, filePath, mtime, base, invalidationKey }` changes; cached output survives a data store wipe
 - `dataHandler` output must be JSON-serializable; use `z.coerce.date()` for dates
 - Local images only; remote URLs are out of scope
-
-Tested on Astro 7 but it should work on Astro 6.
+- Tested on Astro 7 but it should work on Astro 6
+- See also: [astro-image-exif-loader](https://github.com/OliverSpeir/astro-image-exif-loader) for a dedicated EXIF-only loader
