@@ -15,6 +15,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 - [`@xsynaptic/satteri-auto-import`](packages/satteri-auto-import): Sätteri mdast plugin that injects ESM imports into MDX
 - [`@xsynaptic/satteri-img-group`](packages/satteri-img-group): Sätteri mdast plugin that stamps ImgGroup/Img layout context
 - [`@xsynaptic/satteri-reading-time`](packages/satteri-reading-time): Sätteri mdast plugin that estimates multilingual reading time and injects it into Astro frontmatter
+- [`@xsynaptic/satteri-trailing-slash`](packages/satteri-trailing-slash): Sätteri hast plugin that normalizes trailing slashes on internal Markdown links to match a project's `trailingSlash` setting
 - [`@xsynaptic/satteri-wrap-cjk`](packages/satteri-wrap-cjk): Sätteri hast plugin to wrap CJK character runs for styling
 
 ## Unified
@@ -24,16 +25,18 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 - [`@xsynaptic/rehype-wrap-cjk`](packages/rehype-wrap-cjk): rehype plugin to wrap CJK character runs for styling
 - [`@xsynaptic/remark-auto-import`](packages/remark-auto-import): remark plugin that auto-imports components into MDX
 - [`@xsynaptic/remark-image-import`](packages/remark-image-import): remark plugin that auto-imports a component's image sources in MDX
-- [`@xsynaptic/remark-img-group`](packages/remark-img-group): remark plugin that validates and stamps MDX ImgGroup/Img layout (reference implementation)
+- [`@xsynaptic/remark-img-group`](packages/remark-img-group): remark plugin that validates and stamps custom MDX components for magazine-style image layout
 - [`@xsynaptic/unified-tools`](packages/unified-tools): remark/rehype/retext pipelines for markup and text
 
 ## Configs
 
 - [`@xsynaptic/eslint-config`](packages/eslint-config): ESLint flat-config factory for TypeScript projects
+- [`@xsynaptic/mdxlint-config`](packages/mdxlint-config): shared mdxlint config and a conditional-write CLI for formatting and linting MDX content
 - [`@xsynaptic/stylelint-config`](packages/stylelint-config): shared Stylelint config for Astro projects using Tailwind CSS v4
 
 ## Other
 
+- [`@xsynaptic/og-image-generator`](packages/og-image-generator): framework-neutral engine for generating Open Graph images with Satori and sharp
 - [`@xsynaptic/unpic-imagor`](packages/unpic-imagor): unpic URL provider for the imagor image server
 - [`@xsynaptic/word-count`](packages/word-count): fast, dependency-free multilingual word counter
 
