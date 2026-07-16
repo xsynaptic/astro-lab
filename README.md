@@ -10,11 +10,16 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 
 ## Sätteri
 
+[Sätteri](https://satteri.bruits.org/) is a new Rust-based Markdown compiler and the default for Astro as of 2026.
+
 - [`@xsynaptic/satteri-auto-import`](packages/satteri-auto-import): Sätteri mdast plugin that injects ESM imports into MDX
 - [`@xsynaptic/satteri-img-group`](packages/satteri-img-group): Sätteri mdast plugin that stamps ImgGroup/Img layout context
+- [`@xsynaptic/satteri-reading-time`](packages/satteri-reading-time): Sätteri mdast plugin that estimates multilingual reading time and injects it into Astro frontmatter
 - [`@xsynaptic/satteri-wrap-cjk`](packages/satteri-wrap-cjk): Sätteri hast plugin to wrap CJK character runs for styling
 
 ## Unified
+
+[unified](https://unifiedjs.com/) has long been the standard for AST processing in the JavaScript ecosystem. It remains an option for Astro but these tools and plugins are deprecated in favor of Sätteri.
 
 - [`@xsynaptic/rehype-wrap-cjk`](packages/rehype-wrap-cjk): rehype plugin to wrap CJK character runs for styling
 - [`@xsynaptic/remark-auto-import`](packages/remark-auto-import): remark plugin that auto-imports components into MDX
