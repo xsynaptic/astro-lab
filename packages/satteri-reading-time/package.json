@@ -1,0 +1,52 @@
+{
+	"name": "@xsynaptic/satteri-reading-time",
+	"version": "0.2.0",
+	"description": "Sätteri mdast plugin that computes multilingual reading time and injects it into Astro frontmatter.",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/satteri-reading-time"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/satteri-reading-time#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"satteri",
+		"satteri-plugin",
+		"mdast",
+		"reading-time",
+		"astro",
+		"withastro"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@xsynaptic/word-count": "workspace:*",
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"satteri": "^0.9.5"
+	},
+	"devDependencies": {
+		"satteri": "^0.9.5"
+	}
+}

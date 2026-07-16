@@ -1,0 +1,18 @@
+{
+	"name": "@playground/satteri-reading-time",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview"
+	},
+	"dependencies": {
+		"@astrojs/markdown-satteri": "^0.3.4",
+		"@astrojs/mdx": "^7.0.3",
+		"@xsynaptic/satteri-reading-time": "*",
+		"astro": "^7.0.9",
+		"satteri": "^0.9.5"
+	}
+}

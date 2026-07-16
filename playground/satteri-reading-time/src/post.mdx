@@ -1,0 +1,26 @@
+---
+title: A Multilingual Post
+---
+
+# Reading time across scripts
+
+This post mixes English prose with Chinese, Japanese, Korean, and Thai so the
+estimate reflects each script's counting model. English is counted by word;
+ideographs and kana by character; Korean by word; Thai by character.
+
+中文是按字元計算的，每個漢字都算作一個單位。這段文字用來示範中日韓混排時的閱讀時間估算。
+
+日本語はひらがな、カタカナ、漢字をすべて一文字ずつ数えます。カタカナで書かれた外来語も正しく数えられます。
+
+한국어는 띄어쓰기가 있으므로 음절이 아니라 단어 단위로 계산됩니다.
+
+ภาษาไทยเขียนติดกันไม่มีการเว้นวรรค จึงนับเป็นรายตัวอักษร
+
+The fenced code block below is excluded from the estimate by default:
+
+```ts
+const excluded = 'this code does not count toward reading time';
+function noise() {
+	return Array.from({ length: 100 }, (_, index) => index * 2);
+}
+```
