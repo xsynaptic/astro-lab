@@ -60,12 +60,31 @@ function buildBitmap(): Uint8Array {
 
 const bitmap = buildBitmap();
 
+/** Split word count for callers that need per-script-class rates (e.g. reading time). */
+export interface WordCountBreakdown {
+	// Per-character-script units: CJK, Japanese kana, Thai, Lao, Burmese, Khmer, Javanese, Vai
+	scriptChars: number;
+	// words + scriptChars; identical to countWords for the same input
+	total: number;
+	// Whitespace-delimited words: Latin, Korean, Cyrillic, and any script not in UNICODE_RANGES
+	words: number;
+}
+
 /**
  * Count words in a string with multilingual support
- * Handles Latin scripts (whitespace-delimited) and CJK/Thai/Lao/Burmese/Khmer/Javanese/Vai
+ * Handles Latin scripts (whitespace-delimited) and CJK/Japanese kana/Thai/Lao/Burmese/Khmer/Javanese/Vai
  */
 export function countWords(str: string): number {
-	let count = 0;
+	return countWordsBreakdown(str).total;
+}
+
+/**
+ * Like countWords, but split into whitespace-delimited `words` and per-character `scriptChars`
+ * `total` equals countWords for the same input
+ */
+export function countWordsBreakdown(str: string): WordCountBreakdown {
+	let words = 0;
+	let scriptChars = 0;
 	let shouldCount = false;
 
 	for (let index = 0; index < str.length;) {
@@ -75,17 +94,26 @@ export function countWords(str: string): number {
 		const byteAtIndex = bitmap[byteIndex] ?? 0;
 		const isMatch = ((byteAtIndex >> bitIndex) & 1) === 1;
 
-		// 255 means this is a Unicode range match (every character is a word),
-		// so count regardless of shouldCount state
-		count += Number(isMatch && (shouldCount || byteAtIndex === 255));
-		shouldCount = !isMatch;
+		if (isMatch) {
+			// 255 means a Unicode range match (every character is its own unit)
+			// A pending delimited word ends here even without a boundary, e.g. Latin glued to CJK
+			if (byteAtIndex === 255) {
+				if (shouldCount) words += 1;
+				scriptChars += 1;
+			} else if (shouldCount) {
+				words += 1;
+			}
+			shouldCount = false;
+		} else {
+			shouldCount = true;
+		}
 
 		// Step by 2 for supplementary plane characters (surrogate pairs)
 		index += charCode > 0xff_ff ? 2 : 1;
 	}
 
 	// Count the last word if string didn't end on a boundary
-	count += Number(shouldCount);
+	if (shouldCount) words += 1;
 
-	return count;
+	return { scriptChars, total: words + scriptChars, words };
 }

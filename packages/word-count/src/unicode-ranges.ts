@@ -29,6 +29,13 @@ const JAVANESE_UNICODE_RANGE: Array<[number, number]> = [[43_392, 43_487]];
 // Vai (Unicode block) A500-A63F
 const VAI_UNICODE_RANGE: Array<[number, number]> = [[42_240, 42_559]];
 
+// Japanese kana; counted per character like the ideographic scripts (no word spaces)
+// Source: https://en.wikipedia.org/wiki/Hiragana_(Unicode_block) / Katakana_(Unicode_block)
+const JAPANESE_KANA_UNICODE_RANGES: Array<[number, number]> = [
+	[12_352, 12_447], // Hiragana 3040-309F
+	[12_448, 12_543], // Katakana 30A0-30FF
+];
+
 // CJK Unified Ideographs and related blocks
 const CJK_UNICODE_RANGES: Array<[number, number]> = [
 	[19_968, 40_959], // CJK Unified Ideographs
@@ -56,5 +63,6 @@ export const UNICODE_RANGES: Array<[number, number]> = [
 	...KHMER_UNICODE_RANGE,
 	...JAVANESE_UNICODE_RANGE,
 	...VAI_UNICODE_RANGE,
+	...JAPANESE_KANA_UNICODE_RANGES,
 	...CJK_UNICODE_RANGES,
 ];
