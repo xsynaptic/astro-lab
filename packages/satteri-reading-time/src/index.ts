@@ -26,10 +26,7 @@ export function readingTime(options?: null | Readonly<ReadingTimeOptions>): Mdas
 		let prose: undefined | { scriptChars: number; words: number };
 		let codeWords = 0;
 
-		// textContent(root) returns all prose in one call, so recompute is cheap and idempotent
-		// codeWords grows as later `code` nodes are visited; last write wins
-		// Sätteri's textContent excludes fenced `code` node values but includes `inlineCode`;
-		// the countCodeBlocks path relies on that split, so fenced code is added here, not there
+		// No finalize hook, so compute prose once and rewrite the value on every visit
 		function write(node: Readonly<MdastNode>, ctx: MdastVisitorContext): void {
 			if (prose === undefined) {
 				const text = ctx.textContent(findRoot(node, ctx), {
@@ -48,13 +45,13 @@ export function readingTime(options?: null | Readonly<ReadingTimeOptions>): Mdas
 			resolveTarget(ctx.data)[settings.frontmatterKey] = minutes;
 		}
 
+		// textContent omits fenced code, so count it here when enabled
 		const visitCode = (node: Readonly<MdastNode>, ctx: MdastVisitorContext): void => {
 			if (node.type === 'code') codeWords += countWordsBreakdown(node.value).total;
 			write(node, ctx);
 		};
 
 		// A text node sits under every content block, so one text hook reaches the root
-		// Fenced code has no text child, so it is hooked separately only when counted
 		const definition: MdastPluginDefinition = { name: 'reading-time', text: write };
 		if (settings.countCodeBlocks) definition.code = visitCode;
 		return definition;
@@ -72,8 +69,7 @@ function findRoot(node: Readonly<MdastNode>, ctx: MdastVisitorContext): Readonly
 	return root;
 }
 
-// Astro's processor seeds ctx.data.astro.frontmatter; standalone compiles have neither
-// Fall back to the data bag itself so the value is still observable via result.data
+// Under Astro the target is data.astro.frontmatter; standalone, fall back to the data bag itself
 function resolveTarget(data: Data): Record<string, unknown> {
 	const astro = data.astro;
 	if (astro !== null && typeof astro === 'object' && 'frontmatter' in astro) {
