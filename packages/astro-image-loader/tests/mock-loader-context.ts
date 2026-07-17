@@ -19,7 +19,7 @@ interface MockLoaderContextOptions {
 // Astro's ContentLayer and MutableDataStore are internal; mock only the surface the loader touches
 export function createMockLoaderContext({ parseData, root }: MockLoaderContextOptions) {
 	const entries = new Map<string, MockDataEntry>();
-	const logs: Array<{ level: 'error' | 'info' | 'warn'; message: string }> = [];
+	const logs: Array<{ level: 'debug' | 'error' | 'info' | 'warn'; message: string }> = [];
 	const addAssetImports = vi.fn<(imports: Array<string>, filePath: string) => void>();
 
 	// eslint-disable-next-line unicorn/prefer-event-target -- mimics chokidar's FSWatcher, which is an EventEmitter
@@ -35,6 +35,9 @@ export function createMockLoaderContext({ parseData, root }: MockLoaderContextOp
 		generateDigest: (data: Record<string, unknown> | string) =>
 			typeof data === 'string' ? data : JSON.stringify(data),
 		logger: {
+			debug: (message: string) => {
+				logs.push({ level: 'debug', message });
+			},
 			error: (message: string) => {
 				logs.push({ level: 'error', message });
 			},

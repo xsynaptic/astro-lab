@@ -37,7 +37,10 @@ Without a `schema`, the base schema (`src`, `modifiedTime`) plus any plugin frag
 - `pattern`: glob pattern(s) relative to `base`; defaults to Astro's raster formats (no SVG)
 - `concurrency`: how many images are processed at once
 - `debounceMs`: debounce window for watch-mode file events
-- `invalidationKey`: key folded into every entry digest; change it to force regeneration
+- `extractionVersion`: versions extraction; a change re-runs `dataHandler` for every image
+- `derivationVersion`: versions derivation (schema parsing and transforms); a change re-parses entries from cached `dataHandler` output without re-running it. Context-dependent values (signed URLs, env-derived fields) belong in transforms versioned here, never in `dataHandler` output
+- `showProgress`: interval progress lines during the initial sync plus an end-of-sync summary with cache statistics; defaults to `true`
+- `progressInterval`: how many worked images between progress lines; defaults to `100`
 - `generateId`: entry ID factory, defaults to the relative file path
 - `dataHandler`: metadata extraction callback; its output is merged into entry data and validated by the schema
 - `plugins`: prepackaged option bundles (see below)
@@ -46,7 +49,7 @@ Without a `schema`, the base schema (`src`, `modifiedTime`) plus any plugin frag
 
 ## Plugins
 
-A plugin bundles the option surface: `{ schema?, dataHandler?, beforeLoad?, afterLoad?, invalidationKey? }`. Pass an array to `plugins`; outputs merge flat (array order wins, the inline `dataHandler` last) and schema fragments merge into the collection schema.
+A plugin bundles the option surface: `{ schema?, dataHandler?, beforeLoad?, afterLoad?, extractionVersion? }`. Pass an array to `plugins`; outputs merge flat (array order wins, the inline `dataHandler` last) and schema fragments merge into the collection schema. Plugins carry no `derivationVersion`: their only output channel is the cached `dataHandler`, so a plugin's changes always version extraction.
 
 - **`/exif`** (`exifPlugin(options?)`): a curated set of EXIF fields via [exiftool-vendored](https://github.com/photostructure/exiftool-vendored.js). GPS is stripped by default; pass `{ gps: true }` for `latitude`/`longitude`.
 - **`/dimensions`** (`dimensionsPlugin()`): `width` and `height` via [sharp](https://sharp.pixelplumbing.com/).
@@ -73,7 +76,8 @@ const images = defineCollection({
 
 ## Notes
 
-- An entry re-processes only when `{ id, filePath, mtime, base, invalidationKey }` changes; cached output survives a data store wipe
+- An entry re-processes only when `{ id, filePath, mtime, extractionVersion }` changes; cached output survives a data store wipe. A `derivationVersion` change refreshes store entries (re-running schema parsing and transforms) without re-running `dataHandler`
+- Each extraction logs at debug level (visible with `--verbose`), regardless of `showProgress`
 - `dataHandler` output must be JSON-serializable; use `z.coerce.date()` for dates
 - Local images only; remote URLs are out of scope
 - Tested on Astro 7 but it should work on Astro 6

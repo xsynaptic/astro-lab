@@ -100,7 +100,7 @@ describe('exifPlugin', () => {
 		// GPS is opt-in
 		expect(data?.latitude).toBeUndefined();
 		expect(data?.longitude).toBeUndefined();
-		expect(plugin.invalidationKey).toBe('exif:v1:nogps');
+		expect(plugin.extractionVersion).toBe('exif:v1:nogps');
 		expect(Object.keys(plugin.schema?.shape ?? {})).not.toContain('latitude');
 	});
 
@@ -110,7 +110,7 @@ describe('exifPlugin', () => {
 
 		expect(data?.latitude).toBeCloseTo(35.6812, 3);
 		expect(data?.longitude).toBeCloseTo(139.7671, 3);
-		expect(plugin.invalidationKey).toBe('exif:v1:gps');
+		expect(plugin.extractionVersion).toBe('exif:v1:gps');
 		expect(Object.keys(plugin.schema?.shape ?? {})).toContain('latitude');
 	});
 });

@@ -37,6 +37,6 @@ describe('dimensionsPlugin', () => {
 		});
 
 		expect(data).toEqual({ height: 240, width: 320 });
-		expect(plugin.invalidationKey).toBe('dimensions:v1');
+		expect(plugin.extractionVersion).toBe('dimensions:v1');
 	});
 });

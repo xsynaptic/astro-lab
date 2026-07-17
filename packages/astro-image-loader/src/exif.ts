@@ -62,7 +62,7 @@ export function exifPlugin(options: ExifPluginOptions = {}): ImageLoaderPlugin {
 
 			return extractExifData(tags, isGps);
 		},
-		invalidationKey: `exif:v1:${isGps ? 'gps' : 'nogps'}`,
+		extractionVersion: `exif:v1:${isGps ? 'gps' : 'nogps'}`,
 		schema: isGps ? ExifSchema.extend(ExifGpsSchema.shape) : ExifSchema,
 	};
 }

@@ -155,28 +155,28 @@ describe('imageLoader', () => {
 		expect(entries.get('a')?.data.title).toBe('Title for a.jpg');
 	});
 
-	test('skips unchanged entries and regenerates on invalidationKey or mtime change', async () => {
+	test('skips unchanged entries and regenerates on extractionVersion or mtime change', async () => {
 		const { dir, root } = await createFixtureDir(['a.jpg', 'b.jpg']);
 		const { context } = createMockLoaderContext({ root });
 
 		const dataHandler = vi.fn(() => ({ title: 'x' }));
 
-		await imageLoader({ dataHandler, invalidationKey: 'v1' }).load(context);
+		await imageLoader({ dataHandler, extractionVersion: 'v1' }).load(context);
 		expect(dataHandler).toHaveBeenCalledTimes(2);
 
 		// Unchanged reload: digest matches, dataHandler untouched
-		await imageLoader({ dataHandler, invalidationKey: 'v1' }).load(context);
+		await imageLoader({ dataHandler, extractionVersion: 'v1' }).load(context);
 		expect(dataHandler).toHaveBeenCalledTimes(2);
 
-		// Changed invalidation key: everything regenerates
-		await imageLoader({ dataHandler, invalidationKey: 'v2' }).load(context);
+		// Changed extraction version: everything regenerates
+		await imageLoader({ dataHandler, extractionVersion: 'v2' }).load(context);
 		expect(dataHandler).toHaveBeenCalledTimes(4);
 
 		// Touched file: only that entry regenerates
 		const future = new Date(Date.now() + 5000);
 
 		await utimes(path.join(dir, 'a.jpg'), future, future);
-		await imageLoader({ dataHandler, invalidationKey: 'v2' }).load(context);
+		await imageLoader({ dataHandler, extractionVersion: 'v2' }).load(context);
 		expect(dataHandler).toHaveBeenCalledTimes(5);
 	});
 
@@ -256,6 +256,147 @@ describe('imageLoader', () => {
 			expect(existsSync(path.join(dir, '.astro-cache', 'astro-image-loader', 'images.jsonl'))).toBe(
 				true,
 			);
+		});
+
+		test('base spelling does not affect digests, so cached extraction survives a respelled base', async () => {
+			const { root } = await createFixtureDir(['images/a.jpg']);
+			const { cache } = createMockCache();
+			const dataHandler = vi.fn(() => ({ title: 'x' }));
+
+			await imageLoader({ base: 'images', cache, dataHandler }).load(
+				createMockLoaderContext({ root }).context,
+			);
+			expect(dataHandler).toHaveBeenCalledTimes(1);
+
+			await imageLoader({ base: './images', cache, dataHandler }).load(
+				createMockLoaderContext({ root }).context,
+			);
+			expect(dataHandler).toHaveBeenCalledTimes(1);
+		});
+
+		test('derivationVersion refreshes store entries from cache without re-running the dataHandler', async () => {
+			const { root } = await createFixtureDir(['a.jpg']);
+			const { cache } = createMockCache();
+			const { context, entries } = createMockLoaderContext({ root });
+
+			const dataHandler = vi.fn(() => ({ title: 'intrinsic' }));
+
+			await imageLoader({
+				cache,
+				dataHandler,
+				derivationVersion: 'dev',
+				extractionVersion: 'v1',
+			}).load(context);
+			expect(dataHandler).toHaveBeenCalledTimes(1);
+
+			const devDigest = entries.get('a.jpg')?.digest;
+
+			// Context switch (dev -> prod): store entry regenerates, cached extraction is reused
+			await imageLoader({
+				cache,
+				dataHandler,
+				derivationVersion: 'prod',
+				extractionVersion: 'v1',
+			}).load(context);
+			expect(dataHandler).toHaveBeenCalledTimes(1);
+			expect(entries.get('a.jpg')?.digest).not.toBe(devDigest);
+
+			// Unchanged keys: store fast path, nothing recomputed
+			await imageLoader({
+				cache,
+				dataHandler,
+				derivationVersion: 'prod',
+				extractionVersion: 'v1',
+			}).load(context);
+			expect(dataHandler).toHaveBeenCalledTimes(1);
+
+			// extractionVersion busts both store and cache
+			await imageLoader({
+				cache,
+				dataHandler,
+				derivationVersion: 'prod',
+				extractionVersion: 'v2',
+			}).load(context);
+			expect(dataHandler).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	describe('progress', () => {
+		test('logs an end-of-sync summary with cache statistics', async () => {
+			const { root } = await createFixtureDir(['a.jpg', 'b.jpg']);
+			const { cache } = createMockCache();
+			const dataHandler = vi.fn(() => ({ title: 'x' }));
+			const loader = imageLoader({ cache, dataHandler });
+
+			const first = createMockLoaderContext({ root });
+
+			await loader.load(first.context);
+			expect(
+				first.logs.some((log) =>
+					log.message.includes('Synced 2 images: 0 unchanged, 0 restored from cache, 2 processed'),
+				),
+			).toBe(true);
+
+			// Fresh store, warm cache: entries restore from cache
+			const second = createMockLoaderContext({ root });
+
+			await loader.load(second.context);
+			expect(
+				second.logs.some((log) =>
+					log.message.includes('Synced 2 images: 0 unchanged, 2 restored from cache, 0 processed'),
+				),
+			).toBe(true);
+		});
+
+		test('logs interval lines every progressInterval worked images during the initial sync', async () => {
+			const { root } = await createFixtureDir(['a.jpg', 'b.jpg', 'c.jpg']);
+			const { context, logs } = createMockLoaderContext({ root });
+
+			await imageLoader({ dataHandler: () => ({}), progressInterval: 1 }).load(context);
+
+			const intervalLines = logs.filter((log) => log.message.startsWith('Processed '));
+
+			expect(intervalLines.map((log) => log.message)).toEqual([
+				'Processed 1 image (0 from cache)',
+				'Processed 2 images (0 from cache)',
+				'Processed 3 images (0 from cache)',
+			]);
+		});
+
+		test('watch-mode reloads do not emit interval lines', async () => {
+			const { dir, root } = await createFixtureDir(['a.jpg']);
+			const { context, logs } = createMockLoaderContext({ root });
+
+			await imageLoader({ dataHandler: () => ({}), debounceMs: 25, progressInterval: 1 }).load(
+				context,
+			);
+
+			const initialIntervalLines = logs.filter((log) =>
+				log.message.startsWith('Processed '),
+			).length;
+
+			const touchedPath = path.join(dir, 'a.jpg');
+			const future = new Date(Date.now() + 5000);
+
+			await utimes(touchedPath, future, future);
+			watcherEmit(context, 'change', touchedPath);
+
+			await vi.waitFor(() => {
+				expect(logs.some((log) => log.message.includes('Reloaded data'))).toBe(true);
+			});
+
+			expect(logs.filter((log) => log.message.startsWith('Processed ')).length).toBe(
+				initialIntervalLines,
+			);
+		});
+
+		test('showProgress: false suppresses the summary', async () => {
+			const { root } = await createFixtureDir(['a.jpg']);
+			const { context, logs } = createMockLoaderContext({ root });
+
+			await imageLoader({ dataHandler: () => ({}), showProgress: false }).load(context);
+
+			expect(logs.some((log) => log.message.includes('Synced 1 image'))).toBe(false);
 		});
 	});
 

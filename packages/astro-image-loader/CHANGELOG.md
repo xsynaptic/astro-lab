@@ -1,5 +1,14 @@
 # @xsynaptic/astro-image-loader
 
+## 0.2.0
+
+### Minor Changes
+
+- Rename `invalidationKey` to `extractionVersion` (options and plugins): it versions the extraction stage; a change re-runs `dataHandler` for every image.
+- Add `derivationVersion` option: versions the derivation stage (schema parsing and transforms), folded into the store digest but not the durable cache digest. Put context-dependent inputs here (env values consumed by schema transforms) so a context change re-derives entries from cached `dataHandler` output instead of re-running extraction.
+- Add `showProgress` (default `true`) and `progressInterval` (default `100`) options: interval progress lines during the initial sync plus an end-of-sync summary with cache statistics. Individual extractions log at debug level.
+- Entry digests cover `{ id, filePath, mtime, extractionVersion }`; `base` does not participate. Cache keys and store paths are root-relative, and a `base` change that alters an entry's relative path changes its digest anyway, so mismatches only ever re-extract, never serve stale data.
+
 ## 0.1.2
 
 ### Patch Changes

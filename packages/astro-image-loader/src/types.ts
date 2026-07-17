@@ -41,7 +41,7 @@ export type ImageLoaderDataHandler = (args: {
 
 /**
  * A prepackaged bundle of loader options, composed via the `plugins` option
- * dataHandler outputs merge flat (array order wins); schema fragments merge; hooks run in order; invalidationKeys fold into the digest
+ * dataHandler outputs merge flat (array order wins); schema fragments merge; hooks run in order; extractionVersions fold into the digest
  * Just prepackaged options, so the single-handler API stays the escape hatch
  */
 export interface ImageLoaderPlugin {
@@ -51,8 +51,8 @@ export interface ImageLoaderPlugin {
 	beforeLoad?: () => Promise<void> | void;
 	/** Metadata extraction callback; its output is merged into entry data */
 	dataHandler?: ImageLoaderDataHandler;
-	/** Serializable cache-busting key folded into every entry digest */
-	invalidationKey?: string;
+	/** Versions this plugin's extraction; folded with the loader's own extractionVersion */
+	extractionVersion?: string;
 	/** Schema fragment describing this plugin's dataHandler output; merged into the collection schema */
 	schema?: z.ZodObject;
 }
@@ -95,18 +95,21 @@ export interface ImageLoaderOptions {
 	dataHandler?: ImageLoaderDataHandler;
 	/** Debounce window for batching watch-mode file events, in milliseconds */
 	debounceMs: number;
+	/** Versions derivation (schema parsing and transforms): a change re-parses entries from cached extraction */
+	derivationVersion?: string;
+	/** Versions extraction: a change re-runs dataHandler for every image */
+	extractionVersion?: string;
 	/** Generates a per-collection-unique entry ID; defaults to the entry path */
 	generateId: (options: LocalImageLoaderGenerateIdOptions) => string;
-	/**
-	 * Serializable cache-busting key folded into every entry digest
-	 * Change it (*e.g.* when the collection schema or metadata extraction logic changes) to force all entries to regenerate
-	 */
-	invalidationKey?: string;
 	/** Glob pattern(s) matched against paths relative to the base directory. Defaults to all Astro-supported raster formats */
 	pattern: Array<string> | string;
 	/**
 	 * Prepackaged option bundles run alongside the single-handler API
-	 * dataHandler outputs merge flat (array order wins, the inline dataHandler last); schema fragments merge; hooks run in order; invalidationKeys fold into the digest
+	 * dataHandler outputs merge flat (array order wins, the inline dataHandler last); schema fragments merge; hooks run in order; extractionVersions fold into the digest
 	 */
 	plugins?: Array<ImageLoaderPlugin>;
+	/** How many worked images between progress lines during the initial sync */
+	progressInterval: number;
+	/** Log interval progress lines plus an end-of-sync summary with cache statistics */
+	showProgress: boolean;
 }

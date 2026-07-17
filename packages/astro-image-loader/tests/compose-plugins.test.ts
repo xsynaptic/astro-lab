@@ -88,13 +88,13 @@ describe('composePlugins', () => {
 		expect(output).toEqual({ a: 1, b: 2, shared: 'inline' });
 	});
 
-	test('combines invalidation keys; a single key passes through unchanged', () => {
-		expect(composePlugins({}).invalidationKey).toBeUndefined();
-		expect(composePlugins({ invalidationKey: 'v1' }).invalidationKey).toBe('v1');
-		expect(composePlugins({ plugins: [{ invalidationKey: 'p1' }] }).invalidationKey).toBe('p1');
+	test('combines extraction versions; a single version passes through unchanged', () => {
+		expect(composePlugins({}).extractionVersion).toBeUndefined();
+		expect(composePlugins({ extractionVersion: 'v1' }).extractionVersion).toBe('v1');
+		expect(composePlugins({ plugins: [{ extractionVersion: 'p1' }] }).extractionVersion).toBe('p1');
 		expect(
-			composePlugins({ invalidationKey: 'v1', plugins: [{ invalidationKey: 'p1' }] })
-				.invalidationKey,
+			composePlugins({ extractionVersion: 'v1', plugins: [{ extractionVersion: 'p1' }] })
+				.extractionVersion,
 		).toBe(JSON.stringify(['p1', 'v1']));
 	});
 
@@ -147,7 +147,7 @@ describe('composePlugins', () => {
 					afterLoad,
 					beforeLoad,
 					dataHandler: () => ({ title: 'from-plugin' }),
-					invalidationKey: 'plugin:v1',
+					extractionVersion: 'plugin:v1',
 					schema: z.object({ title: z.string() }),
 				},
 			],

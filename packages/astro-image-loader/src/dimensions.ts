@@ -26,7 +26,7 @@ export function dimensionsPlugin(): ImageLoaderPlugin {
 
 			return { height: metadata.height, width: metadata.width };
 		},
-		invalidationKey: 'dimensions:v1',
+		extractionVersion: 'dimensions:v1',
 		schema: DimensionsSchema,
 	};
 }

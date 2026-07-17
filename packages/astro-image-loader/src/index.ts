@@ -36,6 +36,8 @@ const defaultOptions = {
 	debounceMs: 300,
 	generateId: ({ filePath }) => filePath,
 	pattern: `**/*.{${defaultPatternFormats.join(',')}}`,
+	progressInterval: 100,
+	showProgress: true,
 } as const satisfies ImageLoaderOptions;
 
 /**
@@ -58,17 +60,12 @@ export function defineImageCollection<TSchema extends z.ZodType = z.ZodObject>({
 
 export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 	// Fold plugins + the inline single-handler options into one effective handler set
-	const composed = composePlugins(optionsPartial);
+	const { schema: composedSchema, ...composedOptions } = composePlugins(optionsPartial);
 
 	const options = {
 		...defaultOptions,
 		...optionsPartial,
-		...(composed.dataHandler ? { dataHandler: composed.dataHandler } : {}),
-		...(composed.beforeLoad ? { beforeLoad: composed.beforeLoad } : {}),
-		...(composed.afterLoad ? { afterLoad: composed.afterLoad } : {}),
-		...(composed.invalidationKey === undefined
-			? {}
-			: { invalidationKey: composed.invalidationKey }),
+		...composedOptions,
 	} satisfies ImageLoaderOptions;
 
 	const patterns = Array.isArray(options.pattern) ? options.pattern : [options.pattern];
@@ -127,11 +124,14 @@ export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 			if (filePaths.length === 0) {
 				logger.warn(`No images found matching "${patterns.join(', ')}" in "${options.base}"`);
 			} else {
-				logger.info(`Syncing ${String(filePaths.length)} images`);
+				logger.info(`Syncing ${imageCount(filePaths.length)}`);
 			}
 
 			// Keep track of entries that are no longer present (*e.g.* deleted)
 			const untouchedEntries = new Set(store.keys());
+
+			// Watch-mode reloads reuse syncData; syncing gates interval lines to the initial pass
+			const stats = { fromCache: 0, processed: 0, skipped: 0, syncing: true, unchanged: 0 };
 
 			const syncData = getSyncDataFunction({
 				baseDir,
@@ -141,6 +141,7 @@ export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 				options,
 				parseData,
 				root: config.root,
+				stats,
 				store,
 			});
 
@@ -156,6 +157,16 @@ export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 					return syncData({ filePath, id });
 				}),
 			);
+
+			stats.syncing = false;
+
+			if (options.showProgress && filePaths.length > 0) {
+				const skipped = stats.skipped > 0 ? `, ${String(stats.skipped)} skipped` : '';
+
+				logger.info(
+					`Synced ${imageCount(filePaths.length)}: ${String(stats.unchanged)} unchanged, ${String(stats.fromCache)} restored from cache, ${String(stats.processed)} processed${skipped}`,
+				);
+			}
 
 			// Remove entries that were not found this time; they were presumably deleted
 			for (const id of untouchedEntries) {
@@ -228,7 +239,7 @@ export function imageLoader(optionsPartial: Partial<ImageLoaderOptions>) {
 		},
 		name: '@xsynaptic/astro-image-loader',
 		// Set so a collection works zero-config; a consumer schema on defineCollection overrides it
-		schema: composed.schema,
+		schema: composedSchema,
 	} satisfies Loader;
 }
 
@@ -259,12 +270,20 @@ function getSyncDataFunction({
 	options,
 	parseData,
 	root,
+	stats,
 	store,
 }: Pick<LoaderContext, 'generateDigest' | 'logger' | 'parseData' | 'store'> & {
 	baseDir: URL;
 	cache?: ImageLoaderCache | undefined;
 	options: ImageLoaderOptions;
 	root: URL;
+	stats: {
+		fromCache: number;
+		processed: number;
+		skipped: number;
+		syncing: boolean;
+		unchanged: number;
+	};
 }) {
 	// Limit the concurrency of files processed to reduce memory usage
 	const limit = pLimit(options.concurrency);
@@ -279,28 +298,35 @@ function getSyncDataFunction({
 			let modifiedTime: Date;
 
 			try {
-				const stats = await stat(fileURLToPath(fileUrl));
+				const fileStats = await stat(fileURLToPath(fileUrl));
 
-				modifiedTime = stats.mtime;
+				modifiedTime = fileStats.mtime;
 			} catch {
+				stats.skipped++;
 				logger.warn(`Could not read file stats for ${filePath}; skipping`);
 				return;
 			}
 
-			// If any of these props change an entry will be regenerated
-			const digest = generateDigest({
-				base: options.base,
+			// Intrinsic inputs only; derivationVersion changes must not bust cached extraction
+			const cacheDigest = generateDigest({
+				extractionVersion: options.extractionVersion,
 				filePath,
 				id,
-				invalidationKey: options.invalidationKey,
 				mtime: modifiedTime,
 			});
+
+			// Store digest layers derivationVersion on top so derived values refresh on context change
+			const digest =
+				options.derivationVersion === undefined
+					? cacheDigest
+					: generateDigest({ cacheDigest, derivationVersion: options.derivationVersion });
 
 			// If the data entry is already in the store and seems current, skip further processing
 			// The store is keyed by id, not filePath
 			const existingEntry = store.get(id);
 
 			if (existingEntry?.digest === digest && existingEntry.filePath) {
+				stats.unchanged++;
 				// Asset imports from image() schema fields are only registered by store.set on fresh writes
 				// Re-register on the skip path or those fields lose their Vite modules on incremental builds
 				if (existingEntry.assetImports?.length) {
@@ -322,8 +348,9 @@ function getSyncDataFunction({
 			if (options.dataHandler) {
 				const cached = await cache?.get(filePathRelative);
 
-				if (cached?.digest === digest) {
+				if (cached?.digest === cacheDigest) {
 					handlerData = cached.data;
+					stats.fromCache++;
 				} else {
 					handlerData = await options.dataHandler({
 						filePath,
@@ -334,7 +361,19 @@ function getSyncDataFunction({
 						modifiedTime,
 					});
 
-					await cache?.set(filePathRelative, { data: handlerData, digest });
+					await cache?.set(filePathRelative, { data: handlerData, digest: cacheDigest });
+					stats.processed++;
+					logger.debug(`Extracted metadata from ${filePathRelative}`);
+				}
+			} else {
+				stats.processed++;
+			}
+
+			if (options.showProgress && stats.syncing) {
+				const worked = stats.fromCache + stats.processed;
+
+				if (worked % options.progressInterval === 0) {
+					logger.info(`Processed ${imageCount(worked)} (${String(stats.fromCache)} from cache)`);
 				}
 			}
 
@@ -358,6 +397,10 @@ function getSyncDataFunction({
 			});
 		});
 	};
+}
+
+function imageCount(count: number) {
+	return `${String(count)} ${count === 1 ? 'image' : 'images'}`;
 }
 
 // Root-relative, forward-slashed path for the store, matching Astro's own loaders

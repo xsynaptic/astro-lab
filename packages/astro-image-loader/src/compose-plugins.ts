@@ -8,7 +8,7 @@ export interface ComposedPluginOptions {
 	afterLoad?: Hook;
 	beforeLoad?: Hook;
 	dataHandler?: ImageLoaderDataHandler;
-	invalidationKey?: string;
+	extractionVersion?: string;
 	schema: z.ZodObject;
 }
 
@@ -33,25 +33,16 @@ export function composePlugins(options: Partial<ImageLoaderOptions>): ComposedPl
 		(hook): hook is Hook => Boolean(hook),
 	);
 
-	const invalidationKeys = [
-		...plugins.map((plugin) => plugin.invalidationKey),
-		options.invalidationKey,
-	].filter((key): key is string => Boolean(key));
+	const extractionVersion = foldExtractionVersions([
+		...plugins.map((plugin) => plugin.extractionVersion),
+		options.extractionVersion,
+	]);
 
 	// Merge plugin schema fragments in array order; a later fragment wins on field collision
 	let schema: z.ZodObject = ImageLoaderBaseSchema;
 
 	for (const plugin of plugins) {
 		if (plugin.schema) schema = schema.extend(plugin.schema.shape);
-	}
-
-	// A single key passes through unchanged; multiple keys combine into one stable string
-	let invalidationKey: string | undefined;
-
-	if (invalidationKeys.length === 1) {
-		invalidationKey = invalidationKeys[0];
-	} else if (invalidationKeys.length > 1) {
-		invalidationKey = JSON.stringify(invalidationKeys);
 	}
 
 	return {
@@ -85,6 +76,15 @@ export function composePlugins(options: Partial<ImageLoaderOptions>): ComposedPl
 					},
 				}
 			: {}),
-		...(invalidationKey === undefined ? {} : { invalidationKey }),
+		...(extractionVersion === undefined ? {} : { extractionVersion }),
 	};
+}
+
+// A single version passes through unchanged; multiple versions combine into one stable string
+function foldExtractionVersions(versions: Array<string | undefined>) {
+	const filtered = versions.filter((key): key is string => Boolean(key));
+
+	if (filtered.length === 1) return filtered[0];
+	if (filtered.length > 1) return JSON.stringify(filtered);
+	return;
 }
