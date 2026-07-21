@@ -80,7 +80,7 @@ function formatBytes(bytes: number): string {
 		unitIndex += 1;
 	}
 
-	const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+	const precision = unitIndex === 0 || value >= 10 ? 0 : 1;
 
 	return `${value.toFixed(precision)} ${units[unitIndex] ?? 'B'}`;
 }

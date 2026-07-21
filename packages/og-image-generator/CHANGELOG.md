@@ -1,5 +1,11 @@
 # @xsynaptic/og-image-generator
 
+## 0.2.0
+
+### Minor Changes
+
+- Bump `satori` to `^0.28`.
+
 ## 0.1.2
 
 ### Patch Changes

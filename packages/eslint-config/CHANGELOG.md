@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.1.0
+
+### Minor Changes
+
+- Bump plugin dependencies: `eslint-plugin-unicorn` `^71.1` → `^72.0` and `eslint-plugin-astro` `^3.0.0` → `^3.0.1`.
+
 ## 6.0.0
 
 ### Major Changes

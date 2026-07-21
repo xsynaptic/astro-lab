@@ -10,6 +10,6 @@
 	},
 	"dependencies": {
 		"@xsynaptic/astro-font-devtools": "*",
-		"astro": "^7.0.9"
+		"astro": "^7.1.3"
 	}
 }

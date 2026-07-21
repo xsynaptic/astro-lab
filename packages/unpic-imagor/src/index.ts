@@ -352,9 +352,9 @@ function applyTrim(operations: ImagorOperations, token: string): void {
 }
 
 function applyCrop(operations: ImagorOperations, token: string): void {
-	const [leftTop, rightBottom] = token.split(':');
-	const [left, top] = (leftTop ?? '').split('x');
-	const [right, bottom] = (rightBottom ?? '').split('x');
+	const [leftTop, rightBottom] = token.split(':', 2);
+	const [left, top] = (leftTop ?? '').split('x', 2);
+	const [right, bottom] = (rightBottom ?? '').split('x', 2);
 	operations.crop = {
 		left: Number(left),
 		top: Number(top),
@@ -375,8 +375,8 @@ function applyDimensions(operations: ImagorOperations, token: string): void {
 }
 
 function applyPadding(operations: ImagorOperations, token: string): void {
-	const [leftTop, rightBottom] = token.split(':');
-	const [left, top] = (leftTop ?? '').split('x');
+	const [leftTop, rightBottom] = token.split(':', 2);
+	const [left, top] = (leftTop ?? '').split('x', 2);
 	const leftValue = Number(left);
 	const topValue = Number(top);
 	if (rightBottom === undefined) {
@@ -386,7 +386,7 @@ function applyPadding(operations: ImagorOperations, token: string): void {
 				: { left: leftValue, top: topValue, right: leftValue, bottom: topValue };
 		return;
 	}
-	const [right, bottom] = rightBottom.split('x');
+	const [right, bottom] = rightBottom.split('x', 2);
 	operations.padding = {
 		left: leftValue,
 		top: topValue,
