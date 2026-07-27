@@ -1,5 +1,13 @@
 # @xsynaptic/mdxlint-config
 
+## 1.0.1
+
+### Patch Changes
+
+- Drop the `[remarkLintListItemIndent, 'mixed']` override so list indentation is no longer self-contradictory. The rule stays active at `'one'` via `remark-preset-lint-recommended`, matching `settings.listItemIndent: 'one'`. Previously the override demanded tab-size indentation on loose list items while remark-stringify emitted one space, so any file with a loose list warned on every run and `--fix` wrote back the form the rule had just rejected, leaving consumers unable to reach zero warnings.
+
+  `remark-lint-list-item-indent` is no longer a direct dependency; it comes in through the preset.
+
 ## 1.0.0
 
 ### Major Changes

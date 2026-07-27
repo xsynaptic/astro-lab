@@ -146,9 +146,6 @@ importers:
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1(supports-color@10.2.2)
-      remark-lint-list-item-indent:
-        specifier: ^4.0.1
-        version: 4.0.1
       remark-preset-lint-consistent:
         specifier: ^6.0.1
         version: 6.0.1(supports-color@10.2.2)

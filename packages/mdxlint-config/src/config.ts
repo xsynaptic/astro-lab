@@ -2,7 +2,6 @@ import type { PluggableList } from 'unified';
 
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
-import remarkLintListItemIndent from 'remark-lint-list-item-indent';
 import remarkPresetLintConsistent from 'remark-preset-lint-consistent';
 import remarkPresetLintRecommended from 'remark-preset-lint-recommended';
 
@@ -18,7 +17,6 @@ const mdxlintConfig: MdxlintConfig = {
 		[remarkFrontmatter, 'yaml'],
 		remarkPresetLintConsistent,
 		remarkPresetLintRecommended,
-		[remarkLintListItemIndent, 'mixed'],
 	],
 	settings: {
 		bullet: '-',

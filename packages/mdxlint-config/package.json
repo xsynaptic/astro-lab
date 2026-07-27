@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/mdxlint-config",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Shared mdxlint config and a conditional-write CLI for formatting and linting MDX content",
 	"type": "module",
 	"license": "MIT",
@@ -54,7 +54,6 @@
 		"mdxlint": "^1.0.0",
 		"remark-frontmatter": "^5.0.0",
 		"remark-gfm": "^4.0.1",
-		"remark-lint-list-item-indent": "^4.0.1",
 		"remark-preset-lint-consistent": "^6.0.1",
 		"remark-preset-lint-recommended": "^7.0.1",
 		"textlint": "^15.7.1",
