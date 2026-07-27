@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-image-loader",
-	"version": "0.2.0",
+	"version": "1.0.0",
 	"description": "An Astro content layer loader that treats images as content entries, with incremental sync, caching, and pluggable metadata extraction",
 	"type": "module",
 	"license": "MIT",
@@ -49,7 +49,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"p-limit": "^7.3.0",
+		"p-limit": "^7.3.1",
 		"picomatch": "^4.0.4",
 		"tinyglobby": "^0.2.15"
 	},

@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.1.1
+
+### Patch Changes
+
+- Update `@eslint/config-helpers` to `^0.7.0` and `typescript-eslint` to `^8.65.0`. The latter can change rule behaviour, so a project running `eslint --max-warnings 0` may see new findings.
+
 ## 6.1.0
 
 ### Minor Changes

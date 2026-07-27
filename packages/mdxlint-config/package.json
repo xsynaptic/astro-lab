@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/mdxlint-config",
-	"version": "0.2.0",
+	"version": "1.0.0",
 	"description": "Shared mdxlint config and a conditional-write CLI for formatting and linting MDX content",
 	"type": "module",
 	"license": "MIT",
