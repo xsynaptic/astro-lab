@@ -1,5 +1,11 @@
 # @xsynaptic/unified-tools
 
+## 5.1.3
+
+### Patch Changes
+
+- Publish `@xsynaptic/rehype-wrap-cjk` as a `^` range rather than an exact pin, so patch releases reach consumers without a republish.
+
 ## 5.1.2
 
 ### Patch Changes

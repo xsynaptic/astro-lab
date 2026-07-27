@@ -320,7 +320,7 @@ importers:
   packages/satteri-reading-time:
     dependencies:
       '@xsynaptic/word-count':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../word-count
       zod:
         specifier: ^4.4.3
@@ -383,7 +383,7 @@ importers:
   packages/unified-tools:
     dependencies:
       '@xsynaptic/rehype-wrap-cjk':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../rehype-wrap-cjk
       ohash:
         specifier: ^2.0.11
