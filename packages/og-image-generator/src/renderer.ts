@@ -4,7 +4,7 @@ import type { JSXNode, JSX as SatoriJsx } from 'satori/jsx';
 import satori from 'satori';
 import sharp from 'sharp';
 
-export type ImageFormat = 'jpeg' | 'png';
+export type ImageFormat = 'jpeg' | 'png' | 'webp';
 
 // Typed via satori/jsx so the engine needs no React types
 // The union also accepts createElement output, which does not widen to JSXNode
@@ -29,6 +29,7 @@ export function createOgRenderer(options: OgRendererOptions): OgRenderer {
 		const image = sharp(Buffer.from(svg), { failOn: 'error' });
 
 		if (format === 'png') return image.png().toBuffer();
+		if (format === 'webp') return image.webp({ quality }).toBuffer();
 
 		return image.jpeg({ quality }).toBuffer();
 	};

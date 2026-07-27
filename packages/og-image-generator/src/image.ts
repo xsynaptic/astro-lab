@@ -2,7 +2,8 @@ import type { Sharp } from 'sharp';
 
 import sharp from 'sharp';
 
-import type { ImageFormat } from './renderer.js';
+// Rasterized by librsvg once embedded in Satori's SVG, which decodes neither WebP nor GIF
+export type DataUrlFormat = 'jpeg' | 'png';
 
 export type ImageInput = Buffer | string | Uint8Array;
 
@@ -15,11 +16,11 @@ export interface ResizeCoverOptions {
 export type SharpTransform = (pipeline: Sharp) => Sharp;
 
 export interface ToDataUrlOptions {
-	format?: ImageFormat;
+	format?: DataUrlFormat;
 	quality?: number;
 }
 
-export function encodeDataUrl(buffer: Buffer, format: ImageFormat = 'jpeg'): string {
+export function encodeDataUrl(buffer: Buffer, format: DataUrlFormat = 'jpeg'): string {
 	return `data:image/${format};base64,${buffer.toString('base64')}`;
 }
 

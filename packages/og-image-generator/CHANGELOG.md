@@ -1,5 +1,17 @@
 # @xsynaptic/og-image-generator
 
+## 1.0.0
+
+### Major Changes
+
+- Add WebP as an output format for `createOgRenderer`. JPEG remains the default.
+
+  `toDataUrl` and `encodeDataUrl` now take a narrower `DataUrlFormat` (JPEG or PNG), since librsvg cannot rasterize WebP or GIF embedded in Satori's SVG. WebP source images are unaffected.
+
+- First stable release. No API changes: the public surface is now covered by semver, so patches and minor releases reach a `^1.0.0` range without a manual bump.
+
+  The Sätteri plugins stay on `0.x` until Sätteri itself reaches 1.0.
+
 ## 0.2.0
 
 ### Minor Changes

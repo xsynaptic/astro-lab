@@ -1,6 +1,6 @@
 # @xsynaptic/og-image-generator
 
-A framework-neutral Open Graph image engine: [Satori](https://github.com/vercel/satori) (which transforms an element into SVG) and [sharp](https://sharp.pixelplumbing.com/) (SVG to JPEG/PNG). Built for my own Astro projects and published for convenience, not as a general-purpose library. The template, data model, and resolver stay in your project; the engine owns the render, fonts, image helpers, and caching.
+A framework-neutral Open Graph image engine: [Satori](https://github.com/vercel/satori) (which transforms an element into SVG) and [sharp](https://sharp.pixelplumbing.com/) (SVG to JPEG/PNG/WebP). Built for my own Astro projects and published for convenience, not as a general-purpose library. The template, data model, and resolver stay in your project; the engine owns the render, fonts, image helpers, and caching.
 
 ```sh
 pnpm add @xsynaptic/og-image-generator sharp
@@ -24,5 +24,7 @@ import { ... } from '...';
 
 - `createContentHashCache` (runtime/SSR). The hashed filename _is_ the freshness check (stateless), with in-flight request dedupe; your public URL is a stable route, the hash stays internal.
 - `createStableCache` (build/static) A stable `{id}.{ext}` filename keeps the public URL fixed, with freshness in an injectable `CacheStore` (wrap your own Keyv/JSON/KV). Pass `version` to bust everything on a template change; `isFresh` skips a fresh entry without reading it back.
+
+**Picking image formats.** Source images can be anything sharp decodes, WebP and AVIF included. `createOgRenderer` emits JPEG (the default), PNG, or WebP. The one restriction sits on `toDataUrl` and `encodeDataUrl`, typed to JPEG or PNG only: their output is embedded in Satori's SVG and rasterized by librsvg, which decodes neither WebP nor GIF.
 
 Both resolve `{ id, key, generate }`; `key` is whatever you fold invalidation into. Everything else (`createOgRenderer`, `resizeCover`, `toDataUrl`, `encodeDataUrl`, `createDuotone`, `analyzeLuminance`) does what its name says.
