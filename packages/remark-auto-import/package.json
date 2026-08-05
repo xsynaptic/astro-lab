@@ -41,7 +41,7 @@
 	},
 	"dependencies": {
 		"@types/mdast": "^4.0.4",
-		"acorn": "^8.17.0",
+		"acorn": "^8.18.0",
 		"zod": "^4.4.3"
 	},
 	"peerDependencies": {

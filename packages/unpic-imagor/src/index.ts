@@ -2,14 +2,22 @@ import type { ImageFormat, Operations, TransformerFunction } from 'unpic';
 
 export type ImagorFormats = ImageFormat | 'gif' | 'tiff' | 'jp2' | 'jxl' | 'heif' | (string & {});
 
-/** imagor uses a positional, thumbor-derived URL grammar; the `filters:` segment is a flat name -> args map. */
+/**
+imagor uses a positional, thumbor-derived URL grammar; the `filters:` segment is a flat name -> args map.
+*/
 export interface ImagorOperations extends Operations<ImagorFormats> {
-	/** Resize fit, mapped to imagor: contain=fit-in, inside=fit-in+no_upscale, outside=full-fit-in, fill=stretch */
+	/**
+	Resize fit, mapped to imagor: contain=fit-in, inside=fit-in+no_upscale, outside=full-fit-in, fill=stretch
+	*/
 	fit?: 'cover' | 'contain' | 'inside' | 'outside' | 'fill';
 
-	/** Mirror vertically */
+	/**
+	Mirror vertically
+	*/
 	flip?: boolean;
-	/** Mirror horizontally */
+	/**
+	Mirror horizontally
+	*/
 	flop?: boolean;
 
 	smart?: boolean;
@@ -17,21 +25,31 @@ export interface ImagorOperations extends Operations<ImagorFormats> {
 	hAlign?: 'left' | 'center' | 'right';
 	vAlign?: 'top' | 'middle' | 'bottom';
 
-	/** Trim surrounding border pixels. The object form sets the reference corner and tolerance. */
+	/**
+	Trim surrounding border pixels. The object form sets the reference corner and tolerance.
+	*/
 	trim?: boolean | { tolerance?: number; corner?: 'top-left' | 'bottom-right' };
 
-	/** Manual crop before resizing. Values below 1 are source ratios, 1 or greater are pixels. */
+	/**
+	Manual crop before resizing. Values below 1 are source ratios, 1 or greater are pixels.
+	*/
 	crop?: { left: number; top: number; right: number; bottom: number };
 
-	/** Padding in pixels. A single number pads all sides equally. */
+	/**
+	Padding in pixels. A single number pads all sides equally.
+	*/
 	padding?: number | { left: number; top: number; right: number; bottom: number };
 
-	/** imagor filters as name -> args, e.g. `{ blur: '5', grayscale: '', rgb: '10,20,30' }` */
+	/**
+	imagor filters as name -> args, e.g. `{ blur: '5', grayscale: '', rgb: '10,20,30' }`
+	*/
 	filters?: Record<string, string>;
 }
 
 export interface ImagorOptions {
-	/** Mount prefix prepended to generated URLs and stripped from incoming ones */
+	/**
+	Mount prefix prepended to generated URLs and stripped from incoming ones
+	*/
 	baseURL?: string;
 	/**
 	 * Emit imagor's unsigned `unsafe` form (default true), which the server

@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.2.0
+
+### Minor Changes
+
+- Bump `eslint-plugin-unicorn` `^72.0` → `^73.0`. Adds `single-line-block-comment-style` and `no-unsafe-sqlite-interpolation` to recommended, and `consistent-boolean-name` now flags async predicates, so projects running `eslint --max-warnings 0` may see new findings.
+
 ## 6.1.1
 
 ### Patch Changes

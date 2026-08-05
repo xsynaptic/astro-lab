@@ -1,5 +1,11 @@
 # @xsynaptic/mdxlint-config
 
+## 1.0.2
+
+### Patch Changes
+
+- Bump `chalk` to `^6.0.0`. No API change; the major only raises the Node floor to 22, below this package's existing `>=24`.
+
 ## 1.0.1
 
 ### Patch Changes

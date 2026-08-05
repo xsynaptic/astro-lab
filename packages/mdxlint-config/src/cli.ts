@@ -14,7 +14,7 @@ interface MdxlintConfig {
 	settings?: Record<string, unknown>;
 }
 
-async function fileExists(filePath: string) {
+async function hasFile(filePath: string) {
 	try {
 		await access(filePath);
 		return true;
@@ -47,7 +47,7 @@ const shouldFix = values.fix;
 // Importing it here resolves those plugins relative to the config's own location, not this package
 const mdxlintConfigPath = path.join(targetPath, '.mdxlintrc.mjs');
 
-if (!(await fileExists(mdxlintConfigPath))) {
+if (!(await hasFile(mdxlintConfigPath))) {
 	console.error(chalk.red(`Missing mdxlint config: ${mdxlintConfigPath}`));
 	process.exit(1);
 }
@@ -61,7 +61,7 @@ processor.use(mdxlintConfig.plugins ?? []);
 
 // Textlint is optional; a package may have an mdxlint config but no textlint config
 const textlintConfigPath = path.join(targetPath, '.textlintrc.json');
-const linter = (await fileExists(textlintConfigPath))
+const linter = (await hasFile(textlintConfigPath))
 	? createLinter({ descriptor: await loadTextlintrc({ configFilePath: textlintConfigPath }) })
 	: undefined;
 

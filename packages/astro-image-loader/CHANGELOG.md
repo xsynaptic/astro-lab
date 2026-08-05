@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-loader
 
+## 1.1.0
+
+### Minor Changes
+
+- Widen the optional `exiftool-vendored` peer to `^36.0.0 || ^37.0.0`. In v37 malformed UTF-8 tag values read back as `U+FFFD` instead of `?`, so collections deriving ids or tags from EXIF strings may need a resync.
+
 ## 1.0.0
 
 ### Major Changes

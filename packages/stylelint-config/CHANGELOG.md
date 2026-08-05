@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.0
+
+### Minor Changes
+
+- Bump `postcss-html` to `^2.0.0`. The major is ESM-only and raises the Node floor to `^22.12 || >=24`.
+
 ## 1.0.0
 
 ### Major Changes
