@@ -13,7 +13,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 [Sätteri](https://satteri.bruits.org/) is a new Rust-based Markdown compiler and the default for Astro as of 2026.
 
 - [`@xsynaptic/satteri-auto-import`](packages/satteri-auto-import): Sätteri mdast plugin that injects ESM imports into MDX
-- [`@xsynaptic/satteri-img-group`](packages/satteri-img-group): Sätteri mdast plugin that stamps ImgGroup/Img layout context
+- [`@xsynaptic/satteri-img-group`](packages/satteri-img-group): Sätteri mdast plugin that stamps grouped images with their arrangement context
 - [`@xsynaptic/satteri-reading-time`](packages/satteri-reading-time): Sätteri mdast plugin that estimates multilingual reading time and injects it into Astro frontmatter
 - [`@xsynaptic/satteri-trailing-slash`](packages/satteri-trailing-slash): Sätteri hast plugin that normalizes trailing slashes on internal Markdown links to match a project's `trailingSlash` setting
 - [`@xsynaptic/satteri-wrap-cjk`](packages/satteri-wrap-cjk): Sätteri hast plugin to wrap CJK character runs for styling
