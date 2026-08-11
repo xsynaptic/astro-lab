@@ -7,7 +7,17 @@ export default defineConfig({
 	integrations: [mdx()],
 	markdown: {
 		processor: satteri({
-			mdastPlugins: [imgGroupSatteriPlugin()],
+			mdastPlugins: [
+				imgGroupSatteriPlugin({
+					contexts: {
+						carousel: { disallowedAttributes: ['columns'], minImages: 2 },
+						grid: {},
+						masonry: {},
+					},
+					defaultContext: 'grid',
+					layouts: ['default', 'wide', 'full'],
+				}),
+			],
 		}),
 	},
 });

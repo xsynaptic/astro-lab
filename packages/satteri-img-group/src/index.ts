@@ -3,26 +3,28 @@ import type { MdastNode, MdastPluginInput, MdxJsxAttributeUnion, MdxJsxFlowEleme
 import { defineMdastPlugin } from 'satteri';
 import { z } from 'zod';
 
-const optionsSchema = z.object({
-	columnsAttributeName: z.string().default('columns'),
-	contextAttributeName: z.string().default('context'),
-	imageCountAttributeName: z.string().default('imageCount'),
-	imgComponentId: z.string().default('Img'),
-	imgGroupComponentId: z.string().default('ImgGroup'),
-	layoutAttributeName: z.string().default('layout'),
+const contextSchema = z.object({
+	disallowedAttributes: z.array(z.string()).default([]),
+	minImages: z.number().int().min(1).default(1),
 });
 
-type ImgGroupSatteriOptions = z.input<typeof optionsSchema>;
+const optionsSchema = z
+	.object({
+		contextAttributeName: z.string().default('context'),
+		contexts: z.record(z.string(), contextSchema),
+		defaultContext: z.string(),
+		imageCountAttributeName: z.string().default('imageCount'),
+		imgComponentId: z.string().default('Img'),
+		imgGroupComponentId: z.string().default('ImgGroup'),
+		layoutAttributeName: z.string().default('layout'),
+		layouts: z.array(z.string()),
+	})
+	.refine((value) => Object.hasOwn(value.contexts, value.defaultContext), {
+		error: '"defaultContext" must be a key of "contexts"',
+		path: ['defaultContext'],
+	});
 
-const defaultLayoutId = 'default';
-const validGroupLayouts = new Set([
-	'carousel',
-	'carousel-full',
-	'carousel-wide',
-	defaultLayoutId,
-	'wide',
-]);
-const carouselLayouts = new Set(['carousel', 'carousel-full', 'carousel-wide']);
+type ImgGroupSatteriOptions = z.input<typeof optionsSchema>;
 
 // Sätteri diagnostics don't block or reach the caller, so authoring mistakes throw to fail the build
 function fail(
@@ -52,36 +54,44 @@ function hasAttribute(node: MdxJsxFlowElement, name: string): boolean {
 }
 
 // MDX renders inside-out, so a parent can't pass props to its children at render time
-function imgGroupSatteriPlugin(
-	options?: null | Readonly<ImgGroupSatteriOptions>,
-): MdastPluginInput {
-	const settings = optionsSchema.parse(options ?? {});
+function imgGroupSatteriPlugin(options: Readonly<ImgGroupSatteriOptions>): MdastPluginInput {
+	const settings = optionsSchema.parse(options);
 
 	return defineMdastPlugin({
 		mdxJsxFlowElement(groupNode, ctx) {
 			if (groupNode.name !== settings.imgGroupComponentId) return;
 
-			const layout = getStringAttribute(groupNode, settings.layoutAttributeName) ?? defaultLayoutId;
+			const contextName =
+				getStringAttribute(groupNode, settings.contextAttributeName) ?? settings.defaultContext;
+			const context = settings.contexts[contextName];
 
-			if (!validGroupLayouts.has(layout)) {
+			if (!context) {
 				fail(
 					ctx,
 					groupNode,
-					`<ImgGroup> "${settings.layoutAttributeName}" must be one of ${[...validGroupLayouts].join(', ')}, received "${layout}"`,
+					`<ImgGroup> "${settings.contextAttributeName}" must be one of ${Object.keys(
+						settings.contexts,
+					)
+						.toSorted((left, right) => left.localeCompare(right))
+						.join(', ')}, received "${contextName}"`,
 				);
 			}
 
-			const isCarousel = carouselLayouts.has(layout);
+			const layout = getStringAttribute(groupNode, settings.layoutAttributeName);
 
-			if (isCarousel && hasAttribute(groupNode, settings.columnsAttributeName)) {
+			if (layout !== undefined && !settings.layouts.includes(layout)) {
 				fail(
 					ctx,
 					groupNode,
-					`<ImgGroup> "${settings.columnsAttributeName}" has no effect on a carousel`,
+					`<ImgGroup> "${settings.layoutAttributeName}" must be one of ${settings.layouts.join(', ')}, received "${layout}"`,
 				);
 			}
 
-			const context = isCarousel ? 'carousel' : 'grid';
+			for (const attributeName of context.disallowedAttributes) {
+				if (hasAttribute(groupNode, attributeName)) {
+					fail(ctx, groupNode, `<ImgGroup> "${attributeName}" has no effect on ${contextName}`);
+				}
+			}
 
 			let imageCount = 0;
 
@@ -95,19 +105,25 @@ function imgGroupSatteriPlugin(
 					fail(ctx, child, `<ImgGroup> may only contain <Img> children`);
 				}
 
-				if (hasAttribute(child, settings.layoutAttributeName)) {
-					fail(
-						ctx,
-						child,
-						`<Img> "${settings.layoutAttributeName}" has no effect inside an <ImgGroup>; set it on the <ImgGroup> instead`,
-					);
+				for (const attributeName of [settings.contextAttributeName, settings.layoutAttributeName]) {
+					if (hasAttribute(child, attributeName)) {
+						fail(
+							ctx,
+							child,
+							`<Img> "${attributeName}" has no effect inside an <ImgGroup>; set it on the <ImgGroup> instead`,
+						);
+					}
 				}
 
 				imageCount += 1;
 
 				return {
 					...child,
-					attributes: withStringAttribute(child.attributes, settings.contextAttributeName, context),
+					attributes: withStringAttribute(
+						child.attributes,
+						settings.contextAttributeName,
+						contextName,
+					),
 				};
 			});
 
@@ -115,20 +131,24 @@ function imgGroupSatteriPlugin(
 				fail(ctx, groupNode, `<ImgGroup> contains no <Img> children`);
 			}
 
-			if (isCarousel && imageCount < 2) {
+			if (imageCount < context.minImages) {
 				fail(
 					ctx,
 					groupNode,
-					`<ImgGroup> carousel needs at least two images, found ${String(imageCount)}`,
+					`<ImgGroup> ${contextName} needs at least ${String(context.minImages)} images, found ${String(imageCount)}`,
 				);
 			}
 
 			return {
 				...groupNode,
 				attributes: withStringAttribute(
-					groupNode.attributes,
-					settings.imageCountAttributeName,
-					String(imageCount),
+					withStringAttribute(
+						groupNode.attributes,
+						settings.imageCountAttributeName,
+						String(imageCount),
+					),
+					settings.contextAttributeName,
+					contextName,
 				),
 				children,
 			};

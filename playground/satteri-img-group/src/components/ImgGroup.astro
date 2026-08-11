@@ -1,16 +1,19 @@
 ---
-// `imageCount` is stamped by the satteri-img-group plugin
+// `context` and `imageCount` are stamped by the satteri-img-group plugin
 interface Props {
+	context?: string;
 	layout?: string;
 	imageCount?: string;
 }
 
-const { layout = 'default', imageCount } = Astro.props;
+const { context, layout = 'default', imageCount } = Astro.props;
 ---
 
 <div class="img-group" data-layout={layout}>
-	<p class="img-group__meta">layout=<code>{layout}</code> imageCount=<code>{imageCount}</code></p>
-	<div class="img-group__items">
+	<p class="img-group__meta">
+		context=<code>{context}</code> layout=<code>{layout}</code> imageCount=<code>{imageCount}</code>
+	</p>
+	<div class="img-group__items" data-context={context}>
 		<slot />
 	</div>
 </div>
@@ -34,5 +37,29 @@ const { layout = 'default', imageCount } = Astro.props;
 		display: flex;
 		gap: 0.75rem;
 		flex-wrap: wrap;
+	}
+
+	.img-group__items[data-context='masonry'] {
+		display: block;
+		columns: 3;
+		column-gap: 0.75rem;
+	}
+
+	.img-group__items[data-context='masonry'] > :global(*) {
+		margin-bottom: 0.75rem;
+		break-inside: avoid;
+	}
+
+	.img-group__items[data-context='carousel'] {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+	}
+
+	.img-group[data-layout='wide'] {
+		margin-inline: -2rem;
+	}
+
+	.img-group[data-layout='full'] {
+		margin-inline: -4rem;
 	}
 </style>

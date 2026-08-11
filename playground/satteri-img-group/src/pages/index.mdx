@@ -3,15 +3,28 @@ import ImgGroup from '../components/ImgGroup.astro';
 
 # satteri-img-group
 
-The plugin stamps `imageCount` on each `<ImgGroup>` and `context` (`grid`/`carousel`) on each `<Img>` at build time. The values rendered below are stamped, not authored.
+The plugin stamps `imageCount` and `context` on each `<ImgGroup>`, and copies `context` onto every `<Img>` child, at build time. The values rendered below are stamped, not authored. The vocabulary comes from the plugin config in `astro.config.mjs`: contexts are `grid`, `masonry`, and `carousel`, layouts are `default`, `wide`, and `full`.
+
+`context` and `layout` are independent. A bare group falls back to `defaultContext`.
 
 <ImgGroup>
 	<Img src="/a.jpg" />
 	<Img src="/b.jpg" />
 </ImgGroup>
 
-<ImgGroup layout="carousel">
+<ImgGroup layout="wide">
 	<Img src="/c.jpg" />
 	<Img src="/d.jpg" />
+</ImgGroup>
+
+<ImgGroup context="masonry">
 	<Img src="/e.jpg" />
+	<Img src="/f.jpg" />
+	<Img src="/g.jpg" />
+</ImgGroup>
+
+<ImgGroup context="carousel" layout="full">
+	<Img src="/h.jpg" />
+	<Img src="/i.jpg" />
+	<Img src="/j.jpg" />
 </ImgGroup>
