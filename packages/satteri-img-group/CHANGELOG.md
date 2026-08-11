@@ -1,5 +1,24 @@
 # @xsynaptic/satteri-img-group
 
+## 1.0.0
+
+### Major Changes
+
+- Move the group vocabulary out of the plugin and into options, split across the two axes it always was.
+
+  `layout` used to encode both arrangement mode and width as a single flattened enum (`carousel-wide` and friends), hardcoded in the package. It is now two independent attributes, both declared by the consumer:
+
+  - `contexts` (required) maps a context name to its rules; the keys are the vocabulary. `defaultContext` (required) names the fallback.
+  - `layouts` (required) lists accepted `layout` values, which now mean width only.
+
+  The carousel special-casing is gone, replaced by per-context `minImages` and `disallowedAttributes`. The group is now stamped with `context` alongside `imageCount`, and an `<Img>` inside a group that sets its own `context` throws, matching the existing rule for `layout`.
+
+  Breaking changes:
+
+  - `contexts`, `defaultContext`, and `layouts` are required, so a no-argument call no longer compiles.
+  - `columnsAttributeName` is removed; use `disallowedAttributes: ['columns']` on the contexts that reject it.
+  - `<ImgGroup layout="carousel">` becomes `<ImgGroup context="carousel">`; `carousel-wide` and `carousel-full` become `context` plus `layout`.
+
 ## 0.2.1
 
 ### Patch Changes
