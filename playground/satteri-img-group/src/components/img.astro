@@ -1,15 +1,15 @@
 ---
 // `context` is stamped by the satteri-img-group plugin
 interface Props {
-	src: string;
 	context?: string;
+	src: string;
 }
 
-const { src, context } = Astro.props;
+const { context, src } = Astro.props;
 ---
 
 <figure class="img" data-context={context}>
-	<img src={src} alt="" width="120" height="80" />
+	<img alt="" height="80" src={src} width="120" />
 	<figcaption>context=<code>{context}</code></figcaption>
 </figure>
 

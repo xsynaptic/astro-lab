@@ -7,7 +7,7 @@ export default defineConfig({
 	integrations: [mdx()],
 	markdown: {
 		processor: satteri({
-			mdastPlugins: [autoImport({ imports: ['./src/components/Quotation.astro'] })],
+			mdastPlugins: [autoImport({ imports: ['./src/components/quotation.astro'] })],
 		}),
 	},
 });

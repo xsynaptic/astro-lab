@@ -2,11 +2,11 @@
 // `context` and `imageCount` are stamped by the satteri-img-group plugin
 interface Props {
 	context?: string;
-	layout?: string;
 	imageCount?: string;
+	layout?: string;
 }
 
-const { context, layout = 'default', imageCount } = Astro.props;
+const { context, imageCount, layout = 'default' } = Astro.props;
 ---
 
 <div class="img-group" data-layout={layout}>

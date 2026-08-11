@@ -19,26 +19,26 @@ export function createSqliteCache({ filePath }: { filePath: string }): ImageLoad
 	const upsertStmt = db.prepare(
 		'INSERT OR REPLACE INTO entries (key, digest, data) VALUES (?, ?, ?)',
 	);
-	const deleteStmt = db.prepare('DELETE FROM entries WHERE key = ?');
+	const deletionStmt = db.prepare('DELETE FROM entries WHERE key = ?');
 
 	return {
 		get: (key) => {
-			const row = selectStmt.get(key) as { data: string; digest: string } | undefined;
+			const row = selectStmt.get(key) as undefined | { data: string; digest: string };
 
-			if (!row) return undefined;
+			if (!row) return;
 
 			return { data: JSON.parse(row.data) as Record<string, unknown>, digest: row.digest };
-		},
-		set: (key, value) => {
-			upsertStmt.run(key, value.digest, JSON.stringify(value.data));
 		},
 		prune: (liveKeys) => {
 			const live = new Set(liveKeys);
 			const rows = db.prepare('SELECT key FROM entries').all() as Array<{ key: string }>;
 
 			for (const { key } of rows) {
-				if (!live.has(key)) deleteStmt.run(key);
+				if (!live.has(key)) deletionStmt.run(key);
 			}
+		},
+		set: (key, value) => {
+			upsertStmt.run(key, value.digest, JSON.stringify(value.data));
 		},
 	};
 }

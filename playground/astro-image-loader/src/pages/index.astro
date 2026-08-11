@@ -8,7 +8,7 @@ const images = await getCollection('images');
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
 		<title>astro-image-loader playground</title>
 	</head>
 	<body>
@@ -20,7 +20,7 @@ const images = await getCollection('images');
 				<section>
 					<h2>{entry.id}</h2>
 					{/* Mode B: image() field rendered through astro:assets */}
-					<Image src={entry.data.image} alt={entry.data.title ?? entry.id} />
+					<Image alt={entry.data.title ?? entry.id} src={entry.data.image} />
 					{/* Mode A: queryable metadata (URL/data mode) */}
 					<dl>
 						<dt>src</dt>
@@ -33,9 +33,9 @@ const images = await getCollection('images');
 						<dd>{[entry.data.make, entry.data.model].filter(Boolean).join(' ') || '(none)'}</dd>
 						<dt>gps</dt>
 						<dd>
-							{entry.data.latitude !== undefined
-								? `${entry.data.latitude}, ${entry.data.longitude}`
-								: '(none)'}
+							{entry.data.latitude === undefined
+								? '(none)'
+								: `${entry.data.latitude}, ${entry.data.longitude}`}
 						</dd>
 					</dl>
 				</section>

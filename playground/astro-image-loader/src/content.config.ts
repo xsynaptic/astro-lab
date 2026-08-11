@@ -1,6 +1,6 @@
-import { ImageLoaderBaseSchema, imageLoader } from '@xsynaptic/astro-image-loader';
-import { DimensionsSchema, dimensionsPlugin } from '@xsynaptic/astro-image-loader/dimensions';
-import { ExifGpsSchema, ExifSchema, exifPlugin } from '@xsynaptic/astro-image-loader/exif';
+import { imageLoader, ImageLoaderBaseSchema } from '@xsynaptic/astro-image-loader';
+import { dimensionsPlugin, DimensionsSchema } from '@xsynaptic/astro-image-loader/dimensions';
+import { ExifGpsSchema, exifPlugin, ExifSchema } from '@xsynaptic/astro-image-loader/exif';
 import { defineCollection } from 'astro:content';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,13 +13,13 @@ import { createSqliteCache } from './custom-cache';
 const images = defineCollection({
 	loader: imageLoader({
 		base: 'src/images',
-		plugins: [dimensionsPlugin(), exifPlugin({ gps: true })],
-		dataHandler: ({ filePath }) => ({ image: `./${path.basename(filePath)}` }),
 		cache: createSqliteCache({
 			filePath: fileURLToPath(
 				new URL('../node_modules/.astro/image-cache.sqlite', import.meta.url),
 			),
 		}),
+		dataHandler: ({ filePath }) => ({ image: `./${path.basename(filePath)}` }),
+		plugins: [dimensionsPlugin(), exifPlugin({ gps: true })],
 	}),
 	schema: ({ image }) =>
 		ImageLoaderBaseSchema.extend(DimensionsSchema.shape)

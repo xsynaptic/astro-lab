@@ -7,7 +7,7 @@ export default defineConfig({
 	integrations: [mdx()],
 	markdown: {
 		processor: unified({
-			remarkPlugins: [remarkAutoImport({ imports: ['./src/components/Quotation.astro'] })],
+			remarkPlugins: [remarkAutoImport({ imports: ['./src/components/quotation.astro'] })],
 		}),
 	},
 });
