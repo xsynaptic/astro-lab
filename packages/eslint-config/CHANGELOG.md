@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.2.1
+
+### Patch Changes
+
+- Disable `unicorn/single-line-block-comment-style`, added to unicorn's recommended set in `^73.0` (see 6.2.0). Its autofix expands every single-line `/* */` and `/** */` into a three-line block, rewriting JSDoc across existing codebases for no functional gain.
+
 ## 6.2.0
 
 ### Minor Changes

@@ -26,13 +26,9 @@ export const ExifGpsSchema = z.object({
 });
 
 export interface ExifPluginOptions {
-	/**
-	Options forwarded to the ExifTool constructor
-	*/
+	/** Options forwarded to the ExifTool constructor */
 	exiftoolOptions?: ConstructorParameters<typeof ExifTool>[0];
-	/**
-	Extract GPS latitude/longitude; off by default so location data never lands in the store unasked
-	*/
+	/** Extract GPS latitude/longitude; off by default so location data never lands in the store unasked */
 	gps?: boolean;
 }
 

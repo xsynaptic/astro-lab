@@ -125,6 +125,7 @@ export function getConfig(
 				'unicorn/no-top-level-assignment-in-function': 'off', // Flags the legitimate lazy-singleton (instance ??= load()) cache pattern
 				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Lowercase hex to match Prettier
 				'unicorn/prefer-iterator-to-array': 'off', // Pushes Iterator#toArray(), which needs the esnext.iterator lib; spreads stay browser-safe
+				'unicorn/single-line-block-comment-style': 'off', // Rewrites single-line /* */ comments into a three-line block, churning existing code for no gain
 			},
 		},
 		perfectionist.configs['recommended-natural'],

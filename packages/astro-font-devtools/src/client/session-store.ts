@@ -80,8 +80,6 @@ function saveState(state: State): void {
 	try {
 		sessionStorage.setItem(storageKey, JSON.stringify(state));
 	} catch {
-		/*
-		sessionStorage may be unavailable in some contexts
-		*/
+		/* sessionStorage may be unavailable in some contexts */
 	}
 }

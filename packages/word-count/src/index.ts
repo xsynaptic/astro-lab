@@ -60,9 +60,7 @@ function buildBitmap(): Uint8Array {
 
 const bitmap = buildBitmap();
 
-/**
-Split word count for callers that need per-script-class rates (e.g. reading time).
-*/
+/** Split word count for callers that need per-script-class rates (e.g. reading time). */
 export interface WordCountBreakdown {
 	// Per-character-script units: CJK, Japanese kana, Thai, Lao, Burmese, Khmer, Javanese, Vai
 	scriptChars: number;

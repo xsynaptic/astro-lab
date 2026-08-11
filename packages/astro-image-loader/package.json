@@ -70,8 +70,8 @@
 	"devDependencies": {
 		"@types/node": "^24.13.3",
 		"@types/picomatch": "^4.0.2",
-		"astro": "^7.1.6",
-		"exiftool-vendored": "^37.1.0",
+		"astro": "^7.2.0",
+		"exiftool-vendored": "^37.2.0",
 		"sharp": "^0.35.3",
 		"zod": "^4.4.3"
 	}

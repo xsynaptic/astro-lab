@@ -24,13 +24,9 @@ export interface ImageLoaderCache {
 }
 
 export interface ImageLoaderCacheValue {
-	/**
-	dataHandler output for this entry; must be JSON-serializable (a Date returns as a string on a cache hit)
-	*/
+	/** dataHandler output for this entry; must be JSON-serializable (a Date returns as a string on a cache hit) */
 	data: Record<string, unknown>;
-	/**
-	The per-entry digest current when this value was cached; a mismatch invalidates it
-	*/
+	/** The per-entry digest current when this value was cached; a mismatch invalidates it */
 	digest: string;
 }
 
@@ -49,36 +45,22 @@ export type ImageLoaderDataHandler = (args: {
  * Just prepackaged options, so the single-handler API stays the escape hatch
  */
 export interface ImageLoaderPlugin {
-	/**
-	Run once after loading all images and after each watch-mode batch
-	*/
+	/** Run once after loading all images and after each watch-mode batch */
 	afterLoad?: () => Promise<void> | void;
-	/**
-	Run once before loading all images and before each watch-mode batch
-	*/
+	/** Run once before loading all images and before each watch-mode batch */
 	beforeLoad?: () => Promise<void> | void;
-	/**
-	Metadata extraction callback; its output is merged into entry data
-	*/
+	/** Metadata extraction callback; its output is merged into entry data */
 	dataHandler?: ImageLoaderDataHandler;
-	/**
-	Versions this plugin's extraction; folded with the loader's own extractionVersion
-	*/
+	/** Versions this plugin's extraction; folded with the loader's own extractionVersion */
 	extractionVersion?: string;
-	/**
-	Schema fragment describing this plugin's dataHandler output; merged into the collection schema
-	*/
+	/** Schema fragment describing this plugin's dataHandler output; merged into the collection schema */
 	schema?: z.ZodObject;
 }
 
 interface LocalImageLoaderGenerateIdOptions {
-	/**
-	The base directory URL
-	*/
+	/** The base directory URL */
 	base: URL;
-	/**
-	The path to the entry file, relative to the base directory
-	*/
+	/** The path to the entry file, relative to the base directory */
 	filePath: string;
 }
 
@@ -96,62 +78,38 @@ export const VALID_INPUT_FORMATS = [
 ] as const;
 
 export interface ImageLoaderOptions {
-	/**
-	Run once after loading all images and after each watch-mode batch (e.g. tear down a resource)
-	*/
+	/** Run once after loading all images and after each watch-mode batch (e.g. tear down a resource) */
 	afterLoad?: () => Promise<void> | void;
 	/**
 	 * Directory to resolve images from, relative to the project root or absolute; defaults to `.`
 	 * Entries are stored root-relative, so images must sit inside the root for image() fields to resolve
 	 */
 	base: string;
-	/**
-	Run once before loading all images and before each watch-mode batch (e.g. set up a resource)
-	*/
+	/** Run once before loading all images and before each watch-mode batch (e.g. set up a resource) */
 	beforeLoad?: () => Promise<void> | void;
-	/**
-	Durable cache for dataHandler output, surviving Astro store wipes; a JSONL file under cacheDir by default, or pass an implementation or false to disable
-	*/
+	/** Durable cache for dataHandler output, surviving Astro store wipes; a JSONL file under cacheDir by default, or pass an implementation or false to disable */
 	cache?: false | ImageLoaderCache;
-	/**
-	How many images to process at a time
-	*/
+	/** How many images to process at a time */
 	concurrency: number;
-	/**
-	Metadata extraction callback; its record output is merged into entry data and must match the collection schema
-	*/
+	/** Metadata extraction callback; its record output is merged into entry data and must match the collection schema */
 	dataHandler?: ImageLoaderDataHandler;
-	/**
-	Debounce window for batching watch-mode file events, in milliseconds
-	*/
+	/** Debounce window for batching watch-mode file events, in milliseconds */
 	debounceMs: number;
-	/**
-	Versions derivation (schema parsing and transforms): a change re-parses entries from cached extraction
-	*/
+	/** Versions derivation (schema parsing and transforms): a change re-parses entries from cached extraction */
 	derivationVersion?: string;
-	/**
-	Versions extraction: a change re-runs dataHandler for every image
-	*/
+	/** Versions extraction: a change re-runs dataHandler for every image */
 	extractionVersion?: string;
-	/**
-	Generates a per-collection-unique entry ID; defaults to the entry path
-	*/
+	/** Generates a per-collection-unique entry ID; defaults to the entry path */
 	generateId: (options: LocalImageLoaderGenerateIdOptions) => string;
-	/**
-	Glob pattern(s) matched against paths relative to the base directory. Defaults to all Astro-supported raster formats
-	*/
+	/** Glob pattern(s) matched against paths relative to the base directory. Defaults to all Astro-supported raster formats */
 	pattern: Array<string> | string;
 	/**
 	 * Prepackaged option bundles run alongside the single-handler API
 	 * dataHandler outputs merge flat (array order wins, the inline dataHandler last); schema fragments merge; hooks run in order; extractionVersions fold into the digest
 	 */
 	plugins?: Array<ImageLoaderPlugin>;
-	/**
-	How many worked images between progress lines during the initial sync
-	*/
+	/** How many worked images between progress lines during the initial sync */
 	progressInterval: number;
-	/**
-	Log interval progress lines plus an end-of-sync summary with cache statistics
-	*/
+	/** Log interval progress lines plus an end-of-sync summary with cache statistics */
 	showProgress: boolean;
 }
