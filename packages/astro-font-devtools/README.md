@@ -1,7 +1,6 @@
 # @xsynaptic/astro-font-devtools
 
-An Astro dev toolbar app for browsing fonts (Google, Fontsource, Bunny, Fontshare) and previewing
-them live on your site.
+An Astro dev toolbar app for browsing fonts (Google, Fontsource, Bunny, Fontshare) and previewing them live on your site.
 
 > Early prototype; the API is still changing.
 
@@ -25,8 +24,7 @@ export default defineConfig({
 });
 ```
 
-Run `astro dev`, open the dev toolbar, and pick **Font Devtools**. By default only Fontsource is
-queried; pass `providers` to add more:
+Run `astro dev`, open the dev toolbar, and pick **Font Devtools**. By default only Fontsource is queried; pass `providers` to add more:
 
 ```ts
 fontDevtools({ providers: ['google', 'fontsource', 'bunny', 'fontshare'] });

@@ -1,16 +1,10 @@
 # @xsynaptic/satteri-auto-import
 
-A [Sätteri][] mdast plugin that injects ESM `import` statements into MDX at compile time, so
-components can be used in `.mdx` files without importing them in every file. It is the Sätteri port
-of [`@xsynaptic/remark-auto-import`][remark-auto-import].
+A [Sätteri][] mdast plugin that injects ESM `import` statements into MDX at compile time, so components can be used in `.mdx` files without importing them in every file. It is the Sätteri port of [`@xsynaptic/remark-auto-import`][remark-auto-import].
 
 ## How it works
 
-Sätteri has no `root` visitor, so the plugin is a factory that subscribes to every block-level node
-type and, on the first block it visits, injects the import with `ctx.insertBefore`. Sätteri walks
-the tree in document order (parent before child), so the first block visited is the document's first
-root child, and the import lands as a top-level statement that MDX hoists. Plain `.md` is left
-untouched.
+Sätteri has no `root` visitor, so the plugin is a factory that subscribes to every block-level node type and, on the first block it visits, injects the import with `ctx.insertBefore`. Sätteri walks the tree in document order (parent before child), so the first block visited is the document's first root child, and the import lands as a top-level statement that MDX hoists. Plain `.md` is left untouched.
 
 ## Install
 
@@ -41,17 +35,15 @@ export default defineConfig({
 
 ## Config
 
-`imports` is an array; each entry takes one of three forms (validated with [Zod][], so bad config
-throws at setup):
+`imports` is an array; each entry takes one of three forms (validated with [Zod][], so bad config throws at setup):
 
-| Form            | Example                                             | Emits                                                                 |
-| --------------- | --------------------------------------------------- | --------------------------------------------------------------------- |
-| Bare string     | `'./img.astro'`                                     | `import Img from './img.astro';` (name PascalCased from the filename) |
-| Namespace alias | `{ './img.astro': 'Ns' }`                           | `import * as Ns from './img.astro';`                                  |
-| Named imports   | `{ './img.astro': [['default', 'Img'], 'helper'] }` | `import { default as Img, helper } from './img.astro';`               |
+| Form | Example | Emits |
+| --- | --- | --- |
+| Bare string | `'./img.astro'` | `import Img from './img.astro';` (name PascalCased from the filename) |
+| Namespace alias | `{ './img.astro': 'Ns' }` | `import * as Ns from './img.astro';` |
+| Named imports | `{ './img.astro': [['default', 'Img'], 'helper'] }` | `import { default as Img, helper } from './img.astro';` |
 
-Relative paths are resolved against the working directory; bare specifiers (npm packages) are left
-as-is.
+Relative paths are resolved against the working directory; bare specifiers (npm packages) are left as-is.
 
 ## License
 
