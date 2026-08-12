@@ -2,12 +2,9 @@ import type { Root, Text } from 'mdast';
 import type { Plugin } from 'unified';
 import type { Location } from 'vfile-location';
 
-import { matchCasing } from 'match-casing';
 import { visitParents } from 'unist-util-visit-parents';
 import { location } from 'vfile-location';
 import { z } from 'zod';
-
-import { diacriticsWords } from './words.js';
 
 declare module 'unified' {
 	interface Data {
@@ -90,6 +87,22 @@ export function remarkProseRules(options?: RemarkProseRulesOptions): Plugin<[], 
 	};
 }
 
+// Each derived pattern maps one character to one character, so the match and the word align by index
+// Transferring case per position keeps multi-word title case, which a whole-string check cannot
+function applyCasing(value: string, corrected: string) {
+	let result = '';
+	let index = 0;
+
+	for (const char of corrected) {
+		const original = value.charAt(index);
+
+		result += original === original.toLowerCase() ? char : char.toUpperCase();
+		index += char.length;
+	}
+
+	return result;
+}
+
 function applyReplacements(text: string, matches: ReadonlyArray<ProseMatch>) {
 	let result = '';
 	let cursor = 0;
@@ -132,20 +145,7 @@ function collect(text: string, rule: CompiledRule, shouldFix: boolean) {
 
 // Compiling once here rather than per node is most of the speed win over the textlint rules
 function compileRules(settings: z.output<typeof optionsSchema>): Array<CompiledRule> {
-	const words = [...diacriticsWords, ...settings.words];
-	const corrections = words.map((word) => ({
-		pattern: new RegExp(String.raw`\b${getPattern(word)}\b`, 'i'),
-		word,
-	}));
-
-	return [
-		{
-			isEditorial: false,
-			matcher: new RegExp(String.raw`\b(?:${words.map(getPattern).join('|')})\b`, 'ig'),
-			reason: (value, replacement) =>
-				`Incorrect usage of the word: “${value}”, use “${replacement}” instead`,
-			resolve: (match) => getCorrection(corrections, match[0]),
-		},
+	const rules: Array<CompiledRule> = [
 		...settings.terms.map(([pattern, replacement]) => {
 			const matcher = new RegExp(pattern, 'i');
 
@@ -169,6 +169,26 @@ function compileRules(settings: z.output<typeof optionsSchema>): Array<CompiledR
 			};
 		}),
 	];
+
+	// An empty list would compile to `\b(?:)\b`, which matches endlessly at every word boundary
+	if (settings.words.length === 0) return rules;
+
+	const corrections = settings.words.map((word) => ({
+		pattern: new RegExp(String.raw`\b${getPattern(word)}\b`, 'i'),
+		word,
+	}));
+
+	// Words stay first so an identical span beats a term on the stable sort in `resolveOverlaps`
+	return [
+		{
+			isEditorial: false,
+			matcher: new RegExp(String.raw`\b(?:${settings.words.map(getPattern).join('|')})\b`, 'ig'),
+			reason: (value: string, replacement: string) =>
+				`Incorrect usage of the word: “${value}”, use “${replacement}” instead`,
+			resolve: (match: RegExpExecArray) => getCorrection(corrections, match[0]),
+		},
+		...rules,
+	];
 }
 
 // The alternation regex reports that a word matched, not which one
@@ -179,9 +199,9 @@ function getCorrection(
 	for (const correction of corrections) {
 		if (!correction.pattern.test(value)) continue;
 
-		return matchCasing(
-			value.replace(correction.pattern, () => correction.word),
+		return applyCasing(
 			value,
+			value.replace(correction.pattern, () => correction.word),
 		);
 	}
 	return;
@@ -277,5 +297,7 @@ function toPlace(node: Text, match: ProseMatch, place: Location, source: string)
 function upperFirst(text: string) {
 	return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+export { diacriticsWords } from './words.js';
 
 export type { RemarkProseRulesOptions };

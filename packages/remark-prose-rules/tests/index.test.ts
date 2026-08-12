@@ -8,7 +8,7 @@ import { describe, expect, test } from 'vitest';
 
 import type { RemarkProseRulesOptions } from '../src/index.js';
 
-import { remarkProseRules } from '../src/index.js';
+import { diacriticsWords, remarkProseRules } from '../src/index.js';
 
 interface Result {
 	messages: Array<VFileMessage>;
@@ -41,16 +41,19 @@ const numberRange = {
 	replace: '$1--$2',
 };
 
+// The built-in list is opt-in, so most cases below have to ask for it
+const words = { words: diacriticsWords };
+
 describe('words', () => {
 	test('leaves clean prose untouched', async () => {
-		const { messages, value } = await run('A visit to the café in Québec.');
+		const { messages, value } = await run('A visit to the café in Québec.', words);
 
 		expect(value).toBe('A visit to the café in Québec.\n');
 		expect(messages).toHaveLength(0);
 	});
 
 	test('corrects every occurrence, keeping the original casing', async () => {
-		const { messages, value } = await run('Cafe and CAFE and cafe.');
+		const { messages, value } = await run('Cafe and CAFE and cafe.', words);
 
 		expect(value).toBe('Café and CAFÉ and café.\n');
 		expect(messages).toHaveLength(3);
@@ -59,7 +62,9 @@ describe('words', () => {
 	});
 
 	test('accepts extra words alongside the built-in list', async () => {
-		const { value } = await run('The manana meeting and the cafe.', { words: ['mañana'] });
+		const { value } = await run('The manana meeting and the cafe.', {
+			words: [...diacriticsWords, 'mañana'],
+		});
 
 		expect(value).toBe('The mañana meeting and the café.\n');
 	});
@@ -72,9 +77,24 @@ describe('words', () => {
 		expect(messages).toHaveLength(0);
 	});
 
+	test('keeps title case across a multi-word correction', async () => {
+		const { value } = await run('A Deja Vu moment and a Creme Brulee.', words);
+
+		expect(value).toBe('A Déjà Vu moment and a Crème Brûlée.\n');
+	});
+
+	// The word is already spelled correctly, so differing case alone is not a mistake
+	test('leaves a correctly spelled multi-word entry alone', async () => {
+		const { messages, value } = await run('The El Niño years.', words);
+
+		expect(value).toBe('The El Niño years.\n');
+		expect(messages).toHaveLength(0);
+	});
+
 	test('reaches headings, link text, and JSX children', async () => {
 		const { value } = await run(
 			['# The cafe', '', '[a cafe](/cafe)', '', '<Link>a cafe</Link>'].join('\n'),
+			words,
 		);
 
 		expect(value).toContain('# The café');
@@ -83,7 +103,7 @@ describe('words', () => {
 	});
 
 	test('leaves inline code and code blocks alone', async () => {
-		const { messages, value } = await run(['`cafe`', '', '```', 'cafe', '```'].join('\n'));
+		const { messages, value } = await run(['`cafe`', '', '```', 'cafe', '```'].join('\n'), words);
 
 		expect(value).toContain('`cafe`');
 		expect(value).toContain('\ncafe\n');
@@ -91,10 +111,36 @@ describe('words', () => {
 	});
 
 	test('leaves JSX attribute values alone', async () => {
-		const { messages, value } = await run('<Link title="a cafe" href="/cafe">ok</Link>');
+		const { messages, value } = await run('<Link title="a cafe" href="/cafe">ok</Link>', words);
 
 		expect(value).toContain('title="a cafe"');
 		expect(messages).toHaveLength(0);
+	});
+});
+
+describe('word list', () => {
+	test('corrects nothing when no words are configured', async () => {
+		const { messages, value } = await run('A visit to the cafe.');
+
+		expect(value).toBe('A visit to the cafe.\n');
+		expect(messages).toHaveLength(0);
+	});
+
+	test('uses a custom list without the built-in one', async () => {
+		const { value } = await run('A cafe and a facade.', { words: ['café'] });
+
+		expect(value).toBe('A café and a facade.\n');
+	});
+
+	// An empty list must drop the rule, not compile to an alternation that loops forever
+	test('applies other rules when no words are configured', async () => {
+		const { messages, value } = await run('Built 1930-1945 in Taiwan.', {
+			patterns: [numberRange],
+		});
+
+		expect(value).toBe('Built 1930--1945 in Taiwan.\n');
+		expect(messages).toHaveLength(1);
+		expect(messages[0]?.reason).toBe(numberRange.message);
 	});
 });
 
@@ -173,6 +219,7 @@ describe('patterns', () => {
 describe('skip', () => {
 	test('skips every rule inside a blockquote', async () => {
 		const { messages, value } = await run('> A cafe in 1930-1945 was postwar.', {
+			...words,
 			patterns: [numberRange],
 			terms,
 		});
@@ -182,7 +229,7 @@ describe('skip', () => {
 	});
 
 	test('honours a custom skip list', async () => {
-		const { value } = await run('# The cafe\n\nThe cafe.', { skip: ['heading'] });
+		const { value } = await run('# The cafe\n\nThe cafe.', { ...words, skip: ['heading'] });
 
 		expect(value).toContain('# The cafe');
 		expect(value).toContain('The café.');
@@ -191,7 +238,7 @@ describe('skip', () => {
 
 describe('messages', () => {
 	test('points at the matched span, not the whole node', async () => {
-		const { messages } = await run('A visit to the cafe today.');
+		const { messages } = await run('A visit to the cafe today.', words);
 		const place = messages[0]?.place;
 
 		expect(place && 'start' in place ? place.start.column : undefined).toBe(16);
@@ -201,7 +248,7 @@ describe('messages', () => {
 	// A backslash escape shifts text-node offsets out of step with the source
 	// The range falls back to the node rather than pointing somewhere wrong
 	test('falls back to the node when an escape shifts the offsets', async () => {
-		const { messages, value } = await run(String.raw`A \* and a cafe.`);
+		const { messages, value } = await run(String.raw`A \* and a cafe.`, words);
 		const place = messages[0]?.place;
 
 		expect(place && 'start' in place ? place.start.column : undefined).toBe(1);
@@ -213,7 +260,7 @@ describe('messages', () => {
 	test('drops a rule that overlaps an earlier match', async () => {
 		const { messages, value } = await run(
 			'A cafe here.',
-			{ terms: [['cafe', 'coffee shop']] },
+			{ ...words, terms: [['cafe', 'coffee shop']] },
 			true,
 		);
 
