@@ -1,5 +1,12 @@
 # @xsynaptic/remark-prose-rules
 
+## 0.3.0
+
+### Minor Changes
+
+- Add a `frontmatter` option that applies rules to named yaml fields, per bucket and per field path.
+- Add a `marks` option (exported default: `diacriticsMarks`) so the diacritic table is configurable, and cover `ï` plus the `naïve` family.
+
 ## 0.2.0
 
 ### Minor Changes

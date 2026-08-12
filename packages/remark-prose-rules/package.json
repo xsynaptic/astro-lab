@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/remark-prose-rules",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "A remark plugin that reports and fixes prose spelling, terminology, and pattern issues in markdown and MDX",
 	"type": "module",
 	"license": "MIT",
@@ -45,6 +45,7 @@
 		"@types/mdast": "^4.0.4",
 		"unist-util-visit-parents": "^6.0.2",
 		"vfile-location": "^5.0.3",
+		"yaml": "^2.9.0",
 		"zod": "^4.4.3"
 	},
 	"peerDependencies": {
@@ -52,6 +53,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^24.13.3",
+		"remark-frontmatter": "^5.0.0",
 		"remark-mdx": "^3.1.1",
 		"remark-parse": "^11.0.0",
 		"remark-stringify": "^11.0.0",

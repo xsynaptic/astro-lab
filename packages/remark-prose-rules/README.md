@@ -1,28 +1,34 @@
 # @xsynaptic/remark-prose-rules
 
-Prose linting inside the remark pipeline, so missing diacritics and off-style terminology surface as live editor diagnostics with quickfixes instead of only at a batch fix run.
+Checks prose for missing diacritics and off-style terminology, in the remark pipeline, so problems show up in the editor with a suggested fix rather than only in a batch run.
 
-Three rules ported from textlint ([diacritics](https://github.com/sapegin/textlint-rule-diacritics), [terminology](https://github.com/sapegin/textlint-rule-terminology), [pattern](https://github.com/textlint-rule/textlint-rule-pattern), MIT, Artem Sapegin). Not a textlint replacement: no rule ecosystem, no default terminology list, no suppression comments, no tokenization. ESM-only.
+Three rules ported from textlint ([diacritics](https://github.com/sapegin/textlint-rule-diacritics), [terminology](https://github.com/sapegin/textlint-rule-terminology), [pattern](https://github.com/textlint-rule/textlint-rule-pattern), MIT, Artem Sapegin). Not a textlint replacement: no rule ecosystem, no default terminology list, no suppression comments. ESM-only.
 
 ```js
-import { diacriticsWords, remarkProseRules } from '@xsynaptic/remark-prose-rules';
+import { diacriticsMarks, diacriticsWords, remarkProseRules } from '@xsynaptic/remark-prose-rules';
 
 remarkProseRules({
-	// Correct spellings, mistakes derived, casing preserved; `diacriticsWords` is a built-in list of ~140
+	// Correct spellings; the misspellings are worked out from them, and casing is kept
 	words: [...diacriticsWords, 'mañana'],
-	// Case-insensitive, boundary-guarded (`postwar-era` is skipped), replacement used literally
+	// Letters a spelling may be missing its mark on, plain letter last
+	marks: [...diacriticsMarks, 'ōo'],
+	// Case-insensitive, and skipped inside a longer word like `postwar-era`
 	terms: [['metre', 'meter']],
-	// Unguarded regex with a $n replacement
+	// Plain regex with a $n replacement
 	patterns: [{ message: 'Use `--` for ranges', pattern: '(\\d)-(\\d)', replace: '$1--$2' }],
-	// Ancestor types suppressing every rule
+	// Nothing inside these is checked
 	skip: ['blockquote'],
+	// Frontmatter fields to check; `true` reuses the list above, an array replaces it
+	frontmatter: { title: { words: true }, 'links[].title': { terms: [['metre', 'meter']] } },
 });
 ```
 
-Every option is empty by default, so nothing is corrected until asked for. Rules share one `skip` list; to scope them differently, chain a second instance with its own options.
+Every option is empty by default, so nothing is corrected until asked for. All the rules share one `skip` list; to scope them differently, add a second instance with its own options.
 
-Only `text` nodes are visited, so code, URLs and JSX attributes are untouched (frontmatter too, given `remark-frontmatter`). A `terms` replacement is upper-firsted only at a sentence start. `words` derives mistake patterns from correct spellings, but only for the marks `àâäå éèêë ç îí ñ ö š ûü ÿ`, so macrons belong in `terms`.
+Only body text is checked, so code, URLs and JSX attributes are left alone. Frontmatter needs `remark-frontmatter` and is checked only for the fields listed above, where a dot goes into a nested field and `[]` covers every item of a list. Those fields are edited in place, and a quoted value is reported but never changed.
 
-`words` and `patterns` rewrite the tree; `terms` reports only, until the processor carries `data('editorialFixes', true)`, which keeps editorial substitutions off format-on-save. Mutations reach the source only when the pipeline ends in `remark-stringify` and the result is written back; behind an HTML compiler it fixes the render and leaves the file wrong.
+Only spellings that need a mark from `marks` can be corrected, and passing `marks` replaces the built-in groups rather than adding to them. Anything transliterated, like Japanese or pinyin, is better handled by `terms`, which suggests instead of rewriting.
+
+`words` and `patterns` fix as they go, while `terms` only reports, unless the processor carries `data('editorialFixes', true)`. That keeps wording changes out of format-on-save. Fixes reach the file only if the pipeline ends in `remark-stringify` and the result is written back; behind an HTML compiler they fix the page and leave the file wrong.
 
 [MIT](./LICENSE)

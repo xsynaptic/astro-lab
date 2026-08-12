@@ -1,3 +1,17 @@
+// Each group ends with the plain letter; the leading characters are marks that may stand in for it
+export const diacriticsMarks = [
+	"’'",
+	'àâäåa',
+	'éèêëe',
+	'çc',
+	'îíïi',
+	'ñn',
+	'öo',
+	'šs',
+	'ûüu',
+	'ÿy',
+];
+
 // Copied from textlint-rule-diacritics (MIT, Artem Sapegin)
 // That package exports only its entry point, so words.json cannot be imported
 // Plurals and inflections are listed explicitly; the patterns use strict \b boundaries
@@ -59,6 +73,10 @@ export const diacriticsWords = [
 	'maître d’s',
 	'ménage à trois',
 	'ménages à trois',
+	// Local additions; upstream has no `ï` group so it cannot derive these
+	'naïve',
+	'naïveté',
+	'naïvety',
 	'négligée',
 	'négligées',
 	'papier-mâché',

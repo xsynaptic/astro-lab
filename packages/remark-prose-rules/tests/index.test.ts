@@ -1,5 +1,6 @@
 import type { VFileMessage } from 'vfile-message';
 
+import remarkFrontmatter from 'remark-frontmatter';
 import remarkMdx from 'remark-mdx';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
@@ -8,7 +9,7 @@ import { describe, expect, test } from 'vitest';
 
 import type { RemarkProseRulesOptions } from '../src/index.js';
 
-import { diacriticsWords, remarkProseRules } from '../src/index.js';
+import { diacriticsMarks, diacriticsWords, remarkProseRules } from '../src/index.js';
 
 interface Result {
 	messages: Array<VFileMessage>;
@@ -20,7 +21,7 @@ async function run(
 	options?: RemarkProseRulesOptions,
 	shouldFixTerms = false,
 ): Promise<Result> {
-	const processor = unified().use(remarkParse).use(remarkMdx);
+	const processor = unified().use(remarkParse).use(remarkMdx).use(remarkFrontmatter, ['yaml']);
 
 	if (shouldFixTerms) processor.data('editorialFixes', true);
 
@@ -142,6 +143,32 @@ describe('word list', () => {
 		expect(messages).toHaveLength(1);
 		expect(messages[0]?.reason).toBe(numberRange.message);
 	});
+
+	test('corrects a word carrying a local addition to the built-in list', async () => {
+		const { value } = await run('That is a naive reading.', words);
+
+		expect(value).toBe('That is a naïve reading.\n');
+	});
+});
+
+describe('marks', () => {
+	test('derives a mistake the default table cannot', async () => {
+		const { value } = await run('The kominka period.', {
+			marks: [...diacriticsMarks, 'ōo'],
+			words: ['kōminka'],
+		});
+
+		expect(value).toBe('The kōminka period.\n');
+	});
+
+	test('replaces the default table rather than extending it', async () => {
+		const { messages } = await run('A visit to the cafe.', {
+			marks: ['ōo'],
+			words: ['café'],
+		});
+
+		expect(messages).toHaveLength(0);
+	});
 });
 
 describe('terms', () => {
@@ -213,6 +240,97 @@ describe('patterns', () => {
 
 		expect(value).toBe('Built 1930--1945.\n');
 		expect(messages).toHaveLength(0);
+	});
+});
+
+function front(body: string, rest = 'Body text.') {
+	return `---\n${body}\n---\n\n${rest}\n`;
+}
+
+describe('frontmatter', () => {
+	test('rewrites a plain scalar and reports the exact span', async () => {
+		const { messages, value } = await run(front('title: A cafe'), {
+			...words,
+			frontmatter: { title: { words: true } },
+		});
+		const place = messages[0]?.place;
+
+		expect(value).toBe(front('title: A café'));
+		expect(messages).toHaveLength(1);
+		expect(place && 'start' in place ? place.start.line : undefined).toBe(2);
+		expect(place && 'start' in place ? place.start.column : undefined).toBe(10);
+		expect(messages[0]?.expected).toEqual(['café']);
+	});
+
+	test('leaves a field with no rules configured alone', async () => {
+		const { messages, value } = await run(front('title: A cafe\ndescription: A cafe'), {
+			...words,
+			frontmatter: { description: { words: true } },
+		});
+
+		expect(value).toBe(front('title: A cafe\ndescription: A café'));
+		expect(messages).toHaveLength(1);
+	});
+
+	// Offsets inside a quoted scalar no longer line up with the source
+	test('reports a quoted scalar without rewriting it', async () => {
+		const { messages, value } = await run(front(`title: 'A cafe'`), {
+			...words,
+			frontmatter: { title: { words: true } },
+		});
+
+		expect(value).toBe(front(`title: 'A cafe'`));
+		expect(messages).toHaveLength(1);
+		expect(messages[0]?.expected).toBeUndefined();
+	});
+
+	test('resolves a path through a sequence', async () => {
+		const { value } = await run(front('links:\n  - title: A cafe\n  - title: Another cafe'), {
+			...words,
+			frontmatter: { 'links[].title': { words: true } },
+		});
+
+		expect(value).toBe(front('links:\n  - title: A café\n  - title: Another café'));
+	});
+
+	test('uses a field-specific term list over the top-level one', async () => {
+		const { value } = await run(
+			front('title: A postwar metre'),
+			{ frontmatter: { title: { terms: [['metre', 'meter']] } }, terms },
+			true,
+		);
+
+		expect(value).toBe(front('title: A postwar meter'));
+	});
+
+	test('inherits the top-level terms when asked', async () => {
+		const { value } = await run(
+			front('title: A postwar metre'),
+			{ frontmatter: { title: { terms: true } }, terms },
+			true,
+		);
+
+		expect(value).toBe(front('title: A post-war meter'));
+	});
+
+	// Splicing this in would turn the scalar into a nested map
+	test('skips a replacement that would restructure the block', async () => {
+		const { messages, value } = await run(
+			front('title: A cafe'),
+			{ frontmatter: { title: { terms: true } }, terms: [['cafe', 'coffee: shop']] },
+			true,
+		);
+
+		expect(value).toBe(front('title: A cafe'));
+		expect(messages).toHaveLength(1);
+		expect(messages[0]?.expected).toBeUndefined();
+	});
+
+	test('leaves frontmatter alone when no fields are configured', async () => {
+		const { messages, value } = await run(front('title: A cafe', 'A cafe.'), words);
+
+		expect(value).toBe(front('title: A cafe', 'A café.'));
+		expect(messages).toHaveLength(1);
 	});
 });
 

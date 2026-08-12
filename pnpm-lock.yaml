@@ -299,6 +299,9 @@ importers:
       vfile-location:
         specifier: ^5.0.3
         version: 5.0.3
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -306,6 +309,9 @@ importers:
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
+      remark-frontmatter:
+        specifier: ^5.0.0
+        version: 5.0.0(supports-color@10.2.2)
       remark-mdx:
         specifier: ^3.1.1
         version: 3.1.1(supports-color@10.2.2)
