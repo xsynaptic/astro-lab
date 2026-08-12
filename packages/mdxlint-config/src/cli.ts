@@ -7,7 +7,6 @@ import { access, glob, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { createLinter, loadTextlintrc } from 'textlint';
 
 interface MdxlintConfig {
 	plugins?: PluggableList;
@@ -56,14 +55,12 @@ const { default: mdxlintConfig } = (await import(pathToFileURL(mdxlintConfigPath
 	default: MdxlintConfig;
 };
 
-const processor = mdxlint().data('settings', mdxlintConfig.settings);
-processor.use(mdxlintConfig.plugins ?? []);
+// Signals that opinionated rewrites are wanted, which a batch run asked for and a save did not
+const processor = mdxlint()
+	.data('settings', mdxlintConfig.settings)
+	.data('editorialFixes', shouldFix);
 
-// Textlint is optional; a package may have an mdxlint config but no textlint config
-const textlintConfigPath = path.join(targetPath, '.textlintrc.json');
-const linter = (await hasFile(textlintConfigPath))
-	? createLinter({ descriptor: await loadTextlintrc({ configFilePath: textlintConfigPath }) })
-	: undefined;
+processor.use(mdxlintConfig.plugins ?? []);
 
 let processed = 0;
 let written = 0;
@@ -99,20 +96,10 @@ for await (const match of mdxMatches) {
 				console.warn(`${relativePath}: needs formatting (run fix-content)`);
 				warnings++;
 			}
-			if (linter) {
-				const { messages } = await linter.lintText(original, filePath);
-				reportMessages(relativePath, messages);
-			}
 			continue;
 		}
 
-		let formatted = String(result);
-
-		if (linter) {
-			const fixed = await linter.fixText(formatted, filePath);
-			formatted = fixed.output;
-			reportMessages(relativePath, fixed.messages);
-		}
+		const formatted = String(result);
 
 		// Conditional write: skip unchanged files so mtimes stay put and the dev server doesn't thrash
 		if (formatted === original) {

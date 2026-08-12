@@ -1,5 +1,13 @@
 # @xsynaptic/mdxlint-config
 
+## 2.0.0
+
+### Major Changes
+
+- Drop textlint. The `mdxlint-content` CLI no longer looks for a `.textlintrc.json`, and `textlint` is no longer a dependency. Prose rules now run inside the remark pipeline via `@xsynaptic/remark-prose-rules`, added per project in `.mdxlintrc.mjs`, so the same rules drive the CLI check and live editor diagnostics.
+
+  Under `--fix` the CLI sets `editorialFixes` on the processor, so terminology substitutions apply in a batch run but stay quickfix-only in the editor.
+
 ## 1.0.2
 
 ### Patch Changes
