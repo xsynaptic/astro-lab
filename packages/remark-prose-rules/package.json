@@ -1,0 +1,62 @@
+{
+	"name": "@xsynaptic/remark-prose-rules",
+	"version": "0.1.0",
+	"description": "A remark plugin that reports and fixes prose spelling, terminology, and pattern issues in markdown and MDX",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/remark-prose-rules"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/remark-prose-rules#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"unified",
+		"remark",
+		"remark-plugin",
+		"mdx",
+		"lint",
+		"prose",
+		"terminology",
+		"diacritics"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@types/mdast": "^4.0.4",
+		"match-casing": "^2.0.1",
+		"unist-util-visit-parents": "^6.0.2",
+		"vfile-location": "^5.0.3",
+		"zod": "^4.4.3"
+	},
+	"peerDependencies": {
+		"unified": "^11.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.13.3",
+		"remark-mdx": "^3.1.1",
+		"remark-parse": "^11.0.0",
+		"remark-stringify": "^11.0.0",
+		"unified": "^11.0.5",
+		"vfile-message": "^4.0.3"
+	}
+}
