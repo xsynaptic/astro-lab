@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.1
+
+### Patch Changes
+
+- Update `stylelint-config-recess-order` to 7.8.0. Property ordering changed upstream: the multi-column group moved, `column-rule` properties folded into a new gaps group, and `transition-behavior` was added. Running `stylelint --fix` may reorder some declarations.
+
 ## 1.1.0
 
 ### Minor Changes

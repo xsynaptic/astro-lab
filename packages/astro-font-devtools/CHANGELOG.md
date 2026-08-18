@@ -1,5 +1,11 @@
 # @xsynaptic/astro-font-devtools
 
+## 1.0.1
+
+### Patch Changes
+
+- Update `unifont` to 0.7.5, which adds variable weight support for the Fontshare provider, honours the `HTTPS_PROXY` environment variable, returns fallbacks from `resolveFont()` where possible, and fixes multi-axis font resolution for Fontsource.
+
 ## 1.0.0
 
 ### Major Changes
