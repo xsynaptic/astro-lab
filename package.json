@@ -37,16 +37,16 @@
 		"postrelease": "git push --follow-tags origin main"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^3.0.0",
+		"@changesets/cli": "^3.0.1",
 		"@xsynaptic/eslint-config": "workspace:*",
 		"eslint": "^10.8.1",
 		"jiti": "^2.7.0",
 		"knip": "^6.32.2",
 		"prettier": "^3.9.6",
-		"publint": "^0.3.23",
+		"publint": "^0.3.24",
 		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.67.0",
-		"vitest": "^4.1.10"
+		"vitest": "^4.1.11"
 	}
 }

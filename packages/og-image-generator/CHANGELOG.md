@@ -1,5 +1,11 @@
 # @xsynaptic/og-image-generator
 
+## 1.1.0
+
+### Minor Changes
+
+- Update satori to `^0.33.1`, adding `corner-shape`, `shape()` in `clip-path`, and `backdrop-filter`.
+
 ## 1.0.0
 
 ### Major Changes

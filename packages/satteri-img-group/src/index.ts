@@ -154,6 +154,8 @@ function imgGroupSatteriPlugin(options: Readonly<ImgGroupSatteriOptions>): Mdast
 			};
 		},
 		name: 'img-group',
+		// Sätteri skips position tracking unless a plugin opts in
+		options: { position: true },
 	});
 }
 

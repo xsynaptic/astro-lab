@@ -56,7 +56,7 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.62.1",
-		"astro": "^7.2.2",
-		"vite": "^8.2.1"
+		"astro": "^7.2.4",
+		"vite": "^8.2.2"
 	}
 }

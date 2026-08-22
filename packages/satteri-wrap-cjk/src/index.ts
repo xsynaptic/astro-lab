@@ -2,7 +2,7 @@ import type { Element, Root, Text } from 'hast';
 import type { HastVisitorContext, MdxJsxFlowElementHast, MdxJsxTextElementHast } from 'satteri';
 
 import { h } from 'hastscript';
-import { defineHastPlugin } from 'satteri';
+import { defineHastPlugin, htmlToHast } from 'satteri';
 import { z } from 'zod';
 
 const optionsSchema = z.object({
@@ -44,6 +44,8 @@ const skipTags = new Set(['code', 'kbd', 'pre', 'samp', 'script', 'style']);
 
 // Lowercase MDX elements stay as mdxJsx nodes at hast time, so an author's <span class="cjk"> is one of these
 type Ancestor = Readonly<Element | MdxJsxFlowElementHast | MdxJsxTextElementHast | Root>;
+
+const rawCloseTagPattern = /^<\/([a-zA-Z][^\s/>]*)/;
 
 export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 	const settings = optionsSchema.parse(options ?? {});
@@ -88,8 +90,39 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 		return false;
 	}
 
+	// Hand-written HTML in Markdown arrives as raw siblings of the text, never as ancestors
+	function isShieldedByRawSiblings(node: Readonly<Text>, ctx: HastVisitorContext): boolean {
+		const { children } = ctx.parent(node);
+		const index = ctx.indexOf(node) ?? 0;
+		const openTags: Array<{ name: string; shields: boolean }> = [];
+
+		for (let cursor = 0; cursor < index; cursor++) {
+			const sibling = children[cursor];
+			if (sibling?.type !== 'raw') continue;
+
+			const closeTag = rawCloseTagPattern.exec(sibling.value);
+			if (closeTag) {
+				const opened = openTags.findLastIndex((tag) => tag.name === closeTag[1]?.toLowerCase());
+				if (opened !== -1) openTags.length = opened;
+				continue;
+			}
+
+			const element = parseRawTag(sibling.value);
+			if (element) {
+				openTags.push({
+					name: element.tagName,
+					shields: skipTags.has(element.tagName) || isElementWrapper(element),
+				});
+			}
+		}
+
+		return openTags.some((tag) => tag.shields);
+	}
+
 	// ctx.parent climbs to the root, letting us shield text under code or an existing wrapper
 	function isShielded(node: Readonly<Text>, ctx: HastVisitorContext): boolean {
+		if (isShieldedByRawSiblings(node, ctx)) return true;
+
 		let ancestor: Ancestor | undefined = ctx.parent(node);
 		while (ancestor) {
 			if (ancestor.type === 'element') {
@@ -99,16 +132,17 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 			}
 			ancestor = ctx.parent(ancestor);
 		}
+
 		return false;
 	}
 
 	return defineHastPlugin({
 		name: 'wrap-cjk',
 		text: (node, ctx) => {
-			if (isShielded(node, ctx)) return;
-
 			const matches = [...node.value.matchAll(regex)];
 			if (matches.length === 0) return;
+
+			if (isShielded(node, ctx)) return;
 
 			const parts: Array<Element | Text> = [];
 			let lastIndex = 0;
@@ -127,11 +161,16 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 				parts.push({ type: 'text', value: node.value.slice(lastIndex) });
 			}
 
-			// eslint-disable-next-line unicorn/prefer-modern-dom-apis -- ctx.insertBefore is Sätteri's hast visitor API, not the DOM node method
-			ctx.insertBefore(node, parts);
-			ctx.removeNode(node);
+			ctx.replaceNode(node, parts);
 		},
 	});
+}
+
+// Sätteri emits one tag per raw node, so each parses on its own
+function parseRawTag(value: string) {
+	const tree = htmlToHast(value, { fragment: true });
+	const [first] = 'children' in tree ? tree.children : [];
+	return first?.type === 'element' ? first : undefined;
 }
 
 export type { WrapCjkOptions };

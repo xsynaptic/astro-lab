@@ -1,13 +1,8 @@
-import type {
-	MdastNode,
-	MdastPluginDefinition,
-	MdastPluginInput,
-	MdastPluginInstance,
-	MdxjsEsm,
-} from 'satteri';
+import type { MdastPluginInput, MdxjsEsm } from 'satteri';
 
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defineMdastPlugin } from 'satteri';
 import { z } from 'zod';
 
 const namedImportSchema = z.union([z.string(), z.tuple([z.string(), z.string()])]);
@@ -25,27 +20,7 @@ type NamedImportConfig = z.output<typeof namedImportSchema>;
 
 type SatteriAutoImportOptions = z.input<typeof optionsSchema>;
 
-// Block-level node types that can lead a document
-// Excludes frontmatter (yaml/toml) so imports land after it
-// Excludes listItem/tableRow/tableCell which are never root-level
-const blockVisitorKeys = [
-	'paragraph',
-	'heading',
-	'thematicBreak',
-	'blockquote',
-	'list',
-	'html',
-	'code',
-	'definition',
-	'table',
-	'footnoteDefinition',
-	'math',
-	'containerDirective',
-	'leafDirective',
-	'mdxJsxFlowElement',
-	'mdxFlowExpression',
-	'mdxjsEsm',
-] as const;
+const frontmatterTypes = new Set(['toml', 'yaml']);
 
 function resolveModulePath(path: string): string {
 	// Leave bare specifiers (npm modules) unresolved
@@ -56,39 +31,27 @@ function resolveModulePath(path: string): string {
 // The leading capital MDX wants comes from getDefaultImportName not this pattern
 const identifierPattern = /^[$_\p{ID_Start}][$\p{ID_Continue}]*$/u;
 
-// Sätteri's visitor context, recovered from its exported plugin shape (it isn't exported by name)
-type MdastVisitorContext = Parameters<NonNullable<MdastPluginInstance['paragraph']>>[1];
-
 export function autoImport(options: SatteriAutoImportOptions): MdastPluginInput {
 	const { imports } = optionsSchema.parse(options);
 	// Build the import statements once so bad config fails at setup, not per file
 	const importsSource = processImportsConfig(imports).join('\n');
 
-	// Sätteri has no root hook, so inject the import before the first block we visit
-	// Document-order parent-before-child traversal makes that the document's first root child
-	// MDX then hoists the injected node into a real top-level import
-	// Factory form: Sätteri calls it once per document so `handled` resets between documents
-	return () => {
-		let isHandled = false;
-
-		const visit = (node: Readonly<MdastNode>, ctx: MdastVisitorContext): void => {
-			if (isHandled) return;
-			isHandled = true;
-
+	// MDX hoists the injected node into a real top-level import
+	return defineMdastPlugin({
+		before(root, ctx) {
 			// Only .mdx supports the ESM imports we inject
 			if (!ctx.fileURL || !fileURLToPath(ctx.fileURL).endsWith('.mdx')) return;
+
+			const leadingBlock = root.children.find((child) => !frontmatterTypes.has(child.type));
+			if (!leadingBlock) return;
 
 			// A value-only node; Sätteri re-parses `value` into the real import
 			const importNode: MdxjsEsm = { type: 'mdxjsEsm', value: importsSource };
 			// eslint-disable-next-line unicorn/prefer-modern-dom-apis -- ctx.insertBefore is Sätteri's mdast visitor API, not the DOM node method
-			ctx.insertBefore(node, importNode);
-		};
-
-		const definition: MdastPluginDefinition = { name: 'auto-import' };
-		for (const key of blockVisitorKeys) definition[key] = visit;
-
-		return definition;
-	};
+			ctx.insertBefore(leadingBlock, importNode);
+		},
+		name: 'auto-import',
+	});
 }
 
 function formatImport(imported: string, module: string): string {

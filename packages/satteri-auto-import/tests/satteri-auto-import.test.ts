@@ -41,8 +41,7 @@ describe('autoImport', () => {
 		expect(code).not.toContain('img.astro');
 	});
 
-	// Visit-order invariant: the import must land at top level whatever block type leads the document
-	// This pins Sätteri's parent-before-child traversal as a tested assumption
+	// The import must land at top level whatever block type leads the document
 	const shapes = [
 		['heading-first', '# Title\n\n<Img src="a" alt="b" />\n'],
 		['paragraph-first', 'Lead paragraph.\n\n<Img src="a" alt="b" />\n'],
@@ -57,6 +56,13 @@ describe('autoImport', () => {
 
 		expect(code).toContain('img.astro');
 		expect(code.indexOf('import')).toBeLessThan(code.indexOf('_createMdxContent'));
+	});
+
+	test('injects after frontmatter', async () => {
+		const code = await compile('---\ntitle: Post\n---\n\n<Img src="a" alt="b" />\n');
+
+		expect(code).toContain('img.astro');
+		expect(code).not.toContain('_missingMdxReference("Img"');
 	});
 
 	test('resets per document so state does not leak across compiles', async () => {

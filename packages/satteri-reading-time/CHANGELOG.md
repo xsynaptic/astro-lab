@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-reading-time
 
+## 0.3.0
+
+### Minor Changes
+
+- Require satteri `^0.10.0`. Counts once in the new `after` hook, replacing a recount on every text node.
+
 ## 0.2.1
 
 ### Patch Changes

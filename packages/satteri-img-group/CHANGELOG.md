@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-img-group
 
+## 2.0.0
+
+### Major Changes
+
+- Require satteri `^0.10.0`. Opts into `position` tracking, now per-plugin, restoring source locations in validation errors.
+
 ## 1.0.0
 
 ### Major Changes

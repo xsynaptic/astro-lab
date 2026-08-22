@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-auto-import
 
+## 0.2.0
+
+### Minor Changes
+
+- Require satteri `^0.10.0`. Injects the import from the new `before` hook, reading the document root directly instead of visiting every block-level node type.
+
 ## 0.1.1
 
 ### Patch Changes

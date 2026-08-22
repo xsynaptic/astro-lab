@@ -11,7 +11,7 @@
 	},
 	"dependencies": {
 		"@xsynaptic/astro-image-loader": "*",
-		"astro": "^7.2.2",
+		"astro": "^7.2.4",
 		"exiftool-vendored": "^37.2.0",
 		"sharp": "^0.35.3"
 	}

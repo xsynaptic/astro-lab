@@ -102,6 +102,71 @@ describe('wrapCjk does not double-wrap', () => {
 	});
 });
 
+describe('wrapCjk with inline raw HTML', () => {
+	test('does not double-wrap an author wrapper', async () => {
+		const html = await render('A <span class="cjk">中文字</span> B');
+
+		expect(html).toBe('<p>A <span class="cjk">中文字</span> B</p>');
+	});
+
+	test('does not wrap inside a raw code tag', async () => {
+		const html = await render('Use <code>中文字</code> here.');
+
+		expect(html).toBe('<p>Use <code>中文字</code> here.</p>');
+	});
+
+	test('wraps again after the shielding tag closes', async () => {
+		const html = await render('<code>中文</code> then 日本語');
+
+		expect(html).toBe('<p><code>中文</code> then <span class="cjk">日本語</span></p>');
+	});
+
+	test('shields text nested below the raw open tag', async () => {
+		const html = await render('<code>a <b>x</b> 中文</code>');
+
+		expect(html).not.toContain('class="cjk"');
+	});
+
+	test('reads the marker through attribute quoting and casing', async () => {
+		const html = await render('A <SPAN CLASS="one cjk two">中文字</SPAN> B');
+
+		expect(html).not.toContain('<span class="cjk">');
+	});
+
+	test('treats an HTML comment as a comment, not an open tag', async () => {
+		const html = await render('x <!-- <code> --> 中文 y');
+
+		expect(html).toContain('<span class="cjk">中文</span>');
+	});
+
+	test('keeps wrapping after a void tag', async () => {
+		const html = await render('A <br> 中文 B');
+
+		expect(html).toContain('<span class="cjk">中文</span>');
+	});
+
+	test('shields inside a raw tag carrying a > in an attribute value', async () => {
+		const html = await render('A <code title="a>b">中文字</code> B');
+
+		expect(html).not.toContain('class="cjk"');
+	});
+
+	test('wraps inside an unrelated raw wrapper', async () => {
+		const html = await render('A <span class="highlight">中文字</span> B');
+
+		expect(html).toContain('<span class="highlight"><span class="cjk">中文字</span></span>');
+	});
+
+	// Sätteri applies mutations after the pass, so an expanding sibling must not shift the indexes
+	test('keeps shields aligned after earlier siblings expand', async () => {
+		const html = await render('一 二 <code>三</code> 四 <code>五</code> 六');
+
+		expect(html).toBe(
+			'<p><span class="cjk">一</span> <span class="cjk">二</span> <code>三</code> <span class="cjk">四</span> <code>五</code> <span class="cjk">六</span></p>',
+		);
+	});
+});
+
 describe('wrapCjk reaches MDX component children', () => {
 	test('wraps CJK in a flow component caption', async () => {
 		const code = await compileMdx('<Img>A caption with 中文 inside.</Img>\n');

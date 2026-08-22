@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-trailing-slash
 
+## 0.2.0
+
+### Minor Changes
+
+- Require satteri `^0.10.0`.
+
 ## 0.1.0
 
 ### Minor Changes

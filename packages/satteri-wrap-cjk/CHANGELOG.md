@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-wrap-cjk
 
+## 0.3.0
+
+### Minor Changes
+
+- Require satteri `^0.10.0`. Shields text from inline HTML written by hand in plain Markdown, whose tags arrive as opaque raw siblings the `ctx.parent()` climb could not see: `<code>中文</code>` no longer wraps its content, and an author's own `<span class="cjk">` is no longer doubled.
+
 ## 0.2.0
 
 ### Minor Changes
