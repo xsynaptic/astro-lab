@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/satteri-img-group",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "Sätteri plugin for MDX that stamps grouped images with their arrangement context.",
 	"type": "module",
 	"license": "MIT",

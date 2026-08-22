@@ -1,4 +1,9 @@
-import type { MdastNode, MdastPluginInput, MdxJsxAttributeUnion, MdxJsxFlowElement } from 'satteri';
+import type {
+	MdastNode,
+	MdastPluginDefinition,
+	MdxJsxAttributeUnion,
+	MdxJsxFlowElement,
+} from 'satteri';
 
 import { defineMdastPlugin } from 'satteri';
 import { z } from 'zod';
@@ -54,7 +59,7 @@ function hasAttribute(node: MdxJsxFlowElement, name: string): boolean {
 }
 
 // MDX renders inside-out, so a parent can't pass props to its children at render time
-function imgGroupSatteriPlugin(options: Readonly<ImgGroupSatteriOptions>): MdastPluginInput {
+function imgGroupSatteriPlugin(options: Readonly<ImgGroupSatteriOptions>): MdastPluginDefinition {
 	const settings = optionsSchema.parse(options);
 
 	return defineMdastPlugin({

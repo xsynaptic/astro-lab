@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/satteri-reading-time",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Sätteri mdast plugin that computes multilingual reading time and injects it into Astro frontmatter.",
 	"type": "module",
 	"license": "MIT",

@@ -1,4 +1,4 @@
-import type { MdastPluginInput, MdxjsEsm } from 'satteri';
+import type { MdastPluginDefinition, MdxjsEsm } from 'satteri';
 
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +31,7 @@ function resolveModulePath(path: string): string {
 // The leading capital MDX wants comes from getDefaultImportName not this pattern
 const identifierPattern = /^[$_\p{ID_Start}][$\p{ID_Continue}]*$/u;
 
-export function autoImport(options: SatteriAutoImportOptions): MdastPluginInput {
+export function autoImport(options: SatteriAutoImportOptions): MdastPluginDefinition {
 	const { imports } = optionsSchema.parse(options);
 	// Build the import statements once so bad config fails at setup, not per file
 	const importsSource = processImportsConfig(imports).join('\n');

@@ -1,4 +1,4 @@
-import type { Data, MdastPluginDefinition, MdastPluginInput } from 'satteri';
+import type { Data, MdastPluginDefinition } from 'satteri';
 
 import { countWordsBreakdown } from '@xsynaptic/word-count';
 import { z } from 'zod';
@@ -12,7 +12,9 @@ const optionsSchema = z.object({
 
 type ReadingTimeOptions = z.input<typeof optionsSchema>;
 
-export function readingTime(options?: null | Readonly<ReadingTimeOptions>): MdastPluginInput {
+export function readingTime(
+	options?: null | Readonly<ReadingTimeOptions>,
+): () => MdastPluginDefinition {
 	const settings = optionsSchema.parse(options ?? {});
 
 	// Factory form: Sätteri calls it once per document so codeWords resets per file

@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-reading-time
 
+## 0.3.1
+
+### Patch Changes
+
+- Report the precise return type rather than the wider `MdastPluginInput`, so consumers that type their plugin option narrowly accept these plugins.
+
 ## 0.3.0
 
 ### Minor Changes

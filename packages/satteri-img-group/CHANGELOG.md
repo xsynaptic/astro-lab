@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-img-group
 
+## 2.0.1
+
+### Patch Changes
+
+- Report the precise return type rather than the wider `MdastPluginInput`, so consumers that type their plugin option narrowly accept these plugins.
+
 ## 2.0.0
 
 ### Major Changes
