@@ -9,10 +9,10 @@
 		"preview": "astro preview"
 	},
 	"dependencies": {
-		"@astrojs/markdown-satteri": "^0.3.7",
-		"@astrojs/mdx": "^7.0.7",
+		"@astrojs/markdown-satteri": "^0.3.8",
+		"@astrojs/mdx": "^7.0.8",
 		"@xsynaptic/satteri-auto-import": "*",
-		"astro": "^7.2.4",
+		"astro": "^7.2.6",
 		"satteri": "^0.10.5"
 	}
 }

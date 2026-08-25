@@ -1,5 +1,11 @@
 # @xsynaptic/astro-font-devtools
 
+## 1.0.2
+
+### Patch Changes
+
+- Update `unifont` to `^0.8.3`
+
 ## 1.0.1
 
 ### Patch Changes

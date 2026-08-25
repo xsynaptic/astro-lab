@@ -1,5 +1,11 @@
 # @xsynaptic/og-image-generator
 
+## 1.1.1
+
+### Patch Changes
+
+- Update `satori` to `^0.33.3`
+
 ## 1.1.0
 
 ### Minor Changes

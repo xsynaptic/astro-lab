@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-font-devtools",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "An Astro dev toolbar plugin for previewing fonts from Google, Fontsource, Bunny, and Fontshare live on your site.",
 	"keywords": [
 		"astro",
@@ -48,7 +48,7 @@
 		"test:e2e": "playwright test"
 	},
 	"dependencies": {
-		"unifont": "^0.7.5",
+		"unifont": "^0.8.3",
 		"zod": "^4.4.3"
 	},
 	"peerDependencies": {
@@ -56,7 +56,7 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.62.1",
-		"astro": "^7.2.4",
+		"astro": "^7.2.6",
 		"vite": "^8.2.2"
 	}
 }
