@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-loader
 
+## 1.1.1
+
+### Patch Changes
+
+- Bump `picomatch` to 4.0.7.
+
 ## 1.1.0
 
 ### Minor Changes

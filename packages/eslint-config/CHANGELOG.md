@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.2.2
+
+### Patch Changes
+
+- Bump `typescript-eslint` to 8.68.0.
+
 ## 6.2.1
 
 ### Patch Changes
