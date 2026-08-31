@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.2
+
+### Patch Changes
+
+- Widen `custom-property-pattern` so Tailwind v4 theme variables stop reporting false positives. `stylelint-config-standard` rejects the paired modifier form (`--text-2xl--line-height`) and both namespace reset forms (`--color-*: initial`, `--*: initial`), all of which Tailwind documents. The rule also walks `var()` arguments, so a project that merely reads a built-in theme variable was flagged even without a `@theme` block. Non-kebab-case names are still reported.
+
 ## 1.1.1
 
 ### Patch Changes
