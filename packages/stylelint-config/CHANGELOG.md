@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.4
+
+### Patch Changes
+
+- Stop enabling `a11y/selector-pseudo-class-focus`. It only checks the hovered rule's siblings for a `:focus`, so a hover guarded by `@media (hover: hover)` false-positives, and its autofix moves the focus styles inside the guard.
+
 ## 1.1.3
 
 ### Patch Changes

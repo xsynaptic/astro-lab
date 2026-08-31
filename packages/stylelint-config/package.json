@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/stylelint-config",
-	"version": "1.1.3",
+	"version": "1.1.4",
 	"description": "A shared Stylelint config for Astro projects using Tailwind CSS v4",
 	"type": "module",
 	"license": "MIT",

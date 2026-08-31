@@ -16,7 +16,6 @@ const config: Config = {
 		'import-notation': 'string',
 		...tailwind.rules,
 		'a11y/no-outline-none': true,
-		'a11y/selector-pseudo-class-focus': true,
 		'color-named': 'never',
 		'defensive-css/no-mixed-vendor-prefixes': true,
 		'defensive-css/no-unsafe-will-change': true,
