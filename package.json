@@ -41,7 +41,7 @@
 		"@xsynaptic/eslint-config": "workspace:*",
 		"eslint": "^10.9.1",
 		"jiti": "^2.7.0",
-		"knip": "^6.32.3",
+		"knip": "^6.33.0",
 		"prettier": "^3.9.6",
 		"publint": "^0.3.24",
 		"tsdown": "^0.22.14",

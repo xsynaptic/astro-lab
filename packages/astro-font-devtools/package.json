@@ -49,7 +49,7 @@
 	},
 	"dependencies": {
 		"unifont": "^0.8.3",
-		"zod": "^4.4.3"
+		"zod": "^4.5.4"
 	},
 	"peerDependencies": {
 		"astro": "^6.3.8 || ^7.0.0"
