@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.3
+
+### Patch Changes
+
+- Stop two `stylelint-config-recommended` v18 rules reporting false positives on Tailwind v4 directives: `nesting-selector-no-missing-scoping-root` now ignores `@utility` and `@custom-variant`, and `no-invalid-position-declaration` ignores `@utility`.
+
 ## 1.1.2
 
 ### Patch Changes
