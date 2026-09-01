@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.3.0
+
+### Minor Changes
+
+- Bump `eslint-plugin-unicorn` `^73.0` → `^74.0`.
+
 ## 6.2.2
 
 ### Patch Changes
