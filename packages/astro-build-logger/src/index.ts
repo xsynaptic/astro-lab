@@ -18,12 +18,18 @@ const optionsSchema = z
 interface BuildLogEntry {
 	astroVersion: string;
 	durationSeconds: number;
+	fileCount: number;
 	nodeVersion: string;
 	notes?: string;
 	outputBytes: number;
 	pageCount: number;
 	summary: string;
 	timestamp: string;
+}
+
+interface DirectoryMeasure {
+	fileCount: number;
+	outputBytes: number;
 }
 
 type Options = z.input<typeof optionsSchema>;
@@ -39,12 +45,13 @@ export default function buildLogger(options?: Options): AstroIntegration {
 			'astro:build:done': async ({ dir, logger, pages }) => {
 				const buildEndTime = Date.now();
 				const durationSeconds = Number(((buildEndTime - buildStartTime) / 1000).toFixed(2));
-				const outputBytes = await getDirectorySize(dir);
-				const summary = formatSummary(durationSeconds, pages.length, outputBytes);
+				const { fileCount, outputBytes } = await measureDirectory(dir);
+				const summary = formatSummary(durationSeconds, pages.length, fileCount, outputBytes);
 
 				const entry: BuildLogEntry = {
 					astroVersion: astroPackage.version,
 					durationSeconds,
+					fileCount,
 					nodeVersion: process.versions.node,
 					outputBytes,
 					pageCount: pages.length,
@@ -96,23 +103,32 @@ function formatDuration(totalSeconds: number): string {
 	return `${String(seconds)}s`;
 }
 
-function formatSummary(durationSeconds: number, pageCount: number, outputBytes: number): string {
-	return `${formatDuration(durationSeconds)} (${String(pageCount)} pages, ${formatBytes(outputBytes)})`;
+function formatSummary(
+	durationSeconds: number,
+	pageCount: number,
+	fileCount: number,
+	outputBytes: number,
+): string {
+	return `${formatDuration(durationSeconds)} (${String(pageCount)} pages, ${String(fileCount)} files, ${formatBytes(outputBytes)})`;
 }
 
-async function getDirectorySize(dir: URL): Promise<number> {
+async function measureDirectory(dir: URL): Promise<DirectoryMeasure> {
 	const entries = await readdir(dir, { withFileTypes: true });
-	let total = 0;
+	let fileCount = 0;
+	let outputBytes = 0;
 
 	for (const entry of entries) {
 		const child = new URL(entry.isDirectory() ? `${entry.name}/` : entry.name, dir);
 
 		if (entry.isDirectory()) {
-			total += await getDirectorySize(child);
+			const nested = await measureDirectory(child);
+			fileCount += nested.fileCount;
+			outputBytes += nested.outputBytes;
 		} else if (entry.isFile()) {
 			const stats = await stat(child);
-			total += stats.size;
+			fileCount += 1;
+			outputBytes += stats.size;
 		}
 	}
-	return total;
+	return { fileCount, outputBytes };
 }

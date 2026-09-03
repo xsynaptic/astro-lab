@@ -1,5 +1,11 @@
 # @xsynaptic/astro-build-logger
 
+## 1.1.0
+
+### Minor Changes
+
+- Record the number of files in the output directory as `fileCount` on each entry and in the console summary. The directory walk that measures output size already visits every file, so the count is free, and hosts with a per-deploy asset cap (Cloudflare Workers allows 20,000 per version) can now watch it trend.
+
 ## 1.0.0
 
 ### Major Changes

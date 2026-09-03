@@ -1,6 +1,6 @@
 # @xsynaptic/astro-build-logger
 
-An [Astro][] integration that records how long each build takes and appends a structured entry to a [JSONL][] file. Each entry captures the build duration, page count, total output size, and the Astro and Node versions used, making it easy to track build performance over time.
+An [Astro][] integration that records how long each build takes and appends a structured entry to a [JSONL][] file. Each entry captures the build duration, page count, output file count, total output size, and the Astro and Node versions used, making it easy to track build performance over time.
 
 _Note_: this package is ESM-only.
 
@@ -26,7 +26,7 @@ export default defineConfig({
 After each build, an entry is appended to `astro-build.jsonl` in the project root:
 
 ```text
-{"timestamp":"2026-06-07T12:00:00.000Z","durationSeconds":42.5,"pageCount":1280,"outputBytes":83214946,"astroVersion":"6.4.4","nodeVersion":"22.22.2","summary":"42s (1280 pages, 79.4 MB)"}
+{"timestamp":"2026-06-07T12:00:00.000Z","durationSeconds":42.5,"pageCount":1280,"fileCount":4120,"outputBytes":83214946,"astroVersion":"6.4.4","nodeVersion":"22.22.2","summary":"42s (1280 pages, 4120 files, 79.4 MB)"}
 ```
 
 One JSON object per line means the file is append-only and trivially parseable: read it line by line, or pipe it through tools like `jq`.
