@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/path-suggestions",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "A did-you-mean for 404 pages, as a DOM-free scoring function plus an optional custom element",
 	"type": "module",
 	"license": "MIT",

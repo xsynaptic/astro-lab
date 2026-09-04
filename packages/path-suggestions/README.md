@@ -41,7 +41,9 @@ document.querySelector('path-suggestions').entries = [{ url: '/about/', title: '
 | `redirect-threshold` | `0.92`  | Score at or above which the best candidate triggers a redirect |
 | `limit`              | `5`     | Most suggestions to render                                     |
 | `min-length`         | `3`     | Paths shorter than this carry too little signal to score       |
-| `link-class`         |         | Class applied to each anchor                                   |
+| `link-*`             |         | Forwarded to each anchor with the prefix stripped              |
+
+`link-class` sets the class, `link-data-astro-history` sets `data-astro-history`, and so on for whatever a client-side router reads off a link. The `link-` prefix is reserved for this, and `link-href` is ignored.
 
 ### State and events
 

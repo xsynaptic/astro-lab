@@ -23,6 +23,9 @@ const defaultMinLength = 3;
 // Marks the list this element owns, so host-authored children survive a re-render
 const listAttribute = 'data-path-suggestions-list';
 
+// The element takes no option of its own under this prefix
+const linkAttributePrefix = 'link-';
+
 export class PathSuggestionsElement extends HTMLElement {
 	// Score against an inlined list instead of fetching one; scoring reruns when set after connection
 	get entries(): Array<PathEntry> | undefined {
@@ -48,7 +51,8 @@ export class PathSuggestionsElement extends HTMLElement {
 	}
 
 	connectedCallback(): void {
-		void this.run();
+		// Without this a redirect can dispatch before a host script has attached its listeners
+		queueMicrotask(() => void this.run());
 	}
 
 	async run(): Promise<void> {
@@ -121,6 +125,16 @@ export class PathSuggestionsElement extends HTMLElement {
 		);
 	}
 
+	private getLinkAttributes(): Array<[string, string]> {
+		return [...this.attributes]
+			.filter((attribute) => attribute.name.startsWith(linkAttributePrefix))
+			.map((attribute): [string, string] => [
+				attribute.name.slice(linkAttributePrefix.length),
+				attribute.value,
+			])
+			.filter(([name]) => name !== 'href');
+	}
+
 	private getList(): HTMLUListElement {
 		const existing = this.querySelector<HTMLUListElement>(`ul[${CSS.escape(listAttribute)}]`);
 
@@ -161,7 +175,7 @@ export class PathSuggestionsElement extends HTMLElement {
 
 	private render(items: Array<PathSuggestion>): void {
 		const list = this.getList();
-		const linkClass = this.getAttribute('link-class');
+		const linkAttributes = this.getLinkAttributes();
 
 		list.replaceChildren();
 
@@ -172,7 +186,7 @@ export class PathSuggestionsElement extends HTMLElement {
 			link.href = item.url;
 			link.textContent = item.title;
 
-			if (linkClass) link.className = linkClass;
+			for (const [name, value] of linkAttributes) link.setAttribute(name, value);
 
 			listItem.append(link);
 			list.append(listItem);
@@ -181,6 +195,16 @@ export class PathSuggestionsElement extends HTMLElement {
 }
 
 declare global {
+	interface DocumentEventMap {
+		'path-suggestions:done': CustomEvent<PathSuggestionsDoneDetail>;
+		'path-suggestions:redirect': CustomEvent<PathSuggestionsRedirectDetail>;
+	}
+
+	interface HTMLElementEventMap {
+		'path-suggestions:done': CustomEvent<PathSuggestionsDoneDetail>;
+		'path-suggestions:redirect': CustomEvent<PathSuggestionsRedirectDetail>;
+	}
+
 	interface HTMLElementTagNameMap {
 		'path-suggestions': PathSuggestionsElement;
 	}
