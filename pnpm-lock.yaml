@@ -176,6 +176,12 @@ importers:
         specifier: ^0.35.4
         version: 0.35.4(@types/node@24.13.3)
 
+  packages/path-suggestions:
+    dependencies:
+      fastest-levenshtein:
+        specifier: ^1.0.16
+        version: 1.0.16
+
   packages/rehype-wrap-cjk:
     dependencies:
       '@types/hast':

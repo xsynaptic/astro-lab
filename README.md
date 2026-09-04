@@ -37,6 +37,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 ## Other
 
 - [`@xsynaptic/og-image-generator`](packages/og-image-generator): framework-neutral engine for generating Open Graph images with Satori and sharp
+- [`@xsynaptic/path-suggestions`](packages/path-suggestions): did-you-mean for 404 pages, scoring a bad path against the ones that exist, with an optional custom element
 - [`@xsynaptic/unpic-imagor`](packages/unpic-imagor): unpic URL provider for the imagor image server
 - [`@xsynaptic/word-count`](packages/word-count): fast, dependency-free multilingual word counter
 

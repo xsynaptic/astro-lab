@@ -1,0 +1,51 @@
+{
+	"name": "@xsynaptic/path-suggestions",
+	"version": "0.1.0",
+	"description": "A did-you-mean for 404 pages, as a DOM-free scoring function plus an optional custom element",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/path-suggestions"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/path-suggestions#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"404",
+		"custom-element",
+		"did-you-mean",
+		"levenshtein",
+		"not-found",
+		"suggestions"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./element": {
+			"types": "./dist/element.d.mts",
+			"import": "./dist/element.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": [
+		"./dist/element.mjs"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"fastest-levenshtein": "^1.0.16"
+	}
+}
