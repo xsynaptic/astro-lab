@@ -46,13 +46,13 @@
 		"unist-util-visit-parents": "^6.0.2",
 		"vfile-location": "^5.0.3",
 		"yaml": "^2.9.0",
-		"zod": "^4.5.4"
+		"zod": "^4.6.2"
 	},
 	"peerDependencies": {
 		"unified": "^11.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.3",
+		"@types/node": "^24.13.4",
 		"remark-frontmatter": "^5.0.0",
 		"remark-mdx": "^3.1.1",
 		"remark-parse": "^11.0.0",

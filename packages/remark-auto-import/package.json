@@ -42,13 +42,13 @@
 	"dependencies": {
 		"@types/mdast": "^4.0.4",
 		"acorn": "^8.18.0",
-		"zod": "^4.5.4"
+		"zod": "^4.6.2"
 	},
 	"peerDependencies": {
 		"unified": "^11.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.3",
+		"@types/node": "^24.13.4",
 		"mdast-util-mdx": "^3.0.0",
 		"unified": "^11.0.5"
 	}

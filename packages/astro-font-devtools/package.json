@@ -49,14 +49,14 @@
 	},
 	"dependencies": {
 		"unifont": "^0.8.3",
-		"zod": "^4.5.4"
+		"zod": "^4.6.2"
 	},
 	"peerDependencies": {
 		"astro": "^6.3.8 || ^7.0.0"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.62.1",
-		"astro": "^7.2.10",
-		"vite": "^8.2.2"
+		"@playwright/test": "^1.63.0",
+		"astro": "^7.3.2",
+		"vite": "^8.3.0"
 	}
 }

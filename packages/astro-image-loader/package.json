@@ -68,11 +68,11 @@
 		}
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.3",
+		"@types/node": "^24.13.4",
 		"@types/picomatch": "^4.0.2",
-		"astro": "^7.2.10",
-		"exiftool-vendored": "^37.2.0",
+		"astro": "^7.3.2",
+		"exiftool-vendored": "^38.0.1",
 		"sharp": "^0.35.4",
-		"zod": "^4.5.4"
+		"zod": "^4.6.2"
 	}
 }

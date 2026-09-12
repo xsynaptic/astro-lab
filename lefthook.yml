@@ -1,0 +1,39 @@
+# Git hooks; `pnpm install` syncs them into .git/hooks via lefthook's postinstall
+pre-push:
+  jobs:
+    - name: quality-gate
+      run: pnpm check
+
+check:
+  parallel: true
+  jobs:
+    - name: format
+      run: prettier --check . --cache
+    - name: js
+      run: eslint --max-warnings 0 --cache --cache-location node_modules/.cache/eslint/
+    - name: types
+      run: pnpm check-types
+    - name: unused
+      run: knip
+    - name: test
+      run: vitest run
+
+fix:
+  piped: true
+  jobs:
+    - name: autofix
+      group:
+        piped: true
+        jobs:
+          - name: format
+            run: prettier --write . --cache --list-different
+          - name: js
+            run: eslint --fix --max-warnings 0 --cache --cache-location node_modules/.cache/eslint/
+    - name: verify
+      group:
+        parallel: true
+        jobs:
+          - name: types
+            run: pnpm check-types
+          - name: unused
+            run: knip
