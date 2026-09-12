@@ -7,7 +7,9 @@ const { cite } = Astro.props;
 ---
 
 <figure class="quotation">
-	<blockquote><slot /></blockquote>
+	<blockquote>
+		<slot />
+	</blockquote>
 	{cite ? <figcaption>&mdash; {cite}</figcaption> : undefined}
 </figure>
 

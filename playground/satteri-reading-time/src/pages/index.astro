@@ -8,7 +8,9 @@ import Post, { frontmatter } from '../post.mdx';
 		<title>satteri-reading-time</title>
 	</head>
 	<body>
-		<p data-testid="reading-time"><strong>{frontmatter.minutesRead} min read</strong></p>
+		<p data-testid="reading-time">
+			<strong>{frontmatter.minutesRead} min read</strong>
+		</p>
 		<article>
 			<Post />
 		</article>
