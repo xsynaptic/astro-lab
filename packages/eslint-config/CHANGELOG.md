@@ -1,5 +1,14 @@
 # @xsynaptic/eslint-config
 
+## 6.4.0
+
+### Minor Changes
+
+- Ignore `.claude/worktrees/` by default, so Claude Code worktrees nested in a project no longer lint as its source
+- Bump `eslint-plugin-unicorn` `^74.0` → `^76.0`, plus patch bumps to `eslint-plugin-astro`, `eslint-plugin-perfectionist`, and `@eslint-community/eslint-plugin-eslint-comments`.
+
+  Disable `prefer-ternary`, `prefer-early-return`, and `prefer-combined-guards`; v75 widened all three into the guard-clause style this config is built around.
+
 ## 6.3.1
 
 ### Patch Changes

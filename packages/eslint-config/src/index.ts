@@ -73,6 +73,8 @@ export function getConfig(
 	const restrictedSyntax = [...restrictedSyntaxDefaults, ...(options?.restrictedSyntax ?? [])];
 
 	const baseConfig = [
+		// Claude Code nests whole checkouts here, which would otherwise lint as project source
+		{ ignores: ['.claude/worktrees/**'] },
 		eslint.configs.recommended,
 		...tseslint.configs.strictTypeChecked,
 		...tseslint.configs.stylisticTypeChecked,
@@ -124,7 +126,10 @@ export function getConfig(
 				'unicorn/no-invalid-argument-count': 'off', // Off for performance (~1s per run); call arity is already enforced by tsc
 				'unicorn/no-top-level-assignment-in-function': 'off', // Flags the legitimate lazy-singleton (instance ??= load()) cache pattern
 				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Lowercase hex to match Prettier
+				'unicorn/prefer-combined-guards': 'off', // Merges guards that check distinct things into one compound condition
+				'unicorn/prefer-early-return': 'off', // Since v75 it inverts an optional trailing block, which is not the guard-clause pattern
 				'unicorn/prefer-iterator-to-array': 'off', // Pushes Iterator#toArray(), which needs the esnext.iterator lib; spreads stay browser-safe
+				'unicorn/prefer-ternary': 'off', // Since v75 it rewrites flat guard-clause ladders into ternary chains
 				'unicorn/single-line-block-comment-style': 'off', // Rewrites single-line /* */ comments into a three-line block, churning existing code for no gain
 			},
 		},

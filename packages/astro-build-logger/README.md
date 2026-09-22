@@ -26,7 +26,7 @@ export default defineConfig({
 After each build, an entry is appended to `astro-build.jsonl` in the project root:
 
 ```text
-{"timestamp":"2026-06-07T12:00:00.000Z","durationSeconds":42.5,"pageCount":1280,"fileCount":4120,"outputBytes":83214946,"astroVersion":"6.4.4","nodeVersion":"22.22.2","summary":"42s (1280 pages, 4120 files, 79.4 MB)"}
+{"astroVersion":"6.4.4","durationSeconds":42.5,"fileCount":4120,"nodeVersion":"22.22.2","outputBytes":83214946,"pageCount":1280,"summary":"42s (1280 pages, 4120 files, 79.4 MB)","timestamp":"2026-06-07T12:00:00.000Z"}
 ```
 
 One JSON object per line means the file is append-only and trivially parseable: read it line by line, or pipe it through tools like `jq`.
