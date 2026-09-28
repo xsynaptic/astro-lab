@@ -66,7 +66,6 @@ export function getPathSuggestions(
 
 	const scored = options.entries
 		.map((entry) => ({ ...entry, score: getPathSimilarity(current, normalizePath(entry.url)) }))
-		// eslint-disable-next-line unicorn/no-array-sort -- toSorted needs Firefox 115; map() above already returned a fresh array
 		.sort((suggestionA, suggestionB) => suggestionB.score - suggestionA.score);
 
 	const best = scored.at(0);
