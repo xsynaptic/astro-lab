@@ -11,9 +11,22 @@ export default getConfig([
 		...tseslint.configs.disableTypeChecked,
 	},
 	{
-		// unpic-imagor is headed upstream to unpic; keep it free of sort churn for now
+		// Code complexity rules promoting higher quality agentic coding output
+		rules: {
+			complexity: ['warn', { max: 16, variant: 'modified' }],
+			'max-depth': ['warn', 4],
+			'max-lines-per-function': ['warn', { max: 145, skipBlankLines: true, skipComments: true }],
+			'max-params': ['warn', 4],
+			'max-statements': ['warn', 38],
+		},
+	},
+	{
+		// unpic-imagor is headed upstream to unpic; keep it free of sort churn and house ceilings for now
 		files: ['packages/unpic-imagor/**'],
 		rules: {
+			complexity: 'off',
+			'max-params': 'off',
+			'max-statements': 'off',
 			'perfectionist/sort-array-includes': 'off',
 			'perfectionist/sort-classes': 'off',
 			'perfectionist/sort-decorators': 'off',

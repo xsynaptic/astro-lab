@@ -12,9 +12,12 @@ import tseslint from 'typescript-eslint';
 
 type RestrictedSyntaxOption = string | { message?: string; selector: string };
 
-// Extend via `getConfig(_, { restrictedSyntax })`
-// Redefining the rule clobbers these, as ESLint replaces rule keys wholesale
+// Exported because a scoped `no-restricted-syntax` replaces these wholesale; spread them back in
 export const restrictedSyntaxDefaults: Array<RestrictedSyntaxOption> = [
+	{
+		message: 'Re-export named symbols explicitly; `export *` obscures output.',
+		selector: 'ExportAllDeclaration',
+	},
 	{
 		message: 'Separate type imports into their own `import type` statement.',
 		selector: 'ImportDeclaration[importKind="value"] ImportSpecifier[importKind="type"]',
@@ -27,9 +30,8 @@ export const restrictedSyntaxDefaults: Array<RestrictedSyntaxOption> = [
 	},
 ];
 
-// Astro plugin rules plus the `.astro` parser wiring and disableTypeChecked blocks it needs
-// Types can't resolve through the Astro parser so `astro check` owns type checking
-// Pass a11y: 'strict' | 'recommended' to layer jsx-a11y rules; consumers using it must install eslint-plugin-jsx-a11y
+// Types can't resolve through the Astro parser, so `astro check` owns type checking
+// `a11y` needs eslint-plugin-jsx-a11y installed in the consuming project
 export function getAstroConfig(options?: {
 	a11y?: 'recommended' | 'strict';
 }): ConfigWithExtendsArray {
@@ -59,6 +61,24 @@ export function getAstroConfig(options?: {
 			...tseslint.configs.disableTypeChecked,
 		},
 	];
+}
+
+// Node's globals are turned off by name, since flat config merges `globals` by key
+// typescript-eslint turns `no-undef` off for TS files, and without it these globals bind nothing
+export function getBrowserConfig(files: Array<string>): ConfigWithExtends {
+	return {
+		files,
+		languageOptions: {
+			globals: {
+				...Object.fromEntries(Object.keys(globals.nodeBuiltin).map((name) => [name, 'off'])),
+				...globals.browser,
+			},
+		},
+		rules: {
+			'no-undef': 'error',
+			'unicorn/prefer-global-this': 'off',
+		},
+	};
 }
 
 export function getConfig(
@@ -111,29 +131,47 @@ export function getConfig(
 					},
 				],
 				'@typescript-eslint/prefer-nullish-coalescing': 'off',
+				'logical-assignment-operators': ['error', 'never'],
 				'no-restricted-syntax': ['error', ...restrictedSyntax],
+			},
+		},
+		{
+			rules: {
+				complexity: ['warn', { max: 8, variant: 'modified' }],
+				'max-depth': ['warn', 3],
+				'max-lines-per-function': ['warn', { max: 100, skipBlankLines: true, skipComments: true }],
+				'max-params': ['warn', 3],
+				'max-statements': ['warn', 25],
 			},
 		},
 		unicornPlugin.configs.recommended,
 		{
 			rules: {
 				'unicorn/consistent-class-member-order': 'off', // Hoists private helpers above public lifecycle methods
-				'unicorn/consistent-conditional-object-spread': ['error', 'ternary'], // Conditional inclusion stays a ternary, never &&, matching our JSX rendering rule
+				'unicorn/consistent-compound-words': 'off', // Flags names that mirror an outside vocabulary, such as schema.org's WebSite
+				'unicorn/consistent-conditional-object-spread': ['error', 'ternary'],
 				'unicorn/filename-case': 'warn',
-				'unicorn/max-nested-calls': ['error', { max: 5 }], // Zod schema composition and data pipelines legitimately nest past the default of 3
+				'unicorn/logical-assignment-operators': 'off', // Inverse of the core rule; together they reject both forms
+				'unicorn/max-nested-calls': ['error', { max: 5 }], // Zod schemas and data pipelines nest past the default of 3
 				'unicorn/name-replacements': 'off', // I *like* abbreviations!
 				'unicorn/no-array-callback-reference': 'off', // I prefer this pattern for filtering/sorting content
-				'unicorn/no-invalid-argument-count': 'off', // Off for performance (~1s per run); call arity is already enforced by tsc
-				'unicorn/no-top-level-assignment-in-function': 'off', // Flags the legitimate lazy-singleton (instance ??= load()) cache pattern
-				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Lowercase hex to match Prettier
+				'unicorn/no-array-sort': 'off', // Conflicts with Remeda's sort function
+				'unicorn/no-invalid-argument-count': 'off', // tsc already enforces call arity
+				'unicorn/no-top-level-assignment-in-function': 'off', // Flags the lazy-singleton cache pattern
+				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Matches Prettier
 				'unicorn/prefer-combined-guards': 'off', // Merges guards that check distinct things into one compound condition
 				'unicorn/prefer-early-return': 'off', // Since v75 it inverts an optional trailing block, which is not the guard-clause pattern
-				'unicorn/prefer-iterator-to-array': 'off', // Pushes Iterator#toArray(), which needs the esnext.iterator lib; spreads stay browser-safe
+				'unicorn/prefer-iterator-to-array': 'off', // Iterator#toArray() needs the esnext.iterator lib
 				'unicorn/prefer-ternary': 'off', // Since v75 it rewrites flat guard-clause ladders into ternary chains
-				'unicorn/single-line-block-comment-style': 'off', // Rewrites single-line /* */ comments into a three-line block, churning existing code for no gain
+				'unicorn/single-line-block-comment-style': 'off', // Rewrites single-line /* */ comments into three-line blocks
 			},
 		},
 		perfectionist.configs['recommended-natural'],
+		{
+			rules: {
+				'perfectionist/sort-modules': 'off', // Its fixer moves declarations blind to what depends on their order
+			},
+		},
 		{
 			plugins: { '@eslint-community/eslint-comments': eslintComments },
 			rules: {
@@ -145,10 +183,18 @@ export function getConfig(
 		},
 	] satisfies Array<ConfigWithExtends>;
 
-	return defineConfig(...baseConfig, ...(customConfig ?? []));
+	// After the project's config, so a repo's own length ceilings still skip tests
+	const testConfig = {
+		files: ['**/*.test.{ts,tsx}'],
+		rules: {
+			'max-lines-per-function': 'off',
+			'max-statements': 'off',
+		},
+	} satisfies ConfigWithExtends;
+
+	return defineConfig(...baseConfig, ...(customConfig ?? []), testConfig);
 }
 
-// Opt-in rules for authoring native web components
 export function getWebComponentConfig(files: Array<string>): ConfigWithExtends {
 	const bestPractice = webComponentConfigs['flat/best-practice'];
 

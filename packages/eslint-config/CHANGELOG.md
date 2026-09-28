@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.5.0
+
+### Minor Changes
+
+- Promote the rules every consumer set locally, and add `getBrowserConfig()`
+
 ## 6.4.0
 
 ### Minor Changes
