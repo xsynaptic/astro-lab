@@ -50,7 +50,7 @@
 		"unified": "^11.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.6",
+		"@types/node": "^24.19.0",
 		"@types/unist": "^3.0.3",
 		"mdast-util-mdx": "^3.0.0",
 		"remark-mdx": "^3.1.1",

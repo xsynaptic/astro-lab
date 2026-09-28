@@ -41,14 +41,14 @@
 		"@xsynaptic/eslint-config": "workspace:*",
 		"eslint": "^10.11.0",
 		"jiti": "^2.7.0",
-		"knip": "^6.37.0",
+		"knip": "^6.38.0",
 		"lefthook": "^2.1.14",
-		"prettier": "^3.9.8",
-		"prettier-plugin-astro": "^1.0.1",
+		"prettier": "^3.9.9",
+		"prettier-plugin-astro": "^1.1.0",
 		"publint": "^0.3.24",
 		"tsdown": "^0.23.0",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.70.0",
+		"typescript-eslint": "^8.70.1",
 		"vitest": "^4.1.11"
 	}
 }

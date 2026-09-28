@@ -1,5 +1,11 @@
 # @xsynaptic/astro-font-devtools
 
+## 1.0.3
+
+### Patch Changes
+
+- Update `unifont` to `^1.0.2`. Google requests variable ranges and static weights separately and skips styles and subsets a family lacks, Fontshare returns absolute font URLs, and providers now initialize lazily, so one failing provider no longer breaks resolution for the others.
+
 ## 1.0.2
 
 ### Patch Changes

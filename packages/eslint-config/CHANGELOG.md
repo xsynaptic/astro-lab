@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.5.1
+
+### Patch Changes
+
+- Bump `eslint-plugin-perfectionist` to 5.12.1 and `typescript-eslint` to 8.70.1.
+
 ## 6.5.0
 
 ### Minor Changes

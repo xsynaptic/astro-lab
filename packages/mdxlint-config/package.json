@@ -47,10 +47,10 @@
 		"check-types": "tsc --noEmit"
 	},
 	"devDependencies": {
-		"@types/node": "^24.13.6"
+		"@types/node": "^24.19.0"
 	},
 	"dependencies": {
-		"chalk": "^6.0.0",
+		"chalk": "^6.0.1",
 		"mdxlint": "^1.0.0",
 		"remark-frontmatter": "^5.0.0",
 		"remark-gfm": "^4.0.1",
