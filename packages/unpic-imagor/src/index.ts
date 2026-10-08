@@ -403,7 +403,7 @@ function toNumber(value: string | number | undefined): number | undefined {
 }
 
 function normaliseSource(src: string | URL, baseURL?: string): string {
-	const rawSource = typeof src === 'string' ? src : src.toString();
+	const rawSource = typeof src === 'string' ? src : src.href;
 	const withoutBase =
 		baseURL && rawSource.startsWith(baseURL) ? rawSource.slice(baseURL.length) : rawSource;
 	return withoutBase.startsWith('/') ? withoutBase.slice(1) : withoutBase;

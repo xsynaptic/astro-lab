@@ -54,7 +54,7 @@ export async function googlePopularityMap(): Promise<
 }
 
 function fetchGoogleMeta(): Promise<Array<GoogleFont>> {
-	googleMetaPromise ??= loadGoogleMeta();
+	googleMetaPromise = googleMetaPromise ?? loadGoogleMeta();
 
 	return googleMetaPromise;
 }

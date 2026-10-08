@@ -1,5 +1,16 @@
 # @xsynaptic/eslint-config
 
+## 6.6.0
+
+### Minor Changes
+
+- Bump `eslint-plugin-unicorn` `^76.0` → `^77.0`. Turn off `prefer-default-parameters`, `no-unnecessary-array-flat-map`, and `no-asterisk-prefix-in-documentation-comments`; turn off `no-top-level-side-effects` in config and rc files, and `no-unnecessary-parameters` in tests.
+
+### Patch Changes
+
+- Enforce `logical-assignment-operators: never` as intended; it sat before `eslint-plugin-unicorn`'s recommended preset, which turned it back off.
+- Turn type-checked rules off for `.js`, `.mjs`, and `.cjs` files in `getConfig` itself; the block lived in `getAstroConfig`, so a project without the Astro config failed on any JavaScript file the project service could not find.
+
 ## 6.5.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/stylelint-config",
-	"version": "1.1.4",
+	"version": "1.1.5",
 	"description": "A shared Stylelint config for Astro projects using Tailwind CSS v4",
 	"type": "module",
 	"license": "MIT",
@@ -38,7 +38,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"peerDependencies": {
-		"stylelint": ">=17.0.0"
+		"stylelint": "^17.0.0"
 	},
 	"dependencies": {
 		"@double-great/stylelint-a11y": "^3.5.4",

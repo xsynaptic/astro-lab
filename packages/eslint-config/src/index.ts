@@ -56,10 +56,6 @@ export function getAstroConfig(options?: {
 			files: ['**/*.astro/*.ts', '*.astro/*.ts'],
 			...tseslint.configs.disableTypeChecked,
 		},
-		{
-			files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
-			...tseslint.configs.disableTypeChecked,
-		},
 	];
 }
 
@@ -131,7 +127,6 @@ export function getConfig(
 					},
 				],
 				'@typescript-eslint/prefer-nullish-coalescing': 'off',
-				'logical-assignment-operators': ['error', 'never'],
 				'no-restricted-syntax': ['error', ...restrictedSyntax],
 			},
 		},
@@ -147,6 +142,7 @@ export function getConfig(
 		unicornPlugin.configs.recommended,
 		{
 			rules: {
+				'logical-assignment-operators': ['error', 'never'], // Must follow unicorn's preset, which turns the core rule off
 				'unicorn/consistent-class-member-order': 'off', // Hoists private helpers above public lifecycle methods
 				'unicorn/consistent-compound-words': 'off', // Flags names that mirror an outside vocabulary, such as schema.org's WebSite
 				'unicorn/consistent-conditional-object-spread': ['error', 'ternary'],
@@ -155,15 +151,24 @@ export function getConfig(
 				'unicorn/max-nested-calls': ['error', { max: 5 }], // Zod schemas and data pipelines nest past the default of 3
 				'unicorn/name-replacements': 'off', // I *like* abbreviations!
 				'unicorn/no-array-callback-reference': 'off', // I prefer this pattern for filtering/sorting content
-				'unicorn/no-array-sort': 'off', // Conflicts with Remeda's sort function
+				'unicorn/no-array-sort': 'off', // Early versions flagged Remeda's R.sort; they no longer do, but enabling it means converting consumers to toSorted() by hand
+				'unicorn/no-asterisk-prefix-in-documentation-comments': 'off', // Strips the leading asterisks from JSDoc blocks
 				'unicorn/no-invalid-argument-count': 'off', // tsc already enforces call arity
 				'unicorn/no-top-level-assignment-in-function': 'off', // Flags the lazy-singleton cache pattern
+				'unicorn/no-unnecessary-array-flat-map': 'off', // Unwraps one arm of the `[value] : []` filter-map idiom
 				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Matches Prettier
 				'unicorn/prefer-combined-guards': 'off', // Merges guards that check distinct things into one compound condition
+				'unicorn/prefer-default-parameters': 'off', // A default skips `null` and the empty string, which `??` and `||` fallbacks cover
 				'unicorn/prefer-early-return': 'off', // Since v75 it inverts an optional trailing block, which is not the guard-clause pattern
 				'unicorn/prefer-iterator-to-array': 'off', // Iterator#toArray() needs the esnext.iterator lib
 				'unicorn/prefer-ternary': 'off', // Since v75 it rewrites flat guard-clause ladders into ternary chains
 				'unicorn/single-line-block-comment-style': 'off', // Rewrites single-line /* */ comments into three-line blocks
+			},
+		},
+		{
+			files: ['**/*.config.{ts,mts,cts,js,mjs,cjs}', '**/.*rc.{ts,mts,cts,js,mjs,cjs}'],
+			rules: {
+				'unicorn/no-top-level-side-effects': 'off', // Flags `export default` calls, getConfig() included
 			},
 		},
 		perfectionist.configs['recommended-natural'],
@@ -183,16 +188,23 @@ export function getConfig(
 		},
 	] satisfies Array<ConfigWithExtends>;
 
+	// After the project's config, so a typed rule it turns on stays off where the project service has no types
+	const untypedConfig = {
+		files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
+		...tseslint.configs.disableTypeChecked,
+	} satisfies ConfigWithExtends;
+
 	// After the project's config, so a repo's own length ceilings still skip tests
 	const testConfig = {
 		files: ['**/*.test.{ts,tsx}'],
 		rules: {
 			'max-lines-per-function': 'off',
 			'max-statements': 'off',
+			'unicorn/no-unnecessary-parameters': 'off', // Fixture builders are parametric on purpose
 		},
 	} satisfies ConfigWithExtends;
 
-	return defineConfig(...baseConfig, ...(customConfig ?? []), testConfig);
+	return defineConfig(...baseConfig, ...(customConfig ?? []), untypedConfig, testConfig);
 }
 
 export function getWebComponentConfig(files: Array<string>): ConfigWithExtends {

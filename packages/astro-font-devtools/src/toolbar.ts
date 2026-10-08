@@ -49,7 +49,7 @@ async function fetchCatalog(): Promise<Array<CatalogFont>> {
 		const response = await fetch(catalogUrl);
 		if (!response.ok) throw new Error(`catalog request failed (${String(response.status)})`);
 		const data: unknown = await response.json();
-		if (!Array.isArray(data)) throw new Error('catalog response was not a list');
+		if (!Array.isArray(data)) throw new TypeError('catalog response was not a list');
 		const fonts = data as Array<CatalogFont>;
 		catalog = fonts;
 
@@ -84,7 +84,7 @@ function getToolbarStyleSheet(): CSSStyleSheet {
 
 function loadCatalog(): Promise<Array<CatalogFont>> {
 	if (catalog) return Promise.resolve(catalog);
-	catalogPromise ??= fetchCatalog();
+	catalogPromise = catalogPromise ?? fetchCatalog();
 
 	return catalogPromise;
 }
@@ -301,6 +301,7 @@ function setDisabled(button: Element, isDisabled: boolean): void {
 	button.classList.toggle('fdt-disabled', isDisabled);
 }
 
+// eslint-disable-next-line unicorn/no-top-level-side-effects -- Astro loads a toolbar app from its default export
 export default defineToolbarApp({
 	beforeTogglingOff() {
 		activePicker?.stop();

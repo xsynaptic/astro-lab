@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-loader
 
+## 1.3.0
+
+### Minor Changes
+
+- Widen the optional `exiftool-vendored` peer to `^36.0.0 || ^37.0.0 || ^38.0.0 || ^39.0.0`.
+
 ## 1.2.0
 
 ### Minor Changes

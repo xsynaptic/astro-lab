@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.5
+
+### Patch Changes
+
+- Narrow the `stylelint` peer to `^17.0.0`.
+
 ## 1.1.4
 
 ### Patch Changes
