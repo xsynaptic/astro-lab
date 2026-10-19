@@ -39,12 +39,12 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"zod": "^4.6.5"
+		"zod": "^4.6.7"
 	},
 	"peerDependencies": {
 		"astro": "^6.0.0 || ^7.0.0"
 	},
 	"devDependencies": {
-		"astro": "^7.3.8"
+		"astro": "^7.4.0"
 	}
 }

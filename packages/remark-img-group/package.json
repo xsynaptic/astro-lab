@@ -43,7 +43,7 @@
 	"dependencies": {
 		"@types/mdast": "^4.0.4",
 		"unist-util-visit": "^5.1.0",
-		"zod": "^4.6.5"
+		"zod": "^4.6.7"
 	},
 	"peerDependencies": {
 		"unified": "^11.0.0"

@@ -41,13 +41,13 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"zod": "^4.6.5"
+		"zod": "^4.6.7"
 	},
 	"peerDependencies": {
 		"satteri": "^0.10.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.19.1",
+		"@types/node": "^24.19.2",
 		"satteri": "^0.10.5"
 	}
 }

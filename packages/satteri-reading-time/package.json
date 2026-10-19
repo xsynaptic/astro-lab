@@ -41,7 +41,7 @@
 	},
 	"dependencies": {
 		"@xsynaptic/word-count": "workspace:^",
-		"zod": "^4.6.5"
+		"zod": "^4.6.7"
 	},
 	"peerDependencies": {
 		"satteri": "^0.10.0"
