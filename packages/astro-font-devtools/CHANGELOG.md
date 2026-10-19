@@ -1,5 +1,11 @@
 # @xsynaptic/astro-font-devtools
 
+## 1.0.4
+
+### Patch Changes
+
+- Update `unifont` to `^1.0.3`, which confines font sources from providers and npm packages.
+
 ## 1.0.3
 
 ### Patch Changes

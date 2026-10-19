@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.7.0
+
+### Minor Changes
+
+- Bump `eslint-plugin-unicorn` `^77.0` → `^78.0` and `typescript-eslint` to 8.71.2. Unicorn now reports code that contains comments, `no-negated-condition` covers `&&` and `||` chains of negated operands, and `prefer-logical-operator-over-ternary` covers non-boolean conditions, so expect a few new reports.
+
 ## 6.6.0
 
 ### Minor Changes
