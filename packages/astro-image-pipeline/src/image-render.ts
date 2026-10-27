@@ -37,8 +37,12 @@ export async function renderImage(
 			: { fastShrinkOnLoad: false, fit: 'cover', height, width },
 	);
 
+	// A no-op on opaque sources, so the background stays out of the cache key
 	if (format === 'jpg') {
-		return stage.jpeg(encoding.jpg).toBuffer({ resolveWithObject: true });
+		return stage
+			.flatten({ background: '#ffffff' })
+			.jpeg(encoding.jpg)
+			.toBuffer({ resolveWithObject: true });
 	}
 
 	return stage.webp(encoding.webp).toBuffer({ resolveWithObject: true });
