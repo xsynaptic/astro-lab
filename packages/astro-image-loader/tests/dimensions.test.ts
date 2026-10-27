@@ -15,28 +15,39 @@ const logger = {
 	warn: vi.fn(),
 } as unknown as LoaderContext['logger'];
 
+async function readDimensions(filePath: string) {
+	return dimensionsPlugin().dataHandler?.({
+		filePath: path.basename(filePath),
+		filePathRelative: path.basename(filePath),
+		fileUrl: pathToFileURL(filePath),
+		id: path.basename(filePath),
+		logger,
+		modifiedTime: new Date(0),
+	});
+}
+
+function createImage() {
+	return sharp({
+		create: { background: { b: 30, g: 20, r: 10 }, channels: 3, height: 240, width: 320 },
+	});
+}
+
 describe('dimensionsPlugin', () => {
 	test('extracts width and height via sharp', async () => {
 		const dir = await mkdtemp(path.join(tmpdir(), 'dimensions-'));
 		const filePath = path.join(dir, 'img.png');
 
-		await sharp({
-			create: { background: { b: 30, g: 20, r: 10 }, channels: 3, height: 240, width: 320 },
-		})
-			.png()
-			.toFile(filePath);
+		await createImage().png().toFile(filePath);
 
-		const plugin = dimensionsPlugin();
-		const data = await plugin.dataHandler?.({
-			filePath: 'img.png',
-			filePathRelative: 'img.png',
-			fileUrl: pathToFileURL(filePath),
-			id: 'img.png',
-			logger,
-			modifiedTime: new Date(0),
-		});
+		expect(await readDimensions(filePath)).toEqual({ height: 240, width: 320 });
+	});
 
-		expect(data).toEqual({ height: 240, width: 320 });
-		expect(plugin.extractionVersion).toBe('dimensions:v1');
+	test('an EXIF rotation swaps width and height to the displayed size', async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), 'dimensions-'));
+		const filePath = path.join(dir, 'img.jpg');
+
+		await createImage().jpeg().withMetadata({ orientation: 6 }).toFile(filePath);
+
+		expect(await readDimensions(filePath)).toEqual({ height: 320, width: 240 });
 	});
 });

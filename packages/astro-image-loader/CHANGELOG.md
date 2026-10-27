@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-loader
 
+## 1.4.0
+
+### Minor Changes
+
+- `dimensionsPlugin()` reports width and height after EXIF orientation, so a rotated photo reports the size it displays at. Its `extractionVersion` is now `dimensions:v2`, which re-extracts cached entries once.
+
 ## 1.3.0
 
 ### Minor Changes

@@ -52,7 +52,7 @@ Without a `schema`, the base schema (`src`, `modifiedTime`) plus any plugin frag
 A plugin bundles the option surface: `{ schema?, dataHandler?, beforeLoad?, afterLoad?, extractionVersion? }`. Pass an array to `plugins`; outputs merge flat (array order wins, the inline `dataHandler` last) and schema fragments merge into the collection schema. Plugins carry no `derivationVersion`: their only output channel is the cached `dataHandler`, so a plugin's changes always version extraction.
 
 - **`/exif`** (`exifPlugin(options?)`): a curated set of EXIF fields via [exiftool-vendored](https://github.com/photostructure/exiftool-vendored.js). GPS is stripped by default; pass `{ gps: true }` for `latitude`/`longitude`.
-- **`/dimensions`** (`dimensionsPlugin()`): `width` and `height` via [sharp](https://sharp.pixelplumbing.com/).
+- **`/dimensions`** (`dimensionsPlugin()`): `width` and `height` via [sharp](https://sharp.pixelplumbing.com/), after EXIF orientation, so a rotated photo reports the size it displays at.
 
 Both peers are optional; install the one you import.
 

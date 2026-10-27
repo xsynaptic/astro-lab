@@ -17,16 +17,16 @@ export function dimensionsPlugin(): ImageLoaderPlugin {
 	return {
 		dataHandler: async ({ fileUrl }) => {
 			const imagePath = fileURLToPath(fileUrl);
-			const metadata = await sharp(imagePath).metadata();
+			const { autoOrient } = await sharp(imagePath).metadata();
 
 			// sharp types width/height as number but returns undefined for some inputs at runtime
-			if (!Number.isFinite(metadata.width) || !Number.isFinite(metadata.height)) {
+			if (!Number.isFinite(autoOrient.width) || !Number.isFinite(autoOrient.height)) {
 				throw new TypeError(`Could not read image dimensions for ${imagePath}`);
 			}
 
-			return { height: metadata.height, width: metadata.width };
+			return { height: autoOrient.height, width: autoOrient.width };
 		},
-		extractionVersion: 'dimensions:v1',
+		extractionVersion: 'dimensions:v2',
 		schema: DimensionsSchema,
 	};
 }
