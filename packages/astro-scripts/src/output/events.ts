@@ -37,7 +37,7 @@ interface SummaryEvent {
 }
 
 interface DataEvent {
-	text?: string;
+	render?: () => string;
 	type: 'data';
 	value: unknown;
 }

@@ -11,7 +11,14 @@ import {
 import { UserError } from '../src/user-error.js';
 
 class LibraryUserError extends Error {
+	detail?: string;
 	override name = 'UserError';
+
+	constructor(message: string, detail?: string) {
+		super(message);
+
+		if (detail !== undefined) this.detail = detail;
+	}
 }
 
 function getParseError() {
@@ -92,6 +99,29 @@ describe('getFailureReport', () => {
 			exitCode: 1,
 			isInterrupted: false,
 			message: 'Build first',
+		});
+	});
+
+	test.each([
+		{
+			error: new UserError('Caddy did not reload', {
+				detail: 'Caddy log: bind: address already in use',
+			}),
+			label: 'ours',
+		},
+		{
+			error: new LibraryUserError(
+				'Caddy did not reload',
+				'Caddy log: bind: address already in use',
+			),
+			label: 'a library',
+		},
+	])('reports the detail a user error thrown by $label carries', ({ error }) => {
+		expect(getFailureReport(error, { isAborted: false })).toEqual({
+			detail: 'Caddy log: bind: address already in use',
+			exitCode: 1,
+			isInterrupted: false,
+			message: 'Caddy did not reload',
 		});
 	});
 
@@ -297,6 +327,26 @@ describe('runCommand', () => {
 			expect.objectContaining({ command: 'probe', type: 'start' }),
 			expect.objectContaining({ command: 'probe', status: 'failed', type: 'end' }),
 		]);
+	});
+
+	test('reads --json after the -- separator as a positional, not the flag', async () => {
+		const run = vi.fn();
+		const { runCommand } = createCommandRunner();
+
+		delete process.env.SCRIPTS_OUTPUT;
+		setArgs('--', '--json');
+		await runCommand({
+			name: 'improve-content',
+			positional: { description: 'One entry by id', name: 'entry' },
+			run,
+			summary: 'Improve',
+			title: 'Improve',
+		});
+
+		const [[context]] = run.mock.calls as [[{ positionals: Array<string> }]];
+
+		expect(context.positionals).toEqual(['--json']);
+		expect(process.env.SCRIPTS_OUTPUT).toBeUndefined();
 	});
 
 	test('passes json mode on to child processes', async () => {

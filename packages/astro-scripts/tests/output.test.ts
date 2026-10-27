@@ -27,10 +27,11 @@ describe('captureOutput', () => {
 		expect(result).toBe(3);
 		expect(events).toEqual([
 			{ level: 'warn', text: '3 entries lack alt text', type: 'message' },
-			{ text: 'Missing 3', type: 'data', value: { missing: 3 } },
+			{ render: expect.any(Function) as () => string, type: 'data', value: { missing: 3 } },
 			expect.objectContaining({ state: 'start', text: 'Checking', type: 'status' }),
 			expect.objectContaining({ state: 'succeed', text: 'Checking', type: 'status' }),
 		]);
+		expect(events[1]?.type === 'data' && events[1].render?.()).toBe('Missing 3');
 		expect(write).not.toHaveBeenCalled();
 	});
 });

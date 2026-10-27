@@ -81,7 +81,7 @@ function emitMessage(level: MessageLevel, text: string) {
 
 export const log = {
 	data<Value>(value: Value, format?: (value: Value) => string) {
-		emit(format ? { text: format(value), type: 'data', value } : { type: 'data', value });
+		emit(format ? { render: () => format(value), type: 'data', value } : { type: 'data', value });
 	},
 	detail(text: string) {
 		emitMessage('detail', text);

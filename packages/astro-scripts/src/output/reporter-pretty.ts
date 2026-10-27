@@ -91,7 +91,7 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 		emit(event) {
 			switch (event.type) {
 				case 'data': {
-					const line = event.text ?? formatData(event.value);
+					const line = event.render?.() ?? formatData(event.value);
 
 					if (isTerminal(stdout)) {
 						writeAround(stdout, line);

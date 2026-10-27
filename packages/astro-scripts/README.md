@@ -28,7 +28,13 @@ await runCommand({
 });
 ```
 
-Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`; `SCRIPTS_OUTPUT` overrides the choice. Run a `--json` command through `pnpm -s`, or pnpm's own banner lines land in the stream.
+Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`; `SCRIPTS_OUTPUT` overrides the choice. Run a `--json` command through `pnpm --silent`, or pnpm's own lines land in the stream.
+
+Throw `UserError` for an expected failure: the run ends with its message and optional `detail`, and no stack. The runner matches it by `name === 'UserError'` and reads `detail` when it is a string, so a library can throw its own class of that name without depending on this package:
+
+```ts
+throw new UserError('Caddy did not reload', { detail: stderrTail });
+```
 
 `withAstroModules` and `withAstroContent` load `astro` and `vite` only when called, and need a content store written by `astro sync`.
 

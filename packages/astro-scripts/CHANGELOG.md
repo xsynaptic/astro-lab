@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.2.1
+
+### Patch Changes
+
+- `UserError` detail, and fixes from spectralcodex.
+
 ## 0.2.0
 
 ### Minor Changes

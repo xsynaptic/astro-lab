@@ -227,9 +227,32 @@ describe('pretty reporter', () => {
 	test('writes formatted data to stdout as the formatter painted it', () => {
 		const harness = createHarness(createPrettyReporter);
 
-		harness.emit({ text: '\u{1B}[31mMissing 2\u{1B}[39m', type: 'data', value: { missing: 2 } });
+		harness.emit({
+			render: () => '\u{1B}[31mMissing 2\u{1B}[39m',
+			type: 'data',
+			value: { missing: 2 },
+		});
 
 		expect(harness.stdout()).toEqual(['\u{1B}[31mMissing 2\u{1B}[39m']);
+	});
+
+	test('indents every line of a multi-line failure detail', () => {
+		const harness = createHarness(createPrettyReporter);
+
+		harness.emit({
+			detail: 'rsync: connection unexpectedly closed\nrsync error: code 12',
+			durationMs: 1,
+			exitCode: 1,
+			message: 'Child process exited with code 12',
+			status: 'failed',
+			type: 'end',
+		});
+
+		expect(harness.stderr()).toEqual([
+			'✗ Child process exited with code 12',
+			'  rsync: connection unexpectedly closed',
+			'  rsync error: code 12',
+		]);
 	});
 });
 
@@ -335,7 +358,11 @@ describe('plain reporter', () => {
 	test('writes formatted data to stdout with its colour dropped', () => {
 		const harness = createHarness(createPlainReporter);
 
-		harness.emit({ text: '\u{1B}[31mMissing 2\u{1B}[39m', type: 'data', value: { missing: 2 } });
+		harness.emit({
+			render: () => '\u{1B}[31mMissing 2\u{1B}[39m',
+			type: 'data',
+			value: { missing: 2 },
+		});
 
 		expect(harness.stdout()).toEqual(['Missing 2']);
 	});
@@ -453,11 +480,13 @@ describe('json reporter', () => {
 		expect(harness.stderr()).toEqual([]);
 	});
 
-	test('writes the value rather than its human formatting', () => {
+	test('writes the value without rendering its human formatting', () => {
 		const harness = createHarness(createJsonReporter);
+		const render = vi.fn(() => 'Missing 2');
 
-		harness.emit({ text: 'Missing 2', type: 'data', value: { missing: 2 } });
+		harness.emit({ render, type: 'data', value: { missing: 2 } });
 
 		expect(harness.stdout()).toEqual(['{"missing":2}']);
+		expect(render).not.toHaveBeenCalled();
 	});
 });

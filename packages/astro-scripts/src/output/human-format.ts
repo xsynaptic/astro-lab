@@ -40,7 +40,12 @@ export function getStateSymbol(state: TerminalState, palette: Palette) {
 export function formatMessage(level: MessageLevel, text: string, palette: Palette) {
 	switch (level) {
 		case 'detail': {
-			return palette.gray(`  ${text}`);
+			return palette.gray(
+				text
+					.split('\n')
+					.map((line) => `  ${line}`)
+					.join('\n'),
+			);
 		}
 		case 'error': {
 			return `${getStateSymbol('fail', palette)} ${palette.red(text)}`;

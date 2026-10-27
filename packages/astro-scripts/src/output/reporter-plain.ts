@@ -40,9 +40,9 @@ export function createPlainReporter(
 			switch (event.type) {
 				case 'data': {
 					const line =
-						event.text === undefined
+						event.render === undefined
 							? formatData(event.value)
-							: stripVTControlCharacters(event.text);
+							: stripVTControlCharacters(event.render());
 
 					stdout.write(`${line}\n`);
 					break;

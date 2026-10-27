@@ -158,7 +158,11 @@ function isInterruption(error: unknown, isAborted: boolean) {
 function describeError(error: unknown): Pick<FailureReport, 'detail' | 'message'> {
 	if (isParseError(error)) return { detail: 'See --help', message: error.message };
 
-	if (isUserError(error)) return { message: error.message };
+	if (isUserError(error)) {
+		const { detail, message } = error;
+
+		return typeof detail === 'string' && detail !== '' ? { detail, message } : { message };
+	}
 
 	if (isChildProcessFailure(error)) {
 		const reason = error.signal
@@ -238,7 +242,9 @@ export function createCommandRunner<Context extends object = object>(
 		const startTime = Date.now();
 		let interruptTime: number | undefined;
 		// Read before parsing, so a parse error in a `--json` run still reports as JSON
-		const isJson = process.argv.slice(2).includes('--json');
+		const args = process.argv.slice(2);
+		const separator = args.indexOf('--');
+		const isJson = (separator === -1 ? args : args.slice(0, separator)).includes('--json');
 
 		configureOutput(isJson ? 'json' : undefined, command.name);
 
