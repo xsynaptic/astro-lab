@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
 import { findAstroRoot } from '../src/astro.js';
+import { UserError } from '../src/user-error.js';
 import { findWorkspaceRoot } from '../src/workspace.js';
 
 let tempDir: string;
@@ -54,6 +55,7 @@ describe('findAstroRoot', () => {
 		const nestedDir = makeTree(undefined, 'packages/scripts');
 
 		expect(() => findAstroRoot(nestedDir)).toThrow('Could not locate an Astro config');
+		expect(() => findAstroRoot(nestedDir)).toThrow(UserError);
 	});
 });
 
@@ -68,5 +70,6 @@ describe('findWorkspaceRoot', () => {
 		const nestedDir = makeTree(undefined, 'web/scripts');
 
 		expect(() => findWorkspaceRoot(nestedDir)).toThrow('Could not locate pnpm-workspace.yaml');
+		expect(() => findWorkspaceRoot(nestedDir)).toThrow(UserError);
 	});
 });

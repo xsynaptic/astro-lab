@@ -3,8 +3,8 @@ import type { ParseArgsOptionDescriptor } from 'node:util';
 import chalk from 'chalk';
 import { parseArgs } from 'node:util';
 
-import { configureOutput, emit, isOutputMode, log } from './output/output.js';
-import { isRefusal, Refusal } from './refusal.js';
+import { configureOutput, emit, getOutputMode, isOutputMode, log } from './output/output.js';
+import { isUserError, UserError } from './user-error.js';
 import { findWorkspaceRoot } from './workspace.js';
 
 type CommandOption = ParseArgsOptionDescriptor & { description: string };
@@ -49,6 +49,7 @@ interface CommandRunnerOptions<Context> {
 interface ChildProcessFailure extends Error {
 	exitCode: null | number | undefined;
 	signal: null | string | undefined;
+	stderr?: unknown;
 }
 
 interface FailureReport {
@@ -60,6 +61,7 @@ interface FailureReport {
 
 const interruptedExitCode = 130;
 const interruptBurstMs = 1000;
+const stderrTailLines = 20;
 
 const jsonOption = {
 	description: 'Print output as JSON lines',
@@ -81,7 +83,7 @@ export function parseNumberOption(value: string, name: string) {
 	const parsed = Number(value);
 
 	if (value.trim() === '' || !Number.isFinite(parsed))
-		throw new Refusal(`--${name} expects a number, got "${value}"`);
+		throw new UserError(`--${name} expects a number, got "${value}"`);
 
 	return parsed;
 }
@@ -156,14 +158,19 @@ function isInterruption(error: unknown, isAborted: boolean) {
 function describeError(error: unknown): Pick<FailureReport, 'detail' | 'message'> {
 	if (isParseError(error)) return { detail: 'See --help', message: error.message };
 
-	if (isRefusal(error)) return { message: error.message };
+	if (isUserError(error)) return { message: error.message };
 
 	if (isChildProcessFailure(error)) {
 		const reason = error.signal
 			? `was killed by ${error.signal}`
 			: `exited with code ${String(error.exitCode)}`;
 
-		return { message: `Child process ${reason}` };
+		const message = `Child process ${reason}`;
+		const stderr = typeof error.stderr === 'string' ? error.stderr.trimEnd() : '';
+
+		if (stderr === '') return { message };
+
+		return { detail: stderr.split('\n').slice(-stderrTailLines).join('\n'), message };
 	}
 
 	if (!(error instanceof Error)) return { message: String(error) };
@@ -211,7 +218,7 @@ function selectOutput(isJson: boolean) {
 	const requested = process.env.SCRIPTS_OUTPUT;
 
 	if (requested && !isOutputMode(requested)) {
-		throw new Refusal(`SCRIPTS_OUTPUT must be pretty, plain or json, got "${requested}"`);
+		throw new UserError(`SCRIPTS_OUTPUT must be pretty, plain or json, got "${requested}"`);
 	}
 }
 
@@ -261,6 +268,8 @@ export function createCommandRunner<Context extends object = object>(
 		process.on('SIGINT', onInterrupt);
 		process.on('SIGTERM', onInterrupt);
 
+		let hasStarted = false;
+
 		try {
 			const { positionals, values } = parseCommandArgs(command);
 
@@ -271,6 +280,7 @@ export function createCommandRunner<Context extends object = object>(
 
 			selectOutput(isJson);
 			emit({ title: command.title, type: 'start' });
+			hasStarted = true;
 
 			const rootPath = findWorkspaceRoot();
 			// `Context` is only left at its empty default when no factory is given
@@ -289,6 +299,8 @@ export function createCommandRunner<Context extends object = object>(
 
 			emit({ durationMs: Date.now() - startTime, exitCode: 0, status: 'ok', type: 'end' });
 		} catch (error) {
+			if (!hasStarted && getOutputMode() === 'json') emit({ title: command.title, type: 'start' });
+
 			const report = getFailureReport(error, {
 				interrupted: command.interrupted,
 				isAborted: controller.signal.aborted,

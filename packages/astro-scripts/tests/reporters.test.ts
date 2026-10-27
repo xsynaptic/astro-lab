@@ -1,6 +1,6 @@
 import { Writable } from 'node:stream';
 import { stripVTControlCharacters } from 'node:util';
-import { describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { OutputEvent, Reporter } from '../src/output/events.js';
 
@@ -35,6 +35,50 @@ function createHarness(build: (streams: { stderr: Writable; stdout: Writable }) 
 		stderr: () => stderr.lines().map((line) => stripVTControlCharacters(line)),
 		stdout: stdout.lines,
 	};
+}
+
+function createTerminalHarness({ isStdoutTerminal }: { isStdoutTerminal: boolean }) {
+	const transcript: Array<string> = [];
+
+	function createStream(name: string, isTerminal: boolean) {
+		const stream = new Writable({
+			write(chunk: Buffer, _encoding, callback) {
+				const text = stripVTControlCharacters(chunk.toString()).trim();
+
+				if (text !== '') transcript.push(`${name}: ${text}`);
+				callback();
+			},
+		});
+
+		if (!isTerminal) return stream;
+
+		return Object.assign(stream, {
+			clearLine: () => {
+				transcript.push(`${name}: clear`);
+				return true;
+			},
+			columns: 100,
+			cursorTo: () => true,
+			isTTY: true,
+			moveCursor: () => true,
+		});
+	}
+
+	const reporter = createPrettyReporter({
+		stderr: createStream('stderr', true),
+		stdout: createStream('stdout', isStdoutTerminal),
+	});
+
+	return {
+		emit: (...events: Array<OutputEvent>) => {
+			for (const event of events) reporter.emit(event);
+		},
+		transcript,
+	};
+}
+
+function spinnerFrame(text: string) {
+	return expect.stringMatching(new RegExp(String.raw`^stderr: \S ${text}$`)) as string;
 }
 
 function createClock() {
@@ -140,6 +184,19 @@ describe('pretty reporter', () => {
 		expect(harness.stderr().slice(-2)).toEqual(['✓ Inner done', '⚠ Outer partial']);
 	});
 
+	test('resumes the outer status when a nested one closes, so a later failure marks it', () => {
+		const harness = createHarness(createPrettyReporter);
+
+		harness.emit(
+			{ id: 1, state: 'start', text: 'Deploying', type: 'status' },
+			{ id: 2, state: 'start', text: 'Uploading', type: 'status' },
+			{ id: 2, state: 'succeed', text: 'Uploaded', type: 'status' },
+			{ durationMs: 1, exitCode: 1, message: 'Purge failed', status: 'failed', type: 'end' },
+		);
+
+		expect(harness.stderr().slice(-3)).toEqual(['✓ Uploaded', '✗ Deploying', '✗ Purge failed']);
+	});
+
 	test('paints an interrupt as a warning and a force quit as an error', () => {
 		const harness = createHarness(createPrettyReporter);
 
@@ -165,6 +222,73 @@ describe('pretty reporter', () => {
 
 		expect(harness.stdout()).toEqual(['orphan.jpg', '{', '  "count": 2', '}']);
 		expect(harness.stderr()).toEqual([]);
+	});
+
+	test('writes formatted data to stdout as the formatter painted it', () => {
+		const harness = createHarness(createPrettyReporter);
+
+		harness.emit({ text: '\u{1B}[31mMissing 2\u{1B}[39m', type: 'data', value: { missing: 2 } });
+
+		expect(harness.stdout()).toEqual(['\u{1B}[31mMissing 2\u{1B}[39m']);
+	});
+});
+
+describe('pretty reporter on a terminal', () => {
+	beforeEach(() => {
+		vi.stubEnv('CI', undefined);
+		vi.stubEnv('TERM', 'xterm-256color');
+	});
+
+	afterEach(() => {
+		vi.unstubAllEnvs();
+	});
+
+	test('spins the outer status again once a nested one closes', () => {
+		const harness = createTerminalHarness({ isStdoutTerminal: false });
+
+		harness.emit(
+			{ id: 1, state: 'start', text: 'Deploying', type: 'status' },
+			{ id: 2, state: 'start', text: 'Uploading', type: 'status' },
+			{ id: 2, state: 'succeed', text: 'Uploaded', type: 'status' },
+		);
+
+		const persisted = harness.transcript.indexOf('stderr: ✓ Uploaded');
+
+		expect(harness.transcript[persisted + 1]).toEqual(spinnerFrame('Deploying'));
+
+		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
+	});
+
+	test('clears the spinner around data when stdout shares the terminal', () => {
+		const harness = createTerminalHarness({ isStdoutTerminal: true });
+
+		harness.emit(
+			{ id: 1, state: 'start', text: 'Scanning', type: 'status' },
+			{ type: 'data', value: 'orphan.jpg' },
+		);
+
+		const written = harness.transcript.indexOf('stdout: orphan.jpg');
+
+		expect(harness.transcript.slice(written - 1, written + 2)).toEqual([
+			'stderr: clear',
+			'stdout: orphan.jpg',
+			spinnerFrame('Scanning'),
+		]);
+
+		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
+	});
+
+	test('leaves the spinner alone when stdout is piped', () => {
+		const harness = createTerminalHarness({ isStdoutTerminal: false });
+
+		harness.emit(
+			{ id: 1, state: 'start', text: 'Scanning', type: 'status' },
+			{ type: 'data', value: 'orphan.jpg' },
+		);
+
+		expect(harness.transcript).toEqual([spinnerFrame('Scanning'), 'stdout: orphan.jpg']);
+
+		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
 	});
 });
 
@@ -208,6 +332,14 @@ describe('plain reporter', () => {
 		expect(harness.stderr()).toEqual(['healthy']);
 	});
 
+	test('writes formatted data to stdout with its colour dropped', () => {
+		const harness = createHarness(createPlainReporter);
+
+		harness.emit({ text: '\u{1B}[31mMissing 2\u{1B}[39m', type: 'data', value: { missing: 2 } });
+
+		expect(harness.stdout()).toEqual(['Missing 2']);
+	});
+
 	test('marks the open status as failed before reporting a failure', () => {
 		const harness = createHarness(createPlainReporter);
 
@@ -217,6 +349,25 @@ describe('plain reporter', () => {
 		);
 
 		expect(harness.stderr()).toEqual(['Validating', '✗ Validating', '✗ Invalid config']);
+	});
+
+	test('marks the outer status as failed once a nested one has closed', () => {
+		const harness = createHarness(createPlainReporter);
+
+		harness.emit(
+			{ id: 1, state: 'start', text: 'Deploying', type: 'status' },
+			{ id: 2, state: 'start', text: 'Uploading', type: 'status' },
+			{ id: 2, state: 'succeed', text: 'Uploaded', type: 'status' },
+			{ durationMs: 1, exitCode: 1, message: 'Purge failed', status: 'failed', type: 'end' },
+		);
+
+		expect(harness.stderr()).toEqual([
+			'Deploying',
+			'Uploading',
+			'✓ Uploaded',
+			'✗ Deploying',
+			'✗ Purge failed',
+		]);
 	});
 });
 
@@ -300,5 +451,13 @@ describe('json reporter', () => {
 
 		expect(harness.stdout()).toEqual(['{"files":["a.jpg"]}']);
 		expect(harness.stderr()).toEqual([]);
+	});
+
+	test('writes the value rather than its human formatting', () => {
+		const harness = createHarness(createJsonReporter);
+
+		harness.emit({ text: 'Missing 2', type: 'data', value: { missing: 2 } });
+
+		expect(harness.stdout()).toEqual(['{"missing":2}']);
 	});
 });

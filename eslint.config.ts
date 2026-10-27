@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default getConfig([
 	{
-		ignores: ['**/dist/**', '**/node_modules/**', '**/.astro/**'],
+		ignores: ['**/dist/**', '**/node_modules/**', '**/.astro/**', '.claude/**'],
 	},
 	...getAstroConfig(),
 	{

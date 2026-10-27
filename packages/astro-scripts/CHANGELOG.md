@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.2.0
+
+### Minor Changes
+
+- Single entry point, `UserError`, report output, and fixes from integrating into spectralcodex.
+
 ## 0.1.0
 
 ### Minor Changes

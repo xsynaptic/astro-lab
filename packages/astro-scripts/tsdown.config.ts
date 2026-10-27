@@ -2,7 +2,7 @@ import { defineConfig } from 'tsdown';
 
 export default defineConfig({
 	dts: true,
-	entry: ['src/index.ts', 'src/astro.ts'],
+	entry: ['src/index.ts'],
 	format: 'esm',
 	sourcemap: true,
 });

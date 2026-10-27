@@ -24,7 +24,7 @@ export function createPlainReporter(
 	now: () => number = Date.now,
 ): Reporter {
 	const statuses = new Map<number, OpenStatus>();
-	let activeId: number | undefined;
+	const openIds: Array<number> = [];
 
 	function writeLine(line: string) {
 		stderr.write(`${stripVTControlCharacters(line)}\n`);
@@ -32,24 +32,31 @@ export function createPlainReporter(
 
 	function closeStatus(id: number) {
 		statuses.delete(id);
-
-		if (activeId === id) activeId = undefined;
+		openIds.splice(openIds.indexOf(id), 1);
 	}
 
 	return {
 		emit(event) {
 			switch (event.type) {
 				case 'data': {
-					stdout.write(`${formatData(event.value)}\n`);
+					const line =
+						event.text === undefined
+							? formatData(event.value)
+							: stripVTControlCharacters(event.text);
+
+					stdout.write(`${line}\n`);
 					break;
 				}
 				case 'end': {
+					const activeId = openIds.at(-1);
 					const active = activeId === undefined ? undefined : statuses.get(activeId);
 
-					if (active && activeId !== undefined && event.status !== 'ok') {
+					if (active && event.status !== 'ok') {
 						writeLine(`${getStateSymbol('fail', plainPalette)} ${active.text}`);
-						closeStatus(activeId);
 					}
+
+					statuses.clear();
+					openIds.length = 0;
 
 					for (const line of formatEnd(event, plainPalette)) writeLine(line);
 					break;
@@ -77,7 +84,7 @@ export function createPlainReporter(
 
 					if (state === 'start') {
 						statuses.set(id, { lastPrint: now(), text });
-						activeId = id;
+						openIds.push(id);
 						writeLine(text);
 						break;
 					}

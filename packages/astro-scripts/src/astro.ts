@@ -2,10 +2,10 @@ import type * as AstroContentModule from 'astro:content';
 import type { CollectionEntry, CollectionKey } from 'astro:content';
 import type { ModuleRunner } from 'vite/module-runner';
 
-import { getViteConfig } from 'astro/config';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { createLogger, createServer, createServerModuleRunner } from 'vite';
+
+import { UserError } from './user-error.js';
 
 type AstroContent = typeof AstroContentModule;
 
@@ -39,7 +39,7 @@ export function findAstroRoot(startDir = process.cwd()) {
 		current = path.dirname(current);
 	}
 
-	throw new Error(`Could not locate an Astro config above ${startDir}`);
+	throw new UserError(`Could not locate an Astro config above ${startDir}`);
 }
 
 // Annotated so the declaration keeps the consumer's `CollectionEntry`; inferred, it bakes in the unsynced `any`
@@ -54,7 +54,7 @@ export async function getCollectionEntries<C extends CollectionKey>(
 	const flattened = entries.flat();
 
 	if (flattened.length === 0) {
-		throw new Error(
+		throw new UserError(
 			`No entries found in: ${collections.join(', ')}. Run \`astro sync\` to write the content store.`,
 		);
 	}
@@ -65,6 +65,8 @@ export async function getCollectionEntries<C extends CollectionKey>(
 export async function withAstroModules<T>(callback: (runner: ModuleRunner) => Promise<T>) {
 	// An unrooted config resolves against `process.cwd()`, finds none, and reads every collection back empty
 	const root = findAstroRoot();
+	const [{ getViteConfig }, { createLogger, createServer, createServerModuleRunner }] =
+		await Promise.all([import('astro/config'), import('vite')]);
 
 	const config = await getViteConfig(
 		{},

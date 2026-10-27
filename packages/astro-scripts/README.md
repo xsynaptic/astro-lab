@@ -7,8 +7,12 @@ pnpm add @xsynaptic/astro-scripts
 ```
 
 ```ts
-import { createCommandRunner, log } from '@xsynaptic/astro-scripts';
-import { getCollectionEntries, withAstroContent } from '@xsynaptic/astro-scripts/astro';
+import {
+	createCommandRunner,
+	getCollectionEntries,
+	log,
+	withAstroContent,
+} from '@xsynaptic/astro-scripts';
 
 const { runCommand } = createCommandRunner();
 
@@ -24,7 +28,9 @@ await runCommand({
 });
 ```
 
-Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`; `SCRIPTS_OUTPUT` overrides the choice. The `/astro` entry needs `astro` and `vite` installed and a content store written by `astro sync`.
+Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`; `SCRIPTS_OUTPUT` overrides the choice. Run a `--json` command through `pnpm -s`, or pnpm's own banner lines land in the stream.
+
+`withAstroModules` and `withAstroContent` load `astro` and `vite` only when called, and need a content store written by `astro sync`.
 
 ## License
 

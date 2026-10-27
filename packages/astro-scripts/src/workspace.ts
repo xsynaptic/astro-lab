@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
+import { UserError } from './user-error.js';
+
 export function findWorkspaceRoot(startDir = process.cwd()) {
 	let current = path.resolve(startDir);
 
@@ -10,5 +12,5 @@ export function findWorkspaceRoot(startDir = process.cwd()) {
 		current = path.dirname(current);
 	}
 
-	throw new Error(`Could not locate pnpm-workspace.yaml above ${startDir}`);
+	throw new UserError(`Could not locate pnpm-workspace.yaml above ${startDir}`);
 }

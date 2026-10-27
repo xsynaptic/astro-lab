@@ -8,10 +8,10 @@ import {
 	getFailureReport,
 	parseNumberOption,
 } from '../src/command.js';
-import { Refusal } from '../src/refusal.js';
+import { UserError } from '../src/user-error.js';
 
-class LibraryRefusal extends Error {
-	override name = 'Refusal';
+class LibraryUserError extends Error {
+	override name = 'UserError';
 }
 
 function getParseError() {
@@ -56,10 +56,22 @@ describe('getFailureReport', () => {
 		).toMatchObject({ exitCode: 130, isInterrupted: true });
 	});
 
-	test('reports a failed child by exit code alone', () => {
-		expect(
-			getFailureReport(new ProcessOutput(2, undefined, '', 'lots of stderr'), { isAborted: false }),
-		).toEqual({ exitCode: 1, isInterrupted: false, message: 'Child process exited with code 2' });
+	test('reports a child that inherited stdio by exit code alone, its stderr already printed', () => {
+		expect(getFailureReport(new ProcessOutput(2, undefined, '', ''), { isAborted: false })).toEqual(
+			{ exitCode: 1, isInterrupted: false, message: 'Child process exited with code 2' },
+		);
+	});
+
+	test('reports the last 20 lines of the stderr a failed child captured', () => {
+		const lines = Array.from({ length: 25 }, (_, index) => `line ${String(index + 1)}`);
+		const error = new ProcessOutput(1, undefined, '', `${lines.join('\n')}\n`);
+
+		expect(getFailureReport(error, { isAborted: false })).toEqual({
+			detail: lines.slice(5).join('\n'),
+			exitCode: 1,
+			isInterrupted: false,
+			message: 'Child process exited with code 1',
+		});
 	});
 
 	test('reports a child killed by a signal other than SIGINT as a failure', () => {
@@ -73,10 +85,10 @@ describe('getFailureReport', () => {
 	});
 
 	test.each([
-		{ label: 'ours', refusal: new Refusal('Build first') },
-		{ label: 'a library, whose class is its own', refusal: new LibraryRefusal('Build first') },
-	])('reports a refusal thrown by $label by its message alone', ({ refusal }) => {
-		expect(getFailureReport(refusal, { isAborted: false })).toEqual({
+		{ error: new UserError('Build first'), label: 'ours' },
+		{ error: new LibraryUserError('Build first'), label: 'a library, whose class is its own' },
+	])('reports a user error thrown by $label by its message alone', ({ error }) => {
+		expect(getFailureReport(error, { isAborted: false })).toEqual({
 			exitCode: 1,
 			isInterrupted: false,
 			message: 'Build first',
@@ -93,7 +105,7 @@ describe('getFailureReport', () => {
 
 describe('parseNumberOption', () => {
 	test.each(['', '  ', 'ten'])('refuses %j rather than reading it as a number', (value) => {
-		expect(() => parseNumberOption(value, 'limit')).toThrow(Refusal);
+		expect(() => parseNumberOption(value, 'limit')).toThrow(UserError);
 	});
 });
 
@@ -233,6 +245,7 @@ describe('runCommand', () => {
 		expect(run).not.toHaveBeenCalled();
 		expect(process.exitCode).toBe(1);
 		expect(readEvents()).toEqual([
+			expect.objectContaining({ title: 'Deploy', type: 'start' }),
 			expect.objectContaining({ detail: 'See --help', exitCode: 1, status: 'failed', type: 'end' }),
 		]);
 	});
@@ -273,7 +286,7 @@ describe('runCommand', () => {
 		});
 	});
 
-	test('reports a parse error as JSON when --json was passed', async () => {
+	test('reports a parse error as a JSON stream that still opens with start', async () => {
 		const { runCommand } = createCommandRunner();
 
 		delete process.env.SCRIPTS_OUTPUT;
@@ -281,6 +294,7 @@ describe('runCommand', () => {
 		await runCommand({ name: 'probe', run: vi.fn(), summary: 'Probe', title: 'Probe' });
 
 		expect(readEvents()).toEqual([
+			expect.objectContaining({ command: 'probe', type: 'start' }),
 			expect.objectContaining({ command: 'probe', status: 'failed', type: 'end' }),
 		]);
 	});
