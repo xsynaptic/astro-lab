@@ -1,0 +1,65 @@
+{
+	"name": "@xsynaptic/astro-image-pipeline",
+	"version": "0.0.0",
+	"description": "Stable-name image renditions for Astro sites, rendered outside the bundler",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/astro-image-pipeline"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/astro-image-pipeline#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"astro",
+		"astro-integration",
+		"withastro",
+		"images",
+		"sharp",
+		"responsive-images"
+	],
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./presets": {
+			"types": "./dist/presets.d.mts",
+			"import": "./dist/presets.mjs"
+		},
+		"./node": {
+			"types": "./dist/node.d.mts",
+			"import": "./dist/node.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"p-limit": "^7.3.3"
+	},
+	"peerDependencies": {
+		"astro": "^7.4.2",
+		"sharp": "^0.35"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"astro": "^7.4.2",
+		"sharp": "^0.35.5"
+	}
+}

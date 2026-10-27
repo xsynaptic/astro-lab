@@ -7,6 +7,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 - [`@xsynaptic/astro-build-logger`](packages/astro-build-logger): Astro integration that logs build duration, page count, and output size to JSONL
 - [`@xsynaptic/astro-font-devtools`](packages/astro-font-devtools): Astro dev toolbar app for browsing fonts (Google, Fontsource, Bunny, Fontshare) and previewing them live on your site
 - [`@xsynaptic/astro-image-loader`](packages/astro-image-loader): Astro loader treating images as content entries, with incremental sync, caching, and pluggable EXIF/dimensions extraction
+- [`@xsynaptic/astro-image-pipeline`](packages/astro-image-pipeline): Astro integration that records the images each build uses and renders them with sharp outside the bundler
 
 ## Sätteri
 
