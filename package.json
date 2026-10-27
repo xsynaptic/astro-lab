@@ -23,7 +23,7 @@
 		"node": ">=24.0.0"
 	},
 	"scripts": {
-		"prepare": "pnpm --filter './packages/*' build",
+		"prepare": "pnpm --filter './packages/*' --no-bail build",
 		"build": "pnpm --filter './packages/*' build",
 		"test": "vitest run",
 		"test:watch": "vitest",
