@@ -46,8 +46,8 @@ function writeRecord(record: object) {
 	recorder.fs.writeSync(recorder.descriptor, `${line}\n`);
 }
 
-export function recordImageName(name: string, sourcePath: string) {
-	writeRecord({ name, sourcePath });
+export function recordRendition(name: string, sourcePath: string) {
+	writeRecord({ kind: 'rendition', name, sourcePath });
 }
 
 export function recordOpenGraphCard(name: string, card: OpenGraphCard) {

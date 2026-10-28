@@ -39,9 +39,9 @@ function isWithinDirectory(directory: string, filePath: string) {
 	);
 }
 
-async function isNewerThanSource(target: string, sourcePath: string) {
+async function isNewerThanSource(target: string, sourceFilePath: string) {
 	const [sourceTime, targetTime] = await Promise.all([
-		getModifiedTime(sourcePath),
+		getModifiedTime(sourceFilePath),
 		getModifiedTime(target),
 	]);
 
@@ -72,27 +72,27 @@ export function createDevImageResolver({
 
 		if (!parsed) return;
 
-		const id = await sources.resolve(parsed.stem);
+		const sourcePath = await sources.resolve(parsed.stem);
 
-		if (id === undefined) return;
+		if (sourcePath === undefined) return;
 
-		const sourcePath = path.resolve(mediaPath, id);
+		const sourceFilePath = path.resolve(mediaPath, sourcePath);
 
-		if (!isWithinDirectory(mediaPath, sourcePath)) return;
+		if (!isWithinDirectory(mediaPath, sourceFilePath)) return;
 
 		if (builtPath) {
 			const built = path.join(builtPath, name);
 
-			if (await isNewerThanSource(built, sourcePath)) return built;
+			if (await isNewerThanSource(built, sourceFilePath)) return built;
 		}
 
 		const target = path.join(cachePath, name);
 
-		if (await isNewerThanSource(target, sourcePath)) return target;
+		if (await isNewerThanSource(target, sourceFilePath)) return target;
 
-		if (!isWithinSource(parsed, await readSourceSize(sourcePath))) return;
+		if (!isWithinSource(parsed, await readSourceSize(sourceFilePath))) return;
 
-		const { data } = await render(sourcePath, {
+		const { data } = await render(sourceFilePath, {
 			encoding,
 			format: parsed.format,
 			height: parsed.height,

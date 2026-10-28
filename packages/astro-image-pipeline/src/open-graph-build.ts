@@ -11,7 +11,7 @@ import { runRenderJobs } from './run-render-jobs.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
 
 export interface OpenGraphCardSource extends OpenGraphCardImage {
-	path: string;
+	filePath: string;
 }
 
 export interface OpenGraphCardRenderOptions<Decoded> extends Pick<
@@ -53,8 +53,8 @@ async function readSourceState(
 	mediaPath: string,
 	image: OpenGraphCardImage,
 ): Promise<OpenGraphCardSourceState> {
-	const source = { ...image, path: path.resolve(mediaPath, image.id) };
-	const fingerprint = await fingerprints.get(source.path);
+	const source = { ...image, filePath: path.resolve(mediaPath, image.path) };
+	const fingerprint = await fingerprints.get(source.filePath);
 
 	return fingerprint ? { digest: fingerprint.sha256, source } : { source };
 }
@@ -67,7 +67,7 @@ function createGroupDecoder<Decoded>(decode: OpenGraphCardRenderOptions<Decoded>
 			current = {
 				decoded: state.digest
 					? decode(state.source)
-					: Promise.reject(new Error(`Missing image: ${state.source.id}`)),
+					: Promise.reject(new Error(`Missing image: ${state.source.path}`)),
 				state,
 			};
 		}

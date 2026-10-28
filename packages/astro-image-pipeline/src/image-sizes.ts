@@ -1,9 +1,9 @@
 import type { ImageEncoding } from './image-encoding.js';
-import type { ImageFormat, ImageSize } from './image-name.js';
+import type { ImageSize, RenditionSize } from './image-name.js';
 
 import { resolveImageEncoding } from './image-encoding.js';
 import { formatImageName, getImageStem, isImageStem } from './image-name.js';
-import { recordImageName } from './image-recorder.js';
+import { recordRendition } from './image-recorder.js';
 
 export interface ImageDimensions {
 	height: number;
@@ -13,10 +13,6 @@ export interface ImageDimensions {
 export interface ImageSource extends ImageDimensions {
 	id: string;
 	path?: string;
-}
-
-export interface RenditionSize extends ImageSize {
-	format: ImageFormat;
 }
 
 function isWholeSize({ height, width }: ImageSize) {
@@ -54,7 +50,7 @@ export function getSizedName(source: ImageSource, { format, ...size }: Rendition
 
 	const name = formatImageName({ format, stem, ...size });
 
-	recordImageName(name, source.path ?? source.id);
+	recordRendition(name, source.path ?? source.id);
 
 	return name;
 }

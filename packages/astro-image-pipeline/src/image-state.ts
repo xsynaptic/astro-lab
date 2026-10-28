@@ -10,7 +10,7 @@ import { UserError } from './user-error.js';
 const imageManifestFile = 'manifest.json';
 const imageBuildIdFile = 'image-build-id.txt';
 
-export const imageManifestVersion = 4;
+export const imageManifestVersion = 5;
 
 export interface ImageManifest {
 	buildId: string;

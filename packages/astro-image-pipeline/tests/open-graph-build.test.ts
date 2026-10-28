@@ -23,10 +23,10 @@ let directory: string;
 
 const cards: Record<string, OpenGraphCard> = {
 	'atlas.jpg': { input: { title: 'Atlas' } },
-	'gone.jpg': { image: { id: 'gone.jpg' }, input: { title: 'Gone' } },
-	'posts-a.jpg': { image: { id: 'photo.jpg' }, input: { title: 'A' } },
-	'posts-b.jpg': { image: { id: 'photo.jpg' }, input: { title: 'B' } },
-	'posts-c.jpg': { image: { id: 'photo.jpg', treatment: 'blur' }, input: { title: 'C' } },
+	'gone.jpg': { image: { path: 'gone.jpg' }, input: { title: 'Gone' } },
+	'posts-a.jpg': { image: { path: 'photo.jpg' }, input: { title: 'A' } },
+	'posts-b.jpg': { image: { path: 'photo.jpg' }, input: { title: 'B' } },
+	'posts-c.jpg': { image: { path: 'photo.jpg', treatment: 'blur' }, input: { title: 'C' } },
 };
 
 async function writeBuild() {
@@ -45,7 +45,7 @@ async function writeBuild() {
 
 function createDecode() {
 	return vi.fn((source: OpenGraphCardSource) =>
-		Promise.resolve(`${source.id}:${source.treatment ?? 'plain'}`),
+		Promise.resolve(`${source.path}:${source.treatment ?? 'plain'}`),
 	);
 }
 

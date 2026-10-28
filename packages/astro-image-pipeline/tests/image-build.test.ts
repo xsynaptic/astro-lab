@@ -14,7 +14,7 @@ import { resolveImageEncoding } from '../src/image-encoding.js';
 import { imageManifestVersion, writeBuildId, writeManifest } from '../src/image-state.js';
 import { UserError } from '../src/user-error.js';
 
-const sourceId = 'gallery/source-1.jpg';
+const sourcePath = 'gallery/source-1.jpg';
 const stem = 'gallery/source-1';
 
 const allSizes = [
@@ -59,7 +59,7 @@ async function writeBuild(
 		limitInputPixels,
 		mediaPath,
 		openGraphCards: {},
-		renditions: Object.fromEntries(names.map((name) => [name, sourceId])),
+		renditions: Object.fromEntries(names.map((name) => [name, sourcePath])),
 		version: imageManifestVersion,
 	} satisfies ImageManifest;
 
@@ -82,7 +82,7 @@ async function writeSource(width: number, height: number) {
 		])
 		.withExif({ IFD0: { Copyright: 'source' } })
 		.jpeg()
-		.toFile(path.join(mediaPath, sourceId));
+		.toFile(path.join(mediaPath, sourcePath));
 }
 
 function render(options: Omit<ImageRenderOptions, 'cachePath'> = {}) {
@@ -112,7 +112,7 @@ beforeEach(async () => {
 	keysPath = `${renditionsPath}-keys.json`;
 	distPath = path.join(root, 'dist');
 
-	await fs.mkdir(path.join(mediaPath, path.dirname(sourceId)), { recursive: true });
+	await fs.mkdir(path.join(mediaPath, path.dirname(sourcePath)), { recursive: true });
 	await fs.mkdir(distPath);
 	await writeSource(1500, 1000);
 });
@@ -146,11 +146,11 @@ describe('renderImages', () => {
 
 		await render();
 
-		const sourcePath = path.join(mediaPath, sourceId);
-		const edited = await sharp(sourcePath).modulate({ brightness: 1.2 }).jpeg().toBuffer();
+		const sourceFilePath = path.join(mediaPath, sourcePath);
+		const edited = await sharp(sourceFilePath).modulate({ brightness: 1.2 }).jpeg().toBuffer();
 		const replaced: Array<string> = [];
 
-		await fs.writeFile(sourcePath, edited);
+		await fs.writeFile(sourceFilePath, edited);
 		await writeBuild();
 
 		const counts = await render({
@@ -215,12 +215,12 @@ describe('renderImages', () => {
 	});
 
 	test('a touched source with unchanged bytes re-encodes nothing', async () => {
-		const sourcePath = path.join(mediaPath, sourceId);
+		const sourceFilePath = path.join(mediaPath, sourcePath);
 		const touched = new Date(Date.now() + 60_000);
 
 		await writeBuild();
 		await render();
-		await fs.utimes(sourcePath, touched, touched);
+		await fs.utimes(sourceFilePath, touched, touched);
 
 		const counts = await render();
 
@@ -272,7 +272,7 @@ describe('renderImages guards', () => {
 			JSON.stringify({ buildId: 'old', files: {} }),
 		);
 
-		await expect(render()).rejects.toThrow(/version 1, not 4; rebuild first/);
+		await expect(render()).rejects.toThrow(/version 1, not 5; rebuild first/);
 	});
 
 	test('refuses a manifest from another build than dist', async () => {
@@ -293,7 +293,7 @@ describe('renderImages guards', () => {
 
 	test('refuses when a source vanished after the build', async () => {
 		await writeBuild();
-		await fs.rm(path.join(mediaPath, sourceId));
+		await fs.rm(path.join(mediaPath, sourcePath));
 
 		await expect(render()).rejects.toThrow(/vanished/);
 		expect(await listFiles()).toEqual([]);

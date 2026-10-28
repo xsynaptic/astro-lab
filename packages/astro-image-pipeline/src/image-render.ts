@@ -28,10 +28,10 @@ interface ImageRender {
 }
 
 export async function renderImage(
-	source: string,
+	filePath: string,
 	{ encoding, format, height, limitInputPixels, width }: ImageRender,
 ) {
-	const stage = openImageSource(source, { limitInputPixels }).resize(
+	const stage = openImageSource(filePath, { limitInputPixels }).resize(
 		height === undefined
 			? { fastShrinkOnLoad: false, width, withoutEnlargement: true }
 			: { fastShrinkOnLoad: false, fit: 'cover', height, width },
@@ -48,8 +48,8 @@ export async function renderImage(
 	return stage.webp(encoding.webp).toBuffer({ resolveWithObject: true });
 }
 
-export async function readSourceSize(sourcePath: string) {
-	const { autoOrient } = await openImageSource(sourcePath).metadata();
+export async function readSourceSize(filePath: string) {
+	const { autoOrient } = await openImageSource(filePath).metadata();
 
 	return { height: autoOrient.height, width: autoOrient.width } satisfies ImageDimensions;
 }

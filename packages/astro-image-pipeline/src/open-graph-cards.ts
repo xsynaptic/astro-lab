@@ -13,7 +13,7 @@ interface OpenGraphCardObject {
 export type OpenGraphCardInput = OpenGraphCardObject;
 
 export interface OpenGraphCardImage {
-	id: string;
+	path: string;
 	treatment?: string;
 }
 
@@ -62,7 +62,9 @@ export function canonicalizeOpenGraphCard({ image, input }: OpenGraphCard): Open
 	if (!image) return { input: canonicalInput };
 
 	const canonicalImage: OpenGraphCardImage =
-		image.treatment === undefined ? { id: image.id } : { id: image.id, treatment: image.treatment };
+		image.treatment === undefined
+			? { path: image.path }
+			: { path: image.path, treatment: image.treatment };
 
 	return { image: canonicalImage, input: canonicalInput };
 }

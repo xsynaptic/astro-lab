@@ -13,6 +13,7 @@ interface OpenGraphCardRecord {
 }
 
 interface RenditionRecord {
+	kind: 'rendition';
 	name: string;
 	sourcePath: string;
 }
@@ -104,10 +105,10 @@ export async function readImageRecords(recordsPath: string) {
 
 			const record = JSON.parse(line) as ImageRecord;
 
-			if ('kind' in record) {
-				addRecordedValue(cards, record.name, JSON.stringify(record.card));
-			} else {
+			if (record.kind === 'rendition') {
 				addRecordedValue(renditions, record.name, record.sourcePath);
+			} else {
+				addRecordedValue(cards, record.name, JSON.stringify(record.card));
 			}
 		}
 	}

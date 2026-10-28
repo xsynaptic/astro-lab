@@ -6,7 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import type { RenditionSize } from '../src/image-sizes.js';
+import type { RenditionSize } from '../src/image-name.js';
 
 import imagePipeline from '../src/astro-integration.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
@@ -191,7 +191,7 @@ describe('imagePipeline OpenGraph card recording', () => {
 		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		openGraphCards.getCardName({
 			id: 'posts-a',
-			image: { id: 'a/b.jpg' },
+			image: { path: 'a/b.jpg' },
 			input: Object.fromEntries([
 				['title', 'A'],
 				['collection', 'posts'],
@@ -200,7 +200,7 @@ describe('imagePipeline OpenGraph card recording', () => {
 		});
 		openGraphCards.getCardName({
 			id: 'posts-a',
-			image: { id: 'a/b.jpg' },
+			image: { path: 'a/b.jpg' },
 			input: { collection: 'posts', title: 'A' },
 		});
 		await finishBuild(hooks);
@@ -209,7 +209,7 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const card = manifest?.openGraphCards['posts-a.jpg'];
 
 		expect(card).toStrictEqual({
-			image: { id: 'a/b.jpg' },
+			image: { path: 'a/b.jpg' },
 			input: { collection: 'posts', title: 'A' },
 		});
 		expect(Object.keys(card?.input ?? {})).toStrictEqual(['collection', 'title']);
@@ -246,10 +246,14 @@ describe('imagePipeline OpenGraph card recording', () => {
 
 		await startBuild(hooks);
 		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		openGraphCards.getCardName({ id: 'posts-a', image: { id: 'a/b.jpg' }, input: { title: 'A' } });
 		openGraphCards.getCardName({
 			id: 'posts-a',
-			image: { id: 'a/b.jpg', treatment: 'blur' },
+			image: { path: 'a/b.jpg' },
+			input: { title: 'A' },
+		});
+		openGraphCards.getCardName({
+			id: 'posts-a',
+			image: { path: 'a/b.jpg', treatment: 'blur' },
 			input: { title: 'A' },
 		});
 

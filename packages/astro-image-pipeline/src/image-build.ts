@@ -30,7 +30,7 @@ export interface ImageRenderOptions extends Pick<
 
 interface ImageRendition extends ImageName {
 	name: string;
-	sourceId: string;
+	sourcePath: string;
 }
 
 function sortNames(names: ReadonlyArray<string>) {
@@ -67,11 +67,11 @@ function getManifestRenditions(manifest: ImageManifest) {
 	const renditions: Array<ImageRendition> = [];
 	const invalid: Array<string> = [];
 
-	for (const [name, sourceId] of Object.entries(manifest.renditions)) {
+	for (const [name, sourcePath] of Object.entries(manifest.renditions)) {
 		const parsed = parseImageName(name);
 
 		if (parsed) {
-			renditions.push({ ...parsed, name, sourceId });
+			renditions.push({ ...parsed, name, sourcePath });
 		} else {
 			invalid.push(name);
 		}
@@ -95,15 +95,15 @@ async function readSourceDigests(
 	const digests = new Map<string, string>();
 	const vanished: Array<string> = [];
 	const upscaled: Array<string> = [];
-	const renditionsBySource = Map.groupBy(renditions, (rendition) => rendition.sourceId);
+	const renditionsBySource = Map.groupBy(renditions, (rendition) => rendition.sourcePath);
 
 	await Promise.all(
-		[...renditionsBySource].map(([sourceId, sourceRenditions]) =>
+		[...renditionsBySource].map(([sourcePath, sourceRenditions]) =>
 			limit(async () => {
-				const fingerprint = await fingerprints.get(path.resolve(mediaPath, sourceId));
+				const fingerprint = await fingerprints.get(path.resolve(mediaPath, sourcePath));
 
 				if (!fingerprint) {
-					vanished.push(sourceId);
+					vanished.push(sourcePath);
 					return;
 				}
 
@@ -115,7 +115,7 @@ async function readSourceDigests(
 					}
 				}
 
-				digests.set(sourceId, fingerprint.sha256);
+				digests.set(sourcePath, fingerprint.sha256);
 			}),
 		),
 	);
@@ -146,9 +146,9 @@ function getManifestRenditionKey(
 	manifest: ImageManifest,
 	digests: ReadonlyMap<string, string>,
 ) {
-	const digest = digests.get(rendition.sourceId);
+	const digest = digests.get(rendition.sourcePath);
 
-	if (!digest) throw new Error(`no digest was read for source ${rendition.sourceId}`);
+	if (!digest) throw new Error(`no digest was read for source ${rendition.sourcePath}`);
 
 	return getRenditionKey({
 		digest,
@@ -161,7 +161,7 @@ function getManifestRenditionKey(
 }
 
 async function encodeRendition(rendition: ImageRendition, manifest: ImageManifest) {
-	const { data, info } = await renderImage(path.resolve(manifest.mediaPath, rendition.sourceId), {
+	const { data, info } = await renderImage(path.resolve(manifest.mediaPath, rendition.sourcePath), {
 		encoding: manifest.encoding,
 		format: rendition.format,
 		height: rendition.height,

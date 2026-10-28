@@ -104,7 +104,10 @@ async function writeBuildManifest({
 	distPath: string;
 	logger: AstroIntegrationLogger;
 	manifest: Pick<ImageManifest, 'encoding' | 'limitInputPixels' | 'mediaPath'>;
-	recorded: { cards: ReadonlyMap<string, OpenGraphCard>; renditions: ReadonlyMap<string, string> };
+	recorded: {
+		cards: ReadonlyMap<string, OpenGraphCard>;
+		renditions: ReadonlyMap<string, string>;
+	};
 }) {
 	const buildId = randomUUID();
 

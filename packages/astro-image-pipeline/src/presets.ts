@@ -1,5 +1,5 @@
 export type { ImageEncoding } from './image-encoding.js';
-export type { ImageFormat } from './image-name.js';
+export type { ImageFormat, RenditionSize } from './image-name.js';
 
 export {
 	findStemCollisions,
@@ -8,7 +8,7 @@ export {
 	isImageSource,
 	parseImageName,
 } from './image-name.js';
-export type { ImageSource, RenditionSize } from './image-sizes.js';
+export type { ImageSource } from './image-sizes.js';
 export { defineImagePipeline } from './image-sizes.js';
 export type {
 	OpenGraphCard,

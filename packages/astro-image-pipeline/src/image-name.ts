@@ -7,8 +7,11 @@ export interface ImageSize {
 	width: number;
 }
 
-export interface ImageName extends ImageSize {
+export interface RenditionSize extends ImageSize {
 	format: ImageFormat;
+}
+
+export interface ImageName extends RenditionSize {
 	stem: string;
 }
 
@@ -32,8 +35,8 @@ function isSafeStem(stem: string) {
 	return stem.split('/').every((segment) => !unsafeSegments.has(segment));
 }
 
-export function isImageSource(id: string) {
-	return sourcePattern.test(id);
+export function isImageSource(path: string) {
+	return sourcePattern.test(path);
 }
 
 export function getImageStem(id: string) {
