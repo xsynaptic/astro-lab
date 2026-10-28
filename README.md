@@ -56,8 +56,7 @@ pnpm fix          # auto-fix: prettier write + eslint --fix, then type-check + k
 Versioning and publishing are managed by [changesets](https://github.com/changesets/changesets):
 
 ```sh
-pnpm changeset         # describe a change + pick semver bumps, alongside the work
-pnpm version-packages  # apply bumps and update changelogs, then commit the result
+pnpm version-packages  # apply pending changesets and update changelogs, then commit the result
 pnpm release           # check, publish to npm, and push with tags
 ```
 
