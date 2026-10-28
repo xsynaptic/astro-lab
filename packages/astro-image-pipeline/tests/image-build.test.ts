@@ -2,16 +2,17 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import type { ImageRenderOptions } from '../src/image-build.js';
+import type { ImageRenderRunOptions } from '../src/image-build.js';
 import type { ImageManifest } from '../src/image-state.js';
 
 import { readFileIfExists } from '../src/files.js';
-import { getRenditionKey, renderImages } from '../src/image-build.js';
+import { getRenditionKey, prepareImageRender } from '../src/image-build.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
-import { imageManifestVersion, writeBuildId, writeManifest } from '../src/image-state.js';
+import { imageManifestVersion, writeBuildId, writeImageManifest } from '../src/image-state.js';
 import { UserError } from '../src/user-error.js';
 
 const sourcePath = 'gallery/source-1.jpg';
@@ -54,7 +55,6 @@ async function writeBuild(
 	const names = getNames(sizes);
 	const manifest = {
 		buildId: `build-${String(++buildCount)}`,
-		distPath,
 		encoding: resolveImageEncoding({ jpg: { quality: 85 }, webp: { quality: 70 } }),
 		limitInputPixels,
 		mediaPath,
@@ -63,7 +63,7 @@ async function writeBuild(
 		version: imageManifestVersion,
 	} satisfies ImageManifest;
 
-	await writeManifest(root, manifest);
+	await writeImageManifest(root, manifest);
 	await writeBuildId(distPath, manifest.buildId);
 
 	return names;
@@ -85,8 +85,10 @@ async function writeSource(width: number, height: number) {
 		.toFile(path.join(mediaPath, sourcePath));
 }
 
-function render(options: Omit<ImageRenderOptions, 'cachePath'> = {}) {
-	return renderImages({ cachePath: root, ...options });
+async function render(options: ImageRenderRunOptions = {}) {
+	const prepared = await prepareImageRender({ cachePath: root, distPath });
+
+	return prepared.run(options);
 }
 
 function sortNames(names: ReadonlyArray<string>) {
@@ -121,7 +123,15 @@ afterEach(async () => {
 	await fs.rm(root, { force: true, recursive: true });
 });
 
-describe('renderImages', () => {
+describe('prepareImageRender', () => {
+	test('knows the total before anything renders', async () => {
+		const names = await writeBuild();
+		const prepared = await prepareImageRender({ cachePath: root, distPath });
+
+		expect(prepared.total).toBe(names.length);
+		expect(await listFiles()).toEqual([]);
+	});
+
 	test('every file is rendered at the size its name states, with metadata stripped', async () => {
 		const names = await writeBuild();
 		const counts = await render();
@@ -194,8 +204,7 @@ describe('renderImages', () => {
 		const controller = new AbortController();
 
 		await expect(
-			renderImages({
-				cachePath: root,
+			render({
 				onProgress: () => {
 					controller.abort();
 				},
@@ -255,7 +264,7 @@ describe('getRenditionKey', () => {
 	});
 });
 
-describe('renderImages failure policy', () => {
+describe('prepareImageRender failure policy', () => {
 	test('a source over the pixel limit fails the run without writing a file', async () => {
 		await writeBuild(allSizes, { limitInputPixels: 1_000_000 });
 
@@ -264,23 +273,30 @@ describe('renderImages failure policy', () => {
 	});
 });
 
-describe('renderImages guards', () => {
+describe('prepareImageRender guards', () => {
 	test('refuses a manifest from before the current version', async () => {
 		await writeBuild();
 		await fs.writeFile(
-			path.join(root, 'manifest.json'),
-			JSON.stringify({ buildId: 'old', files: {} }),
+			path.join(root, 'manifests', `build-${String(buildCount)}.json.gz`),
+			gzipSync(JSON.stringify({ buildId: 'old', files: {} })),
 		);
 
-		await expect(render()).rejects.toThrow(/version 1, not 5; rebuild first/);
+		await expect(render()).rejects.toThrow(/version 1, not 6; rebuild first/);
 	});
 
-	test('refuses a manifest from another build than dist', async () => {
+	test('refuses a dist whose build left no manifest', async () => {
 		await writeBuild();
 		await writeBuildId(distPath, 'another-build');
 
-		await expect(render()).rejects.toThrow(UserError);
+		await expect(render()).rejects.toThrow(/No image manifest for build another-build/);
 		expect(await listFiles()).toEqual([]);
+	});
+
+	test('refuses a dist with no build id', async () => {
+		await writeBuild();
+		await fs.rm(path.join(distPath, 'image-build-id.txt'));
+
+		await expect(render()).rejects.toThrow(UserError);
 	});
 
 	test('refuses a name larger than its source, so a shrunk source never upscales', async () => {

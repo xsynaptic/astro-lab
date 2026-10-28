@@ -9,19 +9,21 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { RenditionSize } from '../src/image-name.js';
 
 import imagePipeline from '../src/astro-integration.js';
-import { resolveImageEncoding } from '../src/image-encoding.js';
 import { imageRecordsVariable } from '../src/image-recorder.js';
-import { defineImagePipeline } from '../src/image-sizes.js';
-import { readManifest } from '../src/image-state.js';
-import { defineOpenGraphCards } from '../src/open-graph-cards.js';
+import { getSizedName } from '../src/image-sizes.js';
+import {
+	listImageBuilds,
+	readDistManifest,
+	readLatestManifest,
+	writeBuildId,
+} from '../src/image-state.js';
+import { getCardName } from '../src/open-graph-cards.js';
 
 type Hooks = AstroIntegration['hooks'];
 
-const pipeline = defineImagePipeline({});
-
 const cardSize = { format: 'webp', height: 400, width: 600 } satisfies RenditionSize;
 
-const openGraphCards = defineOpenGraphCards({ format: 'jpg' });
+const cardFormat = { format: 'jpg' } as const;
 
 let root: string;
 
@@ -34,7 +36,6 @@ function createIntegration() {
 		baseUrl: '/img',
 		cachePath: root,
 		mediaPath: path.join(root, 'media'),
-		pipeline,
 	});
 }
 
@@ -70,7 +71,6 @@ describe('imagePipeline', () => {
 				baseUrl,
 				cachePath: 'cache',
 				mediaPath: 'media',
-				pipeline: { encoding: resolveImageEncoding() },
 			}),
 		).toThrow('below the site root');
 	});
@@ -81,15 +81,12 @@ describe('imagePipeline recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		pipeline.getSizedName(
-			{ height: 1000, id: 'c.jpg', path: 'elsewhere/c.jpg', width: 1500 },
-			cardSize,
-		);
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'c.jpg', path: 'elsewhere/c.jpg', width: 1500 }, cardSize);
 		await finishBuild(hooks);
 
-		const manifest = await readManifest(root);
+		const manifest = await readLatestManifest(root);
 
 		expect(manifest?.renditions).toStrictEqual({
 			'a/b-600x400.webp': 'a/b.jpg',
@@ -103,17 +100,17 @@ describe('imagePipeline recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getSizedName(
+		getSizedName(
 			{ height: 1000, id: 'a/b.jpg', width: 1500 },
 			{ format: 'jpg', height: 300, width: 400 },
 		);
-		pipeline.getSizedName(
+		getSizedName(
 			{ height: 1000, id: 'c.jpg', path: 'elsewhere/c.jpg', width: 1500 },
 			{ format: 'jpg', width: 1500 },
 		);
 		await finishBuild(hooks);
 
-		const manifest = await readManifest(root);
+		const manifest = await readLatestManifest(root);
 
 		expect(manifest?.renditions).toStrictEqual({
 			'a/b-400x300.jpg': 'a/b.jpg',
@@ -125,8 +122,8 @@ describe('imagePipeline recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.png', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'a/b.png', width: 1500 }, cardSize);
 
 		await expect(finishBuild(hooks)).rejects.toThrow(/recorded from more than one source/);
 		expect(existsSync(path.join(root, 'records'))).toBe(true);
@@ -145,7 +142,7 @@ describe('imagePipeline recording', () => {
 		const full = createIntegration();
 
 		await startBuild(full.hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		await finishBuild(full.hooks);
 
 		const incremental = createIntegration();
@@ -153,7 +150,7 @@ describe('imagePipeline recording', () => {
 		await startBuild(incremental.hooks, { isIncremental: true });
 		await finishBuild(incremental.hooks);
 
-		const manifest = await readManifest(root);
+		const manifest = await readLatestManifest(root);
 
 		expect(manifest?.renditions).toStrictEqual({ 'a/b-600x400.webp': 'a/b.jpg' });
 	});
@@ -162,50 +159,56 @@ describe('imagePipeline recording', () => {
 		const first = createIntegration();
 
 		await startBuild(first.hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		await finishBuild(first.hooks);
 
 		const second = createIntegration();
 
 		await startBuild(second.hooks);
-		pipeline.getSizedName({ height: 1000, id: 'c.jpg', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'c.jpg', width: 1500 }, cardSize);
 		await finishBuild(second.hooks);
 
-		const manifest = await readManifest(root);
+		const manifest = await readLatestManifest(root);
 
 		expect(manifest?.renditions).toStrictEqual({ 'c-600x400.webp': 'c.jpg' });
 	});
 
 	test('nothing is recorded outside a build', () => {
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 
 		expect(existsSync(path.join(root, 'records'))).toBe(false);
 	});
 });
 
 describe('imagePipeline OpenGraph card recording', () => {
-	test('the same card recorded with keys in another order is one card, stored canonically', async () => {
+	test('the same card recorded with keys in another order, or located by path, is one card stored canonically', async () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		openGraphCards.getCardName({
-			id: 'posts-a',
-			image: { path: 'a/b.jpg' },
-			input: Object.fromEntries([
-				['title', 'A'],
-				['collection', 'posts'],
-				['titleZh', undefined],
-			]),
-		});
-		openGraphCards.getCardName({
-			id: 'posts-a',
-			image: { path: 'a/b.jpg' },
-			input: { collection: 'posts', title: 'A' },
-		});
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getCardName(
+			{
+				id: 'posts-a',
+				image: { id: 'a/b.jpg' },
+				input: Object.fromEntries([
+					['title', 'A'],
+					['collection', 'posts'],
+					['titleZh', undefined],
+				]),
+			},
+			cardFormat,
+		);
+		getCardName(
+			{
+				id: 'posts-a',
+				image: { id: 'media/b', path: 'a/b.jpg' },
+				input: { collection: 'posts', title: 'A' },
+			},
+			cardFormat,
+		);
 		await finishBuild(hooks);
 
-		const manifest = await readManifest(root);
+		const manifest = await readLatestManifest(root);
 		const card = manifest?.openGraphCards['posts-a.jpg'];
 
 		expect(card).toStrictEqual({
@@ -219,10 +222,10 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		openGraphCards.getCardName({ id: 'posts-a', input: { title: 'A' } });
+		getCardName({ id: 'posts-a', input: { title: 'A' } }, cardFormat);
 		await finishBuild(hooks);
 
-		const manifest = await readManifest(root);
+		const manifest = await readLatestManifest(root);
 
 		expect(manifest?.renditions).toStrictEqual({});
 		expect(Object.keys(manifest?.openGraphCards ?? {})).toStrictEqual(['posts-a.jpg']);
@@ -232,9 +235,9 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		openGraphCards.getCardName({ id: 'posts-a', input: { title: 'A' } });
-		openGraphCards.getCardName({ id: 'posts-a', input: { title: 'B' } });
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getCardName({ id: 'posts-a', input: { title: 'A' } }, cardFormat);
+		getCardName({ id: 'posts-a', input: { title: 'B' } }, cardFormat);
 
 		await expect(finishBuild(hooks)).rejects.toThrow(
 			/1 OpenGraph cards were recorded with different input/,
@@ -245,17 +248,23 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		openGraphCards.getCardName({
-			id: 'posts-a',
-			image: { path: 'a/b.jpg' },
-			input: { title: 'A' },
-		});
-		openGraphCards.getCardName({
-			id: 'posts-a',
-			image: { path: 'a/b.jpg', treatment: 'blur' },
-			input: { title: 'A' },
-		});
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getCardName(
+			{
+				id: 'posts-a',
+				image: { id: 'a/b.jpg' },
+				input: { title: 'A' },
+			},
+			cardFormat,
+		);
+		getCardName(
+			{
+				id: 'posts-a',
+				image: { id: 'a/b.jpg', treatment: 'blur' },
+				input: { title: 'A' },
+			},
+			cardFormat,
+		);
 
 		await expect(finishBuild(hooks)).rejects.toThrow(/recorded with different input/);
 	});
@@ -264,21 +273,75 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const full = createIntegration();
 
 		await startBuild(full.hooks);
-		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		openGraphCards.getCardName({ id: 'posts-a', input: { title: 'A' } });
+		getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		getCardName({ id: 'posts-a', input: { title: 'A' } }, cardFormat);
 		await finishBuild(full.hooks);
 
 		const incremental = createIntegration();
 
 		await startBuild(incremental.hooks, { isIncremental: true });
-		openGraphCards.getCardName({ id: 'posts-b', input: { title: 'B' } });
+		getCardName({ id: 'posts-b', input: { title: 'B' } }, cardFormat);
 		await finishBuild(incremental.hooks);
 
-		const manifest = await readManifest(root);
+		const manifest = await readLatestManifest(root);
 
 		expect(manifest?.openGraphCards).toStrictEqual({
 			'posts-a.jpg': { input: { title: 'A' } },
 			'posts-b.jpg': { input: { title: 'B' } },
 		});
+	});
+});
+
+async function buildOnce(id: string) {
+	const { hooks } = createIntegration();
+
+	await startBuild(hooks);
+	getSizedName({ height: 1000, id, width: 1500 }, cardSize);
+	await finishBuild(hooks);
+
+	const manifest = await readLatestManifest(root);
+
+	return manifest?.buildId ?? '';
+}
+
+describe('imagePipeline build manifests', () => {
+	test('each build keeps its own manifest, read back by the build id in dist', async () => {
+		const distPath = path.join(root, 'dist');
+		const first = await buildOnce('a.jpg');
+		const second = await buildOnce('b.jpg');
+
+		const latest = await readDistManifest({ cachePath: root, distPath });
+
+		expect(latest.buildId).toBe(second);
+		expect(latest.renditions).toStrictEqual({ 'b-600x400.webp': 'b.jpg' });
+
+		await writeBuildId(distPath, first);
+
+		const previous = await readDistManifest({ cachePath: root, distPath });
+
+		expect(previous.buildId).toBe(first);
+		expect(previous.renditions).toStrictEqual({ 'a-600x400.webp': 'a.jpg' });
+	});
+
+	test('builds are listed newest first, and a failed build lists nothing', async () => {
+		const first = await buildOnce('a.jpg');
+		const second = await buildOnce('b.jpg');
+		const past = new Date('2026-01-01T00:00:00Z');
+
+		await fs.utimes(path.join(root, 'manifests', `${second}.json.gz`), past, past);
+
+		const failed = createIntegration();
+
+		await startBuild(failed.hooks);
+		await expect(finishBuild(failed.hooks)).rejects.toThrow();
+
+		const builds = await listImageBuilds(root);
+
+		expect(builds.map((build) => build.buildId)).toStrictEqual([first, second]);
+		expect(builds[1]?.writtenAt).toStrictEqual(past);
+	});
+
+	test('a cache with no builds lists none', async () => {
+		expect(await listImageBuilds(root)).toStrictEqual([]);
 	});
 });

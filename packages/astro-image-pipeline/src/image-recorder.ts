@@ -13,7 +13,7 @@ interface ImageRecorder {
 
 let recorder: ImageRecorder | undefined;
 
-// node:fs is looked up lazily so the presets entry still loads where it doesn't exist
+// node:fs is looked up lazily so the names entry still loads where it doesn't exist
 function openRecorder(directory: string): ImageRecorder {
 	const fs = process.getBuiltinModule('node:fs');
 	const { threadId } = process.getBuiltinModule('node:worker_threads');

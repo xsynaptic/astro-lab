@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.3.0
+
+### Minor Changes
+
+- `./presets` is now `./names` with direct `getSizedName`, `getCardName` and `fitWithinSource`; the integration takes `encoding`; each build keeps its own manifest, and renders are `prepare*Render({ cachePath, distPath }).run()`.
+
 ## 0.2.0
 
 ### Minor Changes

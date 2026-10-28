@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-image-pipeline",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Stable-name image renditions for Astro sites, rendered outside the bundler",
 	"type": "module",
 	"license": "MIT",
@@ -32,9 +32,9 @@
 			"types": "./dist/index.d.mts",
 			"import": "./dist/index.mjs"
 		},
-		"./presets": {
-			"types": "./dist/presets.d.mts",
-			"import": "./dist/presets.mjs"
+		"./names": {
+			"types": "./dist/names.d.mts",
+			"import": "./dist/names.mjs"
 		},
 		"./node": {
 			"types": "./dist/node.d.mts",

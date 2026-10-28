@@ -1,7 +1,9 @@
 import type { ImageFormat } from './image-name.js';
+import type { ImageSourceReference } from './image-sizes.js';
 
 import { isImageStem } from './image-name.js';
 import { recordOpenGraphCard } from './image-recorder.js';
+import { getSourcePath } from './image-sizes.js';
 
 export type OpenGraphCardValue =
 	Array<OpenGraphCardValue> | boolean | number | OpenGraphCardObject | string;
@@ -17,8 +19,18 @@ export interface OpenGraphCardImage {
 	treatment?: string;
 }
 
+export interface OpenGraphCardImageInput extends ImageSourceReference {
+	treatment?: string;
+}
+
 export interface OpenGraphCard {
 	image?: OpenGraphCardImage;
+	input: OpenGraphCardInput;
+}
+
+export interface OpenGraphCardRequest {
+	id: string;
+	image?: OpenGraphCardImageInput;
 	input: OpenGraphCardInput;
 }
 
@@ -56,33 +68,34 @@ function canonicalizeObject(value: OpenGraphCardObject) {
 	return sorted;
 }
 
-export function canonicalizeOpenGraphCard({ image, input }: OpenGraphCard): OpenGraphCard {
+export function canonicalizeOpenGraphCard({
+	image,
+	input,
+}: Omit<OpenGraphCardRequest, 'id'>): OpenGraphCard {
 	const canonicalInput = canonicalizeObject(input);
 
 	if (!image) return { input: canonicalInput };
 
+	const path = getSourcePath(image);
 	const canonicalImage: OpenGraphCardImage =
-		image.treatment === undefined
-			? { path: image.path }
-			: { path: image.path, treatment: image.treatment };
+		image.treatment === undefined ? { path } : { path, treatment: image.treatment };
 
 	return { image: canonicalImage, input: canonicalInput };
 }
 
-export function defineOpenGraphCards({ format }: { format: ImageFormat }) {
-	function getCardName({ id, ...card }: OpenGraphCard & { id: string }) {
-		if (!isImageStem(id)) {
-			throw new Error(
-				`OpenGraph card ${id} can't be named: whitespace, quotes, &, <, >, ), commas and "." or ".." segments don't fit in a URL`,
-			);
-		}
-
-		const name = `${id}.${format}`;
-
-		recordOpenGraphCard(name, canonicalizeOpenGraphCard(card));
-
-		return name;
+export function getCardName(
+	{ id, ...card }: OpenGraphCardRequest,
+	{ format }: { format: ImageFormat },
+) {
+	if (!isImageStem(id)) {
+		throw new Error(
+			`OpenGraph card ${id} can't be named: whitespace, quotes, &, <, >, ), commas and "." or ".." segments don't fit in a URL`,
+		);
 	}
 
-	return { getCardName };
+	const name = `${id}.${format}`;
+
+	recordOpenGraphCard(name, canonicalizeOpenGraphCard(card));
+
+	return name;
 }

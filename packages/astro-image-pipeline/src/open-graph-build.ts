@@ -1,11 +1,12 @@
 import path from 'node:path';
 
+import type { ImageRenderTarget } from './image-state.js';
 import type { OpenGraphCard, OpenGraphCardImage, OpenGraphCardInput } from './open-graph-cards.js';
 import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { engineId } from './image-render.js';
-import { getImageCachePaths, readCurrentManifest } from './image-state.js';
+import { getImageCachePaths, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { runRenderJobs } from './run-render-jobs.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
@@ -14,11 +15,12 @@ export interface OpenGraphCardSource extends OpenGraphCardImage {
 	filePath: string;
 }
 
-export interface OpenGraphCardRenderOptions<Decoded> extends Pick<
+export type OpenGraphCardRenderRunOptions = Pick<
 	RenderJobOptions,
 	'concurrency' | 'onFailure' | 'onProgress' | 'onReplace' | 'signal'
-> {
-	cachePath: string;
+>;
+
+export interface OpenGraphCardRenderOptions<Decoded> extends ImageRenderTarget {
 	decode: (source: OpenGraphCardSource) => Promise<Decoded>;
 	render: (input: OpenGraphCardInput, decoded?: Decoded) => Promise<Uint8Array>;
 	templateVersion: string;
@@ -32,6 +34,28 @@ interface OpenGraphCardGroup {
 interface OpenGraphCardSourceState {
 	digest?: string;
 	source: OpenGraphCardSource;
+}
+
+export function getOpenGraphCardKey({
+	digest,
+	engine,
+	image,
+	input,
+	templateVersion,
+}: {
+	digest?: string | undefined;
+	engine: string;
+	image?: OpenGraphCardImage | undefined;
+	input: OpenGraphCardInput;
+	templateVersion: string;
+}) {
+	return hashRenderKey([
+		engine,
+		templateVersion,
+		JSON.stringify(input),
+		image ? JSON.stringify(image) : '',
+		digest ?? '',
+	]);
 }
 
 function groupByImage(cards: Record<string, OpenGraphCard>) {
@@ -98,13 +122,13 @@ async function createCardJobs<Decoded>({
 
 			for (const [name, input] of cards) {
 				jobs.push({
-					key: hashRenderKey([
-						engineId,
+					key: getOpenGraphCardKey({
+						digest: state?.digest,
+						engine: engineId,
+						image,
+						input,
 						templateVersion,
-						JSON.stringify(input),
-						image ? JSON.stringify(image) : '',
-						state?.digest ?? '',
-					]),
+					}),
 					name,
 					render: async () => render(input, state ? await getDecoded(state) : undefined),
 				});
@@ -117,16 +141,16 @@ async function createCardJobs<Decoded>({
 	return jobs;
 }
 
-export async function renderOpenGraphCards<Decoded>({
+export async function prepareOpenGraphCardRender<Decoded>({
 	cachePath,
 	decode,
+	distPath,
 	render,
 	templateVersion,
-	...options
 }: OpenGraphCardRenderOptions<Decoded>) {
 	const resolvedCachePath = path.resolve(cachePath);
 	const { openGraphCardsPath } = getImageCachePaths(resolvedCachePath);
-	const manifest = await readCurrentManifest(resolvedCachePath);
+	const manifest = await readDistManifest({ cachePath: resolvedCachePath, distPath });
 	const groups = groupByImage(manifest.openGraphCards);
 	const jobs = await createCardJobs({
 		cachePath: resolvedCachePath,
@@ -136,11 +160,10 @@ export async function renderOpenGraphCards<Decoded>({
 		render,
 		templateVersion,
 	});
-	const counts = await runRenderJobs({
-		...options,
-		directory: openGraphCardsPath,
-		jobs,
-	});
 
-	return { ...counts, sources: groups.filter((group) => group.image).length };
+	function run(options: OpenGraphCardRenderRunOptions = {}) {
+		return runRenderJobs({ ...options, directory: openGraphCardsPath, jobs });
+	}
+
+	return { run, sources: groups.filter((group) => group.image).length, total: jobs.length };
 }

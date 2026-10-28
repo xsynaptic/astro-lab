@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { getSizedName } from '../src/image-sizes.js';
+import { fitWithinSource, getSizedName } from '../src/image-sizes.js';
 
 function makeSource(width: number, height: number, id = 'taiwan/taipei/some-image-1.jpg') {
 	return { height, id, width };
@@ -69,4 +69,50 @@ describe('getSizedName', () => {
 			).toThrow('rename the file');
 		},
 	);
+});
+
+describe('fitWithinSource', () => {
+	test.each([
+		[
+			'a size within the source is unchanged',
+			{ height: 400, width: 600 },
+			{ height: 400, width: 600 },
+		],
+		['a width-only size shrinks to the source width', { width: 1200 }, { width: 800 }],
+		[
+			'a crop wider than the source keeps its ratio at full width',
+			{ height: 200, width: 1200 },
+			{ height: 133, width: 800 },
+		],
+		[
+			'a crop taller than the source keeps its ratio at full height',
+			{ height: 800, width: 1200 },
+			{ height: 500, width: 750 },
+		],
+	])('%s', (_label, size, expected) => {
+		expect(fitWithinSource(size, makeSource(800, 500))).toStrictEqual(expected);
+	});
+
+	test('every fitted size can be named', () => {
+		const sources = [
+			makeSource(800, 500),
+			makeSource(333, 1000),
+			makeSource(4032, 3024),
+			makeSource(7, 3),
+		];
+		const sizes = [
+			{ width: 5000 },
+			{ height: 800, width: 1200 },
+			{ height: 100, width: 3600 },
+			{ height: 3000, width: 450 },
+		];
+
+		for (const source of sources) {
+			for (const size of sizes) {
+				expect(() =>
+					getSizedName(source, { format: 'jpg', ...fitWithinSource(size, source) }),
+				).not.toThrow();
+			}
+		}
+	});
 });

@@ -12,9 +12,9 @@ import {
 	getImageCachePaths,
 	imageManifestVersion,
 	writeBuildId,
-	writeManifest,
+	writeImageManifest,
 } from '../src/image-state.js';
-import { renderOpenGraphCards } from '../src/open-graph-build.js';
+import { getOpenGraphCardKey, prepareOpenGraphCardRender } from '../src/open-graph-build.js';
 
 let root: string;
 let mediaPath: string;
@@ -30,9 +30,8 @@ const cards: Record<string, OpenGraphCard> = {
 };
 
 async function writeBuild() {
-	await writeManifest(root, {
+	await writeImageManifest(root, {
 		buildId: 'build',
-		distPath,
 		encoding: resolveImageEncoding(),
 		limitInputPixels: 268_402_689,
 		mediaPath,
@@ -49,11 +48,11 @@ function createDecode() {
 	);
 }
 
-function render(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
-	return renderOpenGraphCards<string>({
+function prepare(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
+	return prepareOpenGraphCardRender<string>({
 		cachePath: root,
 		decode: createDecode(),
-		onFailure: 'report',
+		distPath,
 		render: (input, decoded) =>
 			Promise.resolve(
 				new TextEncoder().encode(`${JSON.stringify(input.title)}|${decoded ?? 'none'}`),
@@ -61,6 +60,12 @@ function render(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
 		templateVersion: 'template-1',
 		...options,
 	});
+}
+
+async function render(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
+	const prepared = await prepare(options);
+
+	return prepared.run({ onFailure: 'report' });
 }
 
 beforeEach(async () => {
@@ -80,13 +85,22 @@ afterEach(async () => {
 	await fs.rm(root, { force: true, recursive: true });
 });
 
-describe('renderOpenGraphCards', () => {
+describe('prepareOpenGraphCardRender', () => {
+	test('knows the total and the source count before anything renders', async () => {
+		const decode = createDecode();
+		const prepared = await prepare({ decode });
+
+		expect(prepared).toMatchObject({ sources: 3, total: 5 });
+		expect(decode).not.toHaveBeenCalled();
+		expect(existsSync(directory)).toBe(false);
+	});
+
 	test('decodes once per photo and treatment, and hands each card its own decode', async () => {
 		const decode = createDecode();
 		const counts = await render({ decode });
 
 		expect(decode).toHaveBeenCalledTimes(2);
-		expect(counts).toMatchObject({ rendered: 4, sources: 3, written: 4 });
+		expect(counts).toMatchObject({ rendered: 4, written: 4 });
 		expect(await fs.readFile(path.join(directory, 'posts-b.jpg'), 'utf8')).toBe(
 			'"B"|photo.jpg:plain',
 		);
@@ -132,5 +146,19 @@ describe('renderOpenGraphCards', () => {
 		const counts = await render();
 
 		expect(counts).toMatchObject({ fresh: 1, rendered: 3 });
+	});
+});
+
+describe('getOpenGraphCardKey', () => {
+	test('stays pinned for a fixed input', () => {
+		const key = getOpenGraphCardKey({
+			digest: 'a'.repeat(64),
+			engine: 'engine',
+			image: { path: 'photo.jpg', treatment: 'blur' },
+			input: { title: 'Atlas' },
+			templateVersion: 'template-1',
+		});
+
+		expect(key).toBe('9a25dfc16fcec0e2');
 	});
 });

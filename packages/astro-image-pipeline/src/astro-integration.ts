@@ -6,21 +6,22 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { ResolvedImageEncoding } from './image-encoding.js';
+import type { ImageEncoding } from './image-encoding.js';
 import type { ImageSourceResolver } from './image-sources.js';
 import type { ImageManifest } from './image-state.js';
 import type { OpenGraphCard } from './open-graph-cards.js';
 
 import { createDevImageResolver } from './dev-resolver.js';
+import { resolveImageEncoding } from './image-encoding.js';
 import { imageRecordsVariable } from './image-recorder.js';
 import { readImageRecords, resetImageRecords } from './image-records.js';
 import { createDirectorySources } from './image-sources.js';
 import {
 	getImageCachePaths,
 	imageManifestVersion,
-	readManifest,
+	readLatestManifest,
 	writeBuildId,
-	writeManifest,
+	writeImageManifest,
 } from './image-state.js';
 import { UserError } from './user-error.js';
 
@@ -29,9 +30,9 @@ export type { ImageSourceResolver } from './image-sources.js';
 export interface ImagePipelineOptions {
 	baseUrl: string;
 	cachePath: string;
+	encoding?: ImageEncoding;
 	limitInputPixels?: number;
 	mediaPath: string;
-	pipeline: { encoding: ResolvedImageEncoding };
 	sources?: ImageSourceResolver;
 }
 
@@ -47,7 +48,7 @@ function decodeImageName(pathname: string) {
 
 async function readPreviousManifest(cachePath: string) {
 	try {
-		return await readManifest(cachePath);
+		return await readLatestManifest(cachePath);
 	} catch (error) {
 		if (error instanceof UserError) return;
 
@@ -111,10 +112,9 @@ async function writeBuildManifest({
 }) {
 	const buildId = randomUUID();
 
-	await writeManifest(cachePath, {
+	await writeImageManifest(cachePath, {
 		...manifest,
 		buildId,
-		distPath,
 		openGraphCards: Object.fromEntries(cards),
 		renditions: Object.fromEntries(renditions),
 		version: imageManifestVersion,
@@ -162,7 +162,7 @@ function createDevImageHandler(
 
 async function isBuiltFrom(cachePath: string, mediaPath: string) {
 	try {
-		const manifest = await readManifest(cachePath);
+		const manifest = await readLatestManifest(cachePath);
 
 		return manifest?.mediaPath === mediaPath;
 	} catch {
@@ -173,9 +173,9 @@ async function isBuiltFrom(cachePath: string, mediaPath: string) {
 export default function imagePipeline({
 	baseUrl,
 	cachePath,
+	encoding,
 	limitInputPixels = sharpDefaultInputPixelLimit,
 	mediaPath,
-	pipeline,
 	sources,
 }: ImagePipelineOptions): AstroIntegration {
 	if (baseUrl.replace(/\/+$/, '') === '') {
@@ -185,6 +185,7 @@ export default function imagePipeline({
 	}
 
 	const absoluteMediaPath = path.resolve(mediaPath);
+	const resolvedEncoding = resolveImageEncoding(encoding);
 	const absoluteCachePath = path.resolve(cachePath);
 	const { devPath, recordsPath, renditionsPath } = getImageCachePaths(absoluteCachePath);
 	let isIncremental = false;
@@ -208,7 +209,7 @@ export default function imagePipeline({
 						distPath,
 						logger,
 						manifest: {
-							encoding: pipeline.encoding,
+							encoding: resolvedEncoding,
 							limitInputPixels,
 							mediaPath: absoluteMediaPath,
 						},
@@ -239,7 +240,7 @@ export default function imagePipeline({
 						? renditionsPath
 						: undefined,
 					cachePath: path.resolve(devPath, mediaPathKey),
-					encoding: pipeline.encoding,
+					encoding: resolvedEncoding,
 					limitInputPixels,
 					mediaPath: absoluteMediaPath,
 					sources: sources ?? createDirectorySources(absoluteMediaPath),

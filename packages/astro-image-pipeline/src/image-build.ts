@@ -6,7 +6,7 @@ import pLimit from 'p-limit';
 import sharp from 'sharp';
 
 import type { ImageFormat, ImageName } from './image-name.js';
-import type { ImageManifest } from './image-state.js';
+import type { ImageManifest, ImageRenderTarget } from './image-state.js';
 import type { RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
@@ -15,18 +15,16 @@ import { imageRenderRevision, serializeEncoding } from './image-encoding.js';
 import { parseImageName } from './image-name.js';
 import { engineId, renderImage } from './image-render.js';
 import { isWithinSource } from './image-sizes.js';
-import { getImageCachePaths, readCurrentManifest } from './image-state.js';
+import { getImageCachePaths, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { getDefaultConcurrency, runRenderJobs } from './run-render-jobs.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
 import { UserError } from './user-error.js';
 
-export interface ImageRenderOptions extends Pick<
+export type ImageRenderRunOptions = Pick<
 	RenderJobOptions,
 	'onFailure' | 'onProgress' | 'onReplace' | 'signal'
-> {
-	cachePath: string;
-}
+>;
 
 interface ImageRendition extends ImageName {
 	name: string;
@@ -174,9 +172,9 @@ async function encodeRendition(rendition: ImageRendition, manifest: ImageManifes
 	return data;
 }
 
-async function readImageJobs(cachePath: string, concurrency: number) {
+async function readImageJobs({ cachePath, distPath }: ImageRenderTarget, concurrency: number) {
 	const { renditionsPath } = getImageCachePaths(cachePath);
-	const manifest = await readCurrentManifest(cachePath);
+	const manifest = await readDistManifest({ cachePath, distPath });
 	const renditions = getManifestRenditions(manifest);
 	const fingerprints = createSourceFingerprints(cachePath);
 
@@ -194,19 +192,26 @@ async function readImageJobs(cachePath: string, concurrency: number) {
 	}
 }
 
-export async function renderImages(options: ImageRenderOptions) {
-	const cachePath = path.resolve(options.cachePath);
+export async function prepareImageRender({ cachePath, distPath }: ImageRenderTarget) {
+	const resolvedCachePath = path.resolve(cachePath);
 	const concurrency = getDefaultConcurrency();
-	const run = await readImageJobs(cachePath, concurrency);
+	const { directory, jobs } = await readImageJobs(
+		{ cachePath: resolvedCachePath, distPath },
+		concurrency,
+	);
 
-	// Process-wide; the job pool supplies the parallelism instead of libvips threads
-	sharp.concurrency(1);
-	sharp.cache(false);
+	async function run(options: ImageRenderRunOptions = {}) {
+		// Process-wide; the job pool supplies the parallelism instead of libvips threads
+		sharp.concurrency(1);
+		sharp.cache(false);
 
-	const counts = await runRenderJobs({ ...options, ...run, concurrency });
+		const counts = await runRenderJobs({ ...options, concurrency, directory, jobs });
 
-	// Dev serves built renditions first, so its own renders are redundant now
-	await fs.rm(getImageCachePaths(cachePath).devPath, { force: true, recursive: true });
+		// Dev serves built renditions first, so its own renders are redundant now
+		await fs.rm(getImageCachePaths(resolvedCachePath).devPath, { force: true, recursive: true });
 
-	return counts;
+		return counts;
+	}
+
+	return { run, total: jobs.length };
 }

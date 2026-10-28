@@ -1,7 +1,5 @@
-import type { ImageEncoding } from './image-encoding.js';
 import type { ImageSize, RenditionSize } from './image-name.js';
 
-import { resolveImageEncoding } from './image-encoding.js';
 import { formatImageName, getImageStem, isImageStem } from './image-name.js';
 import { recordRendition } from './image-recorder.js';
 
@@ -10,9 +8,15 @@ export interface ImageDimensions {
 	width: number;
 }
 
-export interface ImageSource extends ImageDimensions {
+export interface ImageSourceReference {
 	id: string;
 	path?: string;
+}
+
+export interface ImageSource extends ImageDimensions, ImageSourceReference {}
+
+export function getSourcePath({ id, path }: ImageSourceReference) {
+	return path ?? id;
 }
 
 function isWholeSize({ height, width }: ImageSize) {
@@ -25,6 +29,20 @@ function formatSize({ height, width }: ImageSize) {
 
 export function isWithinSource(size: ImageSize, source: ImageDimensions) {
 	return size.width <= source.width && (size.height ?? 0) <= source.height;
+}
+
+export function fitWithinSource(size: ImageSize, source: ImageDimensions) {
+	if (isWithinSource(size, source)) return size;
+
+	if (size.height === undefined) return { width: source.width };
+
+	const isWidthBound = source.width * size.height <= source.height * size.width;
+	const width = isWidthBound
+		? source.width
+		: Math.max(1, Math.floor((size.width * source.height) / size.height));
+	const height = Math.round((width * size.height) / size.width);
+
+	return { height: Math.min(Math.max(1, height), source.height), width };
 }
 
 export function getSizedName(source: ImageSource, { format, ...size }: RenditionSize) {
@@ -50,11 +68,7 @@ export function getSizedName(source: ImageSource, { format, ...size }: Rendition
 
 	const name = formatImageName({ format, stem, ...size });
 
-	recordRendition(name, source.path ?? source.id);
+	recordRendition(name, getSourcePath(source));
 
 	return name;
-}
-
-export function defineImagePipeline({ encoding }: { encoding?: ImageEncoding }) {
-	return { encoding: resolveImageEncoding(encoding), getSizedName };
 }
