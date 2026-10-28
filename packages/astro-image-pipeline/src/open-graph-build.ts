@@ -125,13 +125,18 @@ async function createCardJobs<Decoded>({
 	const fingerprints = createSourceFingerprints(cachePath);
 	const getDecoded = createGroupDecoder({ decode, missingImage });
 	const jobs: Array<RenderJob> = [];
-	const missingImages = new Set<string>();
+	const missingImages = new Map<string, Array<string>>();
 
 	try {
 		for (const { cards, image } of groups) {
 			const state = image ? await readSourceState(fingerprints, mediaPath, image) : undefined;
 
-			if (state && !state.digest) missingImages.add(state.source.path);
+			if (state && !state.digest) {
+				const missingCards = missingImages.get(state.source.path) ?? [];
+
+				missingCards.push(...cards.map(([name]) => name));
+				missingImages.set(state.source.path, missingCards);
+			}
 
 			for (const [name, input] of cards) {
 				jobs.push({
@@ -153,7 +158,12 @@ async function createCardJobs<Decoded>({
 
 	return {
 		jobs,
-		missingImages: [...missingImages].toSorted((first, second) => first.localeCompare(second)),
+		missingImages: [...missingImages]
+			.toSorted(([first], [second]) => first.localeCompare(second))
+			.map(([imagePath, cards]) => ({
+				cards: cards.toSorted((first, second) => first.localeCompare(second)),
+				path: imagePath,
+			})),
 	};
 }
 
@@ -184,6 +194,7 @@ export async function prepareOpenGraphCardRender<Decoded>({
 	}
 
 	return {
+		cards: jobs.map(({ name }) => name).toSorted((first, second) => first.localeCompare(second)),
 		directory: openGraphCardsPath,
 		missingImages,
 		run,

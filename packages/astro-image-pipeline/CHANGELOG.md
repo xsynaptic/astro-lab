@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.8.0
+
+### Minor Changes
+
+- The prepared OpenGraph card render lists its `cards`, and each `missingImages` entry is `{ path, cards }`.
+
 ## 0.7.0
 
 ### Minor Changes
