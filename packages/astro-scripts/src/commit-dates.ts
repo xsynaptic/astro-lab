@@ -61,6 +61,23 @@ function groupByRepository(directories: ReadonlySet<string>) {
 	return directoriesByRepository;
 }
 
+function findCommonDirectory(repository: string, directories: ReadonlyArray<string>) {
+	const [first = [], ...rest] = directories.map((directory) =>
+		path.relative(repository, directory).split(path.sep),
+	);
+	let length = first.length;
+
+	for (const segments of rest) {
+		let index = 0;
+
+		while (index < length && segments[index] === first[index]) index++;
+
+		length = index;
+	}
+
+	return first.slice(0, length).join(path.sep) || '.';
+}
+
 async function checkShallow(repository: string, onShallow: EntryCommitDatesOptions['onShallow']) {
 	if (onShallow === 'ignore') return;
 
@@ -118,7 +135,7 @@ export async function getEntryCommitDates(
 			'--name-only',
 			`--pretty=format:${dateLineMarker}${format}`,
 			'--',
-			...repositoryDirectories.map((directory) => path.relative(repository, directory) || '.'),
+			findCommonDirectory(repository, repositoryDirectories),
 		]);
 
 		parseLog(stdout, repository, resolvedRoot, dates);

@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.10.1
+
+### Patch Changes
+
+- Speed up `getEntryCommitDates` by giving `git log` one pathspec per repository; a progress that finishes inside its render interval reports the rate of the whole run.
+
 ## 0.10.0
 
 ### Minor Changes

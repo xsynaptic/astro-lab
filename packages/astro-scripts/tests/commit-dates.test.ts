@@ -63,6 +63,26 @@ describe('getEntryCommitDates', () => {
 		);
 	});
 
+	test('dates entries spread across sibling directories', async () => {
+		await commit('collections/notes/2026/c.mdx', '2026-04-01T00:00:00Z');
+		await commit('readme.md', '2026-05-01T00:00:00Z');
+
+		const dates = await getEntryCommitDates(
+			[
+				{ filePath: 'packages/content/collections/posts/b.mdx' },
+				{ filePath: 'packages/content/collections/notes/2026/c.mdx' },
+			],
+			{ rootPath },
+		);
+
+		expect(dates).toEqual(
+			new Map([
+				['packages/content/collections/notes/2026/c.mdx', '2026-04-01T00:00:00Z'],
+				['packages/content/collections/posts/b.mdx', '2026-02-01T00:00:00Z'],
+			]),
+		);
+	});
+
 	test('dates each entry from the nearest repository when one sits inside another', async () => {
 		const outerPath = rootPath;
 		const date = '2026-04-01T00:00:00Z';

@@ -87,6 +87,8 @@ export function createProgress({ label, note, total }: ProgressOptions) {
 	}
 
 	function finish(state: 'fail' | 'succeed' | 'warn', text?: string) {
+		rateWindow.add(done, Date.now());
+
 		const snapshot = getSnapshot();
 
 		emit({ id, type: 'progress', ...snapshot });

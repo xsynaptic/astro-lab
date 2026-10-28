@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import { formatDuration, formatProgressText } from '../src/output/format.js';
 import { captureOutput, createStatus } from '../src/output/output.js';
@@ -21,6 +21,30 @@ describe('createProgress', () => {
 
 		expect(progressDone).toEqual([1, 4]);
 		expect(statusTexts.at(-1)).toMatch(/^Rendering 4 \/ 4 \(100%\)/);
+	});
+
+	test('reports the rate of the whole run when it finishes inside the render interval', async () => {
+		vi.useFakeTimers({ now: 1_000_000 });
+
+		try {
+			const { events } = await captureOutput(() => {
+				const progress = createProgress({ label: 'Rendering', total: 100 });
+
+				vi.advanceTimersByTime(10);
+				progress.tick();
+				vi.advanceTimersByTime(40);
+				progress.tick(99);
+				progress.succeed();
+
+				return Promise.resolve();
+			});
+
+			const rates = events.flatMap((event) => (event.type === 'progress' ? [event.perSecond] : []));
+
+			expect(rates).toEqual([100, 2000]);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
 
