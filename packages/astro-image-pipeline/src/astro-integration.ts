@@ -7,12 +7,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { ImageEncoding } from './image-encoding.js';
+import type { ImagePlaceholderOptions, PlaceholderConfig } from './image-placeholders.js';
 import type { ImageSourceResolver } from './image-sources.js';
 import type { ImageManifest } from './image-state.js';
 import type { OpenGraphCard } from './open-graph-cards.js';
 
 import { createDevImageResolver } from './dev-resolver.js';
 import { resolveImageEncoding } from './image-encoding.js';
+import { imagePlaceholdersVariable, validatePlaceholderOptions } from './image-placeholders.js';
 import { imageRecordsVariable } from './image-recorder.js';
 import { readImageRecords, resetImageRecords } from './image-records.js';
 import { createDirectorySources } from './image-sources.js';
@@ -26,6 +28,7 @@ import {
 import { UserError } from './user-error.js';
 
 export type { ImageEncoding } from './image-encoding.js';
+export type { ImagePlaceholderOptions, PlaceholderRecipe } from './image-placeholders.js';
 export type { ImageSourceResolver } from './image-sources.js';
 export { createDirectorySources } from './image-sources.js';
 
@@ -35,6 +38,7 @@ export interface ImagePipelineOptions {
 	encoding?: ImageEncoding;
 	limitInputPixels?: number;
 	mediaPath: string;
+	placeholders?: ImagePlaceholderOptions;
 	sources?: ImageSourceResolver;
 }
 
@@ -178,6 +182,7 @@ export default function imagePipeline({
 	encoding,
 	limitInputPixels = sharpDefaultInputPixelLimit,
 	mediaPath,
+	placeholders,
 	sources,
 }: ImagePipelineOptions): AstroIntegration {
 	if (baseUrl?.replace(/\/+$/, '') === '') {
@@ -185,6 +190,8 @@ export default function imagePipeline({
 			'imagePipeline needs a baseUrl below the site root; at the root, every request and every root-relative URL would count as an image',
 		);
 	}
+
+	if (placeholders) validatePlaceholderOptions(placeholders);
 
 	const absoluteMediaPath = path.resolve(mediaPath);
 	const resolvedEncoding = resolveImageEncoding(encoding);
@@ -223,6 +230,15 @@ export default function imagePipeline({
 				}
 			},
 			'astro:config:setup': async ({ command, config }) => {
+				if (placeholders) {
+					process.env[imagePlaceholdersVariable] = JSON.stringify({
+						...placeholders,
+						cachePath: absoluteCachePath,
+						limitInputPixels,
+						mediaPath: absoluteMediaPath,
+					} satisfies PlaceholderConfig);
+				}
+
 				if (command !== 'build') return;
 
 				isIncremental = config.experimental.incrementalBuild;

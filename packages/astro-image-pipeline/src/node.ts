@@ -1,5 +1,7 @@
 export type { ImageRenderRunOptions, PreparedImageRender } from './image-build.js';
 export { prepareImageRender } from './image-build.js';
+export type { PlaceholderSize } from './image-placeholders.js';
+export { getPlaceholder } from './image-placeholders.js';
 export { engineVersions, openImageSource, readSourceSize } from './image-render.js';
 export { listImageSources } from './image-sources.js';
 export type { ImageBuild, ImageManifest, ImageRenderTarget } from './image-state.js';

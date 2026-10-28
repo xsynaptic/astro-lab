@@ -42,6 +42,7 @@ export function getImageCachePaths(cachePath: string) {
 		devPath: path.join(cachePath, 'dev'),
 		manifestsPath: path.join(cachePath, 'manifests'),
 		openGraphCardsPath: path.join(cachePath, 'cards'),
+		placeholdersPath: path.join(cachePath, 'placeholders.sqlite'),
 		recordsPath: path.join(cachePath, 'records'),
 		renditionsPath: path.join(cachePath, 'renditions'),
 	};

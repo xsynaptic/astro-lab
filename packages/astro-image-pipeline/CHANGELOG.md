@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.6.0
+
+### Minor Changes
+
+- Add the `placeholders` option (`mosaic` or `blur` recipes) and `getPlaceholder` in `./node`, cached in `<cachePath>/placeholders.sqlite`.
+
 ## 0.5.0
 
 ### Minor Changes
