@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.10.0
+
+### Minor Changes
+
+- Share one Vite server per command; add `signal` to `fetchWithRetry`, which also retries network failures; add `capture` to `runChild` and `label` to `checkComponentTargets`; keep every repeated step warning and skip; speed up `getEntryCommitDates`.
+
 ## 0.9.0
 
 ### Minor Changes

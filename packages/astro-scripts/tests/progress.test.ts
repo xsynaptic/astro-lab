@@ -93,6 +93,41 @@ describe('withStep outcomes', () => {
 	});
 });
 
+describe('withStep folding several outcomes', () => {
+	test('keeps every warning detail, and a warning outranks a skip whatever the order', async () => {
+		const { events } = await captureOutput(() =>
+			withStep('Backing up databases', (step) => {
+				step.warn('comments: 503 Service Unavailable');
+				step.skip('stats: fresh');
+				step.warn('listens: timed out');
+
+				return Promise.resolve();
+			}),
+		);
+
+		expect(events.at(-1)).toMatchObject({
+			detail: 'comments: 503 Service Unavailable\nlistens: timed out',
+			state: 'warn',
+		});
+	});
+
+	test('keeps every skip reason', async () => {
+		const { events } = await captureOutput(() =>
+			withStep('Backing up databases', (step) => {
+				step.skip('comments: fresh');
+				step.skip('stats: fresh');
+
+				return Promise.resolve();
+			}),
+		);
+
+		expect(events.at(-1)).toMatchObject({
+			detail: 'comments: fresh\nstats: fresh',
+			state: 'skip',
+		});
+	});
+});
+
 describe('status closes', () => {
 	test('every close but a stop carries its duration', async () => {
 		const { events } = await captureOutput(async () => {

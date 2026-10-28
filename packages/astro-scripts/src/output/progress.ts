@@ -113,7 +113,7 @@ export function createProgress({ label, note, total }: ProgressOptions) {
 }
 
 interface StepOutcomeState {
-	detail?: string;
+	details: Array<string>;
 	state: 'skip' | 'warn';
 }
 
@@ -122,8 +122,8 @@ interface RunStepOptions<Result> {
 	describe?: ((result: Result) => string) | undefined;
 }
 
-function toOutcome(state: StepOutcomeState['state'], detail: string | undefined): StepOutcomeState {
-	return detail === undefined ? { state } : { detail, state };
+function getOutcomeDetail({ details }: StepOutcomeState) {
+	return details.length === 0 ? undefined : details.join('\n');
 }
 
 export async function runStep<Result>(
@@ -134,20 +134,28 @@ export async function runStep<Result>(
 	const { close, id } = startStatus(text, argv ? { argv } : {});
 	let outcome: StepOutcomeState | undefined;
 
+	function flag(state: StepOutcomeState['state'], detail: string | undefined) {
+		if (state === 'skip' && outcome?.state === 'warn') return;
+
+		if (outcome?.state !== state) outcome = { details: [], state };
+
+		if (detail !== undefined) outcome.details.push(detail);
+	}
+
 	try {
 		const result = await task({
 			id,
 			skip: (reason) => {
-				outcome = toOutcome('skip', reason);
+				flag('skip', reason);
 			},
 			warn: (detail) => {
-				outcome = toOutcome('warn', detail);
+				flag('warn', detail);
 			},
 		});
 
 		if (outcome?.state === 'skip') {
 			recordStepOutcome({ state: 'skip', text });
-			close('skip', text, outcome.detail);
+			close('skip', text, getOutcomeDetail(outcome));
 			return result;
 		}
 
@@ -155,7 +163,7 @@ export async function runStep<Result>(
 
 		if (outcome?.state === 'warn') {
 			recordStepOutcome({ state: 'warn', text });
-			close('warn', finalText, outcome.detail);
+			close('warn', finalText, getOutcomeDetail(outcome));
 			return result;
 		}
 

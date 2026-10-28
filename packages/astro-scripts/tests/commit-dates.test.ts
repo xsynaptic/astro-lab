@@ -62,4 +62,28 @@ describe('getEntryCommitDates', () => {
 			]),
 		);
 	});
+
+	test('dates each entry from the nearest repository when one sits inside another', async () => {
+		const outerPath = rootPath;
+		const date = '2026-04-01T00:00:00Z';
+
+		contentPath = outerPath;
+		await git(['init', '--quiet']);
+		await commit('src/pages/about.mdx', date);
+
+		const dates = await getEntryCommitDates(
+			[
+				{ filePath: 'src/pages/about.mdx' },
+				{ filePath: 'packages/content/collections/posts/b.mdx' },
+			],
+			{ rootPath: outerPath },
+		);
+
+		expect(dates).toEqual(
+			new Map([
+				['packages/content/collections/posts/b.mdx', '2026-02-01T00:00:00Z'],
+				['src/pages/about.mdx', date],
+			]),
+		);
+	});
 });

@@ -229,6 +229,44 @@ describe('runChild with onLine and describe', () => {
 	});
 });
 
+describe('runChild with capture', () => {
+	test('resolves to stdout and closes with it, still showing every line', async () => {
+		configureOutput('json');
+
+		const { events, result } = await captureOutput(() =>
+			runChild(
+				'Uploading',
+				node(String.raw`console.log("a.webp\nb.webp"); console.error("note")`),
+				{
+					capture: true,
+					describe: (stdout) => `Uploaded · ${String(stdout.split('\n').length)} files`,
+				},
+			),
+		);
+
+		expect(result).toBe('a.webp\nb.webp');
+		expect(outputs(events).map((event) => event.text)).toEqual(
+			expect.arrayContaining(['a.webp', 'b.webp', 'note']),
+		);
+		expect(statuses(events).at(-1)).toMatchObject({
+			state: 'succeed',
+			text: 'Uploaded · 2 files',
+		});
+	});
+
+	test('captures stdout in plain output too, where the child would otherwise inherit our stderr', async () => {
+		configureOutput('plain');
+
+		const { result } = await captureOutput(() =>
+			runChild('Listing', node(String.raw`console.log("\u001B[32mkept\u001B[39m")`), {
+				capture: true,
+			}),
+		);
+
+		expect(result).toBe('kept');
+	});
+});
+
 describe('readChild', () => {
 	test('returns what the child wrote, emitting nothing', async () => {
 		configureOutput('json');

@@ -1,10 +1,14 @@
 import type * as AstroContentModule from 'astro:content';
 import type { CollectionEntry, CollectionKey } from 'astro:content';
+import type { ViteDevServer } from 'vite';
 import type { ModuleRunner } from 'vite/module-runner';
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
+import type { CommandScope } from './command.js';
+
+import { getCommandScope } from './command.js';
 import { UserError } from './user-error.js';
 
 type AstroContent = typeof AstroContentModule;
@@ -62,11 +66,13 @@ export async function getCollectionEntries<C extends CollectionKey>(
 	return flattened;
 }
 
-export async function withAstroModules<T>(callback: (runner: ModuleRunner) => Promise<T>) {
+async function startAstroServer() {
 	// An unrooted config resolves against `process.cwd()`, finds none, and reads every collection back empty
 	const root = findAstroRoot();
-	const [{ getViteConfig }, { createLogger, createServer, createServerModuleRunner }] =
-		await Promise.all([import('astro/config'), import('vite')]);
+	const [{ getViteConfig }, { createLogger, createServer }] = await Promise.all([
+		import('astro/config'),
+		import('vite'),
+	]);
 
 	const config = await getViteConfig(
 		{},
@@ -76,16 +82,64 @@ export async function withAstroModules<T>(callback: (runner: ModuleRunner) => Pr
 		mode: 'development',
 	});
 
-	const server = await createServer({
+	return createServer({
 		...config,
 		// Astro's config sets a `customLogger` that writes to stdout and ignores `logLevel`
 		customLogger: createLogger('silent'),
 		logLevel: 'silent',
 		server: { hmr: false, middlewareMode: true, ws: false },
 	});
+}
+
+const commandServers = new WeakMap<CommandScope, Promise<ViteDevServer>>();
+
+function getCommandServer(scope: CommandScope) {
+	const existing = commandServers.get(scope);
+
+	if (existing) return existing;
+
+	const server = startAstroServer();
+
+	commandServers.set(scope, server);
+	scope.onEnd.push(async () => {
+		let started: ViteDevServer;
+
+		try {
+			started = await server;
+		} catch {
+			return;
+		}
+
+		await started.close();
+	});
+
+	return server;
+}
+
+async function runInServer<T>(
+	server: ViteDevServer,
+	callback: (runner: ModuleRunner) => Promise<T>,
+) {
+	const { createServerModuleRunner } = await import('vite');
+	// Astro's store invalidation reaches only the environment's own runner, so a shared one would read stale content
+	const runner = createServerModuleRunner(server.environments.ssr);
 
 	try {
-		return await callback(createServerModuleRunner(server.environments.ssr));
+		return await callback(runner);
+	} finally {
+		await runner.close();
+	}
+}
+
+export async function withAstroModules<T>(callback: (runner: ModuleRunner) => Promise<T>) {
+	const scope = getCommandScope();
+
+	if (scope) return runInServer(await getCommandServer(scope), callback);
+
+	const server = await startAstroServer();
+
+	try {
+		return await runInServer(server, callback);
 	} finally {
 		// The process hangs on the open server otherwise
 		await server.close();

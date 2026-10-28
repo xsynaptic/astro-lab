@@ -91,6 +91,19 @@ describe('checkComponentTargets', () => {
 
 		expect(result.issues).toEqual([{ location: 'a-post.mdx:8', message: 'broken Link id "gone"' }]);
 	});
+
+	test('words its summary and issues from the label', () => {
+		const entries = [makeEntry({ body, filePath: 'a-post.mdx', id: 'a' })];
+		const options = { component: 'Link', label: 'Link ID', prop: 'id', rootPath };
+
+		expect(checkComponentTargets(entries, { ...options, targets: ['a'] })).toMatchObject({
+			issues: [{ message: 'broken Link ID "gone"' }],
+			summary: 'Found 1 broken Link ID(s)',
+		});
+		expect(checkComponentTargets(entries, { ...options, targets: ['a', 'gone'] })).toMatchObject({
+			summary: 'Link IDs valid',
+		});
+	});
 });
 
 describe('checkReferences', () => {

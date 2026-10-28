@@ -107,10 +107,19 @@ const builtInOptions: Array<[string, CommandOption]> = [
 	['help', helpOption],
 ];
 
-let activeSignal: AbortSignal | undefined;
+export interface CommandScope {
+	onEnd: Array<() => Promise<void>>;
+	signal: AbortSignal;
+}
+
+let activeScope: CommandScope | undefined;
+
+export function getCommandScope() {
+	return activeScope;
+}
 
 export function getCommandSignal() {
-	return activeSignal;
+	return activeScope?.signal;
 }
 
 export function parseNumberOption(value: string, name: string) {
@@ -386,11 +395,12 @@ export function createCommandRunner<Context extends object = object>(
 		process.on('SIGINT', onInterrupt);
 		process.on('SIGTERM', onInterrupt);
 
-		const previousSignal = activeSignal;
+		const previousScope = activeScope;
+		const scope: CommandScope = { onEnd: [], signal: controller.signal };
 		const stepOutcomes = trackStepOutcomes();
 		let hasStarted = false;
 
-		activeSignal = controller.signal;
+		activeScope = scope;
 
 		try {
 			const { positionals, values } = parseCommandArgs(command);
@@ -408,13 +418,17 @@ export function createCommandRunner<Context extends object = object>(
 			// `Context` is only left at its empty default when no factory is given
 			const context = createContext ? await createContext({ rootPath }) : ({} as Context);
 
-			await command.run({
-				...context,
-				positionals: positionals as Positionals<Positional>,
-				rootPath,
-				signal: controller.signal,
-				values: values as ParsedValues<Options>,
-			});
+			try {
+				await command.run({
+					...context,
+					positionals: positionals as Positionals<Positional>,
+					rootPath,
+					signal: controller.signal,
+					values: values as ParsedValues<Options>,
+				});
+			} finally {
+				await Promise.all(scope.onEnd.map((close) => close()));
+			}
 
 			// A command that honours the signal by returning early was still interrupted
 			controller.signal.throwIfAborted();
@@ -447,7 +461,7 @@ export function createCommandRunner<Context extends object = object>(
 			process.exitCode = report.exitCode;
 		} finally {
 			stepOutcomes.restore();
-			activeSignal = previousSignal;
+			activeScope = previousScope;
 			process.off('SIGINT', onInterrupt);
 			process.off('SIGTERM', onInterrupt);
 		}

@@ -1,4 +1,4 @@
-import { realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 
 import type { ContentEntry } from './astro.js';
@@ -23,24 +23,32 @@ async function readGit(cwd: string, args: Array<string>) {
 	return stdout.trim();
 }
 
-async function findRepository(directory: string) {
-	try {
-		const { exitCode, stdout } = await readChild(['git', 'rev-parse', '--show-toplevel'], {
-			allowFailure: true,
-			cwd: directory,
-		});
+function findRepository(
+	directory: string,
+	repositories: Map<string, string | undefined>,
+): string | undefined {
+	if (repositories.has(directory)) return repositories.get(directory);
 
-		return exitCode === 0 ? stdout.trim() : undefined;
-	} catch {
-		return;
+	const parent = path.dirname(directory);
+	let repository: string | undefined;
+
+	if (existsSync(path.join(directory, '.git'))) {
+		repository = directory;
+	} else if (parent !== directory) {
+		repository = findRepository(parent, repositories);
 	}
+
+	repositories.set(directory, repository);
+
+	return repository;
 }
 
-async function groupByRepository(directories: ReadonlySet<string>) {
+function groupByRepository(directories: ReadonlySet<string>) {
+	const repositories = new Map<string, string | undefined>();
 	const directoriesByRepository = new Map<string, Array<string>>();
 
 	for (const directory of directories) {
-		const repository = await findRepository(directory);
+		const repository = findRepository(directory, repositories);
 
 		if (repository === undefined) continue;
 
@@ -100,7 +108,7 @@ export async function getEntryCommitDates(
 	const dates = new Map<string, string>();
 	const format = date === 'author' ? '%aI' : '%cI';
 
-	const directoriesByRepository = await groupByRepository(directories);
+	const directoriesByRepository = groupByRepository(directories);
 
 	for (const [repository, repositoryDirectories] of directoriesByRepository) {
 		await checkShallow(repository, onShallow);

@@ -21,9 +21,22 @@ interface ChildOptions {
 	signal?: AbortSignal;
 }
 
+type LineFilter = (line: string, stream: OutputStream) => boolean;
+
 interface RunChildOptions extends ChildOptions {
 	describe?: () => string;
-	onLine?: (line: string, stream: OutputStream) => boolean;
+	onLine?: LineFilter;
+}
+
+interface CaptureChildOptions extends ChildOptions {
+	capture: true;
+	describe?: (stdout: string) => string;
+	onLine?: LineFilter;
+}
+
+interface SpawnChildOptions extends ChildOptions {
+	capture?: boolean;
+	onLine?: LineFilter;
 }
 
 interface ReadChildOptions extends ChildOptions {
@@ -150,11 +163,12 @@ async function readStream(input: null | Readable) {
 async function spawnChild(
 	id: number,
 	argv: Argv,
-	{ cwd, env, input, onLine }: RunChildOptions,
+	{ capture = false, cwd, env, input, onLine }: SpawnChildOptions,
 	signal: AbortSignal | undefined,
 ) {
 	const mode = getOutputMode();
-	const isPiped = mode === 'json' || onLine !== undefined;
+	const isPiped = mode === 'json' || onLine !== undefined || capture;
+	const stdout: Array<string> = [];
 	const [file, ...args] = argv;
 	const child = spawn(file, args, {
 		cwd,
@@ -173,7 +187,11 @@ async function spawnChild(
 			return;
 		}
 
-		if (onLine && !onLine(stripVTControlCharacters(line), stream)) return;
+		const plainLine = stripVTControlCharacters(line);
+
+		if (capture && stream === 'stdout') stdout.push(plainLine);
+
+		if (onLine && !onLine(plainLine, stream)) return;
 
 		emit({ id, stream, text: line.replaceAll(nonColourSequence, ''), type: 'output' });
 	}
@@ -194,20 +212,34 @@ async function spawnChild(
 		])) as [unknown, [null | number, ExitSignal]];
 
 		if (exitCode !== 0) throw new ChildProcessError(argv, { exitCode, signal: exitSignal });
+
+		return stdout.join('\n');
 	} finally {
 		stopForwarding();
 	}
 }
 
-export async function runChild(text: string, argv: Argv, options: RunChildOptions = {}) {
+export async function runChild(
+	text: string,
+	argv: Argv,
+	options: CaptureChildOptions,
+): Promise<string>;
+export async function runChild(text: string, argv: Argv, options?: RunChildOptions): Promise<void>;
+export async function runChild(
+	text: string,
+	argv: Argv,
+	options: CaptureChildOptions | RunChildOptions = {},
+): Promise<string | void> {
 	const signal = options.signal ?? getCommandSignal();
 
 	signal?.throwIfAborted();
 
-	await runStep(text, ({ id }) => spawnChild(id, argv, options, signal), {
+	const stdout = await runStep(text, ({ id }) => spawnChild(id, argv, options, signal), {
 		argv,
 		describe: options.describe,
 	});
+
+	return 'capture' in options ? stdout : undefined;
 }
 
 export async function readChild(

@@ -27,6 +27,7 @@ interface CheckComponentPropsOptions {
 
 interface CheckComponentTargetsOptions {
 	component: string;
+	label?: string;
 	prop: string;
 	rootPath: string;
 	targets: Iterable<string>;
@@ -229,7 +230,13 @@ export function checkComponentProps(
 
 export function checkComponentTargets(
 	entries: ReadonlyArray<ContentEntry>,
-	{ component, prop, rootPath, targets }: CheckComponentTargetsOptions,
+	{
+		component,
+		prop,
+		label = `${component} ${prop}`,
+		rootPath,
+		targets,
+	}: CheckComponentTargetsOptions,
 ) {
 	const validTargets = new Set(targets);
 	const issues = findLocatedTags(entries, [component], rootPath).flatMap(
@@ -238,12 +245,12 @@ export function checkComponentTargets(
 
 			if (value === undefined || validTargets.has(value)) return [];
 
-			return [{ location, message: `broken ${component} ${prop} "${value}"` }];
+			return [{ location, message: `broken ${label} "${value}"` }];
 		},
 	);
 
 	return toValidationResult(issues, {
-		fail: `Found ${String(issues.length)} broken ${component} ${prop}(s)`,
-		pass: `${component} ${prop}s valid`,
+		fail: `Found ${String(issues.length)} broken ${label}(s)`,
+		pass: `${label}s valid`,
 	});
 }
