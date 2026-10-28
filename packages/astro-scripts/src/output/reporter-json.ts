@@ -6,6 +6,7 @@ type ProgressEvent = Extract<OutputEvent, { type: 'progress' }>;
 
 interface JsonReporterOptions {
 	command?: string | undefined;
+	isNested?: boolean;
 	now?: () => number;
 }
 
@@ -64,7 +65,7 @@ function stripEvent(event: OutputEvent): OutputEvent {
 
 export function createJsonReporter(
 	{ stderr, stdout }: ReporterStreams,
-	{ command, now = Date.now }: JsonReporterOptions = {},
+	{ command, isNested = false, now = Date.now }: JsonReporterOptions = {},
 ): Reporter {
 	const progressThrottles = new Map<number, Throttle>();
 	const updateThrottles = new Map<number, Throttle>();
@@ -89,6 +90,11 @@ export function createJsonReporter(
 
 	return {
 		emit(event) {
+			if (isNested && event.type === 'data') {
+				write(event);
+				return;
+			}
+
 			if (event.type === 'data') {
 				stdout.write(`${JSON.stringify(event.value)}\n`);
 				return;

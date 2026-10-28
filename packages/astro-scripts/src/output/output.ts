@@ -22,16 +22,17 @@ function detectOutputMode(): OutputMode {
 
 	if (isOutputMode(requested)) return requested;
 
-	return process.stderr.isTTY ? 'pretty' : 'plain';
+	return process.stderr.isTTY && process.stderr.columns > 0 ? 'pretty' : 'plain';
 }
 
 function createReporter(mode: OutputMode, command?: string) {
 	const streams = { stderr: process.stderr, stdout: process.stdout };
+	const isNested = process.env.SCRIPTS_NESTED === '1';
 
-	if (mode === 'json') return createJsonReporter(streams, { command });
-	if (mode === 'plain') return createPlainReporter(streams);
+	if (mode === 'json') return createJsonReporter(streams, { command, isNested });
+	if (mode === 'plain') return createPlainReporter(streams, { isNested });
 
-	return createPrettyReporter(streams);
+	return createPrettyReporter(streams, { isNested });
 }
 
 export function configureOutput(mode: OutputMode = detectOutputMode(), command?: string) {
@@ -118,12 +119,23 @@ export interface Status {
 	warn: (finalText?: string) => void;
 }
 
-export function startStatus(initialText: string, argv?: Array<string>) {
+interface StepOptions {
+	argv?: Array<string>;
+}
+
+export function startStatus(initialText: string, step?: StepOptions) {
 	const id = nextStatusId;
 	let text = initialText;
 
 	nextStatusId += 1;
-	emit({ ...(argv ? { argv } : {}), id, state: 'start', text, type: 'status' });
+	emit({
+		...(step ? { step: true } : {}),
+		...(step?.argv ? { argv: step.argv } : {}),
+		id,
+		state: 'start',
+		text,
+		type: 'status',
+	});
 
 	function finish(state: 'fail' | 'stop' | 'succeed' | 'warn', finalText?: string) {
 		text = finalText ?? text;

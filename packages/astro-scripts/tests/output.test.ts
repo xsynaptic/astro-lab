@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { captureOutput, configureOutput, log } from '../src/output/output.js';
+import { captureOutput, configureOutput, getOutputMode, log } from '../src/output/output.js';
 import { withSpinner } from '../src/output/progress.js';
 
 describe('captureOutput', () => {
@@ -33,5 +33,38 @@ describe('captureOutput', () => {
 		]);
 		expect(events[1]?.type === 'data' && events[1].render?.()).toBe('Missing 3');
 		expect(write).not.toHaveBeenCalled();
+	});
+});
+
+describe('output mode detection', () => {
+	const originalOutput = process.env.SCRIPTS_OUTPUT;
+	const { columns, isTTY } = process.stderr;
+
+	function setTerminal(width: number) {
+		Object.assign(process.stderr, { columns: width, isTTY: true });
+	}
+
+	afterEach(() => {
+		Object.assign(process.stderr, { columns, isTTY });
+
+		if (originalOutput === undefined) {
+			delete process.env.SCRIPTS_OUTPUT;
+		} else {
+			process.env.SCRIPTS_OUTPUT = originalOutput;
+		}
+
+		configureOutput();
+	});
+
+	test('falls back to plain on a terminal that reports no width', () => {
+		delete process.env.SCRIPTS_OUTPUT;
+
+		setTerminal(0);
+		configureOutput();
+		expect(getOutputMode()).toBe('plain');
+
+		setTerminal(120);
+		configureOutput();
+		expect(getOutputMode()).toBe('pretty');
 	});
 });

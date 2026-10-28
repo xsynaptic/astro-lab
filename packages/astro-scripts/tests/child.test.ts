@@ -11,6 +11,8 @@ import { captureOutput, configureOutput } from '../src/output/output.js';
 type ChildOutputEvent = Extract<OutputEvent, { type: 'output' }>;
 
 const fixturePath = fileURLToPath(new URL('fixtures/run-child.ts', import.meta.url));
+const nestedCommandPath = fileURLToPath(new URL('fixtures/nested-command.ts', import.meta.url));
+const originalOutput = process.env.SCRIPTS_OUTPUT;
 
 function node(script: string): [string, ...Array<string>] {
 	return [process.execPath, '-e', script];
@@ -43,6 +45,12 @@ async function captureFailure(task: () => Promise<void>) {
 }
 
 afterEach(() => {
+	if (originalOutput === undefined) {
+		delete process.env.SCRIPTS_OUTPUT;
+	} else {
+		process.env.SCRIPTS_OUTPUT = originalOutput;
+	}
+
 	configureOutput();
 });
 
@@ -89,6 +97,40 @@ describe('runChild in json mode', () => {
 	});
 });
 
+describe('runChild running a nested command', () => {
+	const argv: [string, ...Array<string>] = [
+		process.execPath,
+		'--import',
+		'jiti/register',
+		nestedCommandPath,
+	];
+
+	test('relays its data as a typed event under json', async () => {
+		process.env.SCRIPTS_OUTPUT = 'json';
+		configureOutput('json');
+
+		const { events } = await captureOutput(() => runChild('Generating placeholders', argv));
+		const nested = events.flatMap((event) =>
+			event.type === 'nested' ? [JSON.parse(event.line) as Record<string, unknown>] : [],
+		);
+
+		expect(outputs(events)).toEqual([]);
+		expect(nested.map((event) => event.type)).toEqual(['start', 'data', 'end']);
+		expect(nested[1]).toMatchObject({ command: 'lqip', value: { generated: 2 } });
+	});
+
+	test("prints neither its title nor its footer under the parent's step", async () => {
+		process.env.SCRIPTS_OUTPUT = 'plain';
+		configureOutput('plain');
+
+		const { events } = await captureOutput(() =>
+			runChild('Generating placeholders', argv, { filter: () => true }),
+		);
+
+		expect(outputs(events).map((event) => event.text)).toEqual(['{', '  "generated": 2', '}']);
+	});
+});
+
 describe('runChild with a filter', () => {
 	test('judges the line without colour, keeps its colour, and drops cursor movement', async () => {
 		configureOutput('pretty');
@@ -129,7 +171,9 @@ describe('runChild failures', () => {
 		expect(getFailureReport(error, { isAborted: false })).toEqual({
 			exitCode: 1,
 			isInterrupted: false,
-			message: 'Child process exited with code 3',
+			message: expect.stringMatching(
+				/^\S+ -e console\.error\("boom"\); process\.exit\(3\) exited with code 3$/,
+			),
 		});
 		expect(statuses(events).at(-1)).toMatchObject({ state: 'fail' });
 	});

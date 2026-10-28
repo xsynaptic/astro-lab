@@ -12,14 +12,21 @@ type CommandOption = ParseArgsOptionDescriptor & { description: string };
 type CommandOptions = Record<string, CommandOption>;
 
 interface CommandPositional {
+	choices?: ReadonlyArray<string>;
 	description: string;
 	name: string;
 	required?: boolean;
 }
 
+type PositionalValue<Positional> = Positional extends {
+	choices: ReadonlyArray<infer Choice extends string>;
+}
+	? Choice
+	: string;
+
 type Positionals<Positional> = [Positional] extends [{ required: true }]
-	? [string, ...Array<string>]
-	: Array<string>;
+	? [PositionalValue<Positional>, ...Array<PositionalValue<Positional>>]
+	: Array<PositionalValue<Positional>>;
 
 type ParsedValues<Options extends CommandOptions> = ReturnType<
 	typeof parseArgs<{ allowPositionals: true; options: Options; strict: true }>
@@ -70,6 +77,7 @@ interface FailureReport {
 }
 
 const interruptedExitCode = 130;
+const helpWidth = 100;
 const interruptBurstMs = 1000;
 const stderrTailLines = 20;
 
@@ -88,6 +96,12 @@ const builtInOptions: Array<[string, CommandOption]> = [
 	['json', jsonOption],
 	['help', helpOption],
 ];
+
+let activeSignal: AbortSignal | undefined;
+
+export function getCommandSignal() {
+	return activeSignal;
+}
 
 export function parseNumberOption(value: string, name: string) {
 	const parsed = Number(value);
@@ -114,6 +128,27 @@ function getOptionLabel(name: string, option: CommandOption) {
 	return option.type === 'string' ? `${flag} <value>` : flag;
 }
 
+function wrapList(items: ReadonlyArray<string>, width: number) {
+	const lines: Array<string> = [];
+	let line = '';
+
+	for (const item of items) {
+		const next = line === '' ? item : `${line}, ${item}`;
+
+		if (line !== '' && next.length > width) {
+			lines.push(`${line},`);
+			line = item;
+			continue;
+		}
+
+		line = next;
+	}
+
+	if (line !== '') lines.push(line);
+
+	return lines;
+}
+
 function getOptionDescription(option: CommandOption) {
 	const { default: defaultValue, description } = option;
 
@@ -130,11 +165,16 @@ export function formatHelp(command: CommandDescription, usagePrefix = 'pnpm') {
 		getOptionDescription(option),
 	]);
 
-	if (command.positional) {
-		rows.unshift([command.positional.name, command.positional.description]);
-	}
+	const { positional } = command;
+
+	if (positional) rows.unshift([positional.name, positional.description]);
 
 	const width = Math.max(...rows.map(([label]) => label.length)) + 2;
+	const choiceRows = wrapList(positional?.choices ?? [], helpWidth - width - 2).map(
+		(line): [string, string] => ['', line],
+	);
+
+	rows.splice(1, 0, ...choiceRows);
 
 	return [
 		chalk.magenta(command.title),
@@ -177,6 +217,9 @@ function describeError(error: unknown): Pick<FailureReport, 'detail' | 'message'
 
 		return typeof detail === 'string' && detail !== '' ? { detail, message } : { message };
 	}
+
+	if (error instanceof Error && error.name === 'ChildProcessError')
+		return { message: error.message };
 
 	if (isChildProcessFailure(error)) {
 		const reason = error.signal
@@ -226,8 +269,22 @@ function parseCommandArgs(command: CommandDescription) {
 
 	const { positional } = command;
 
-	if (positional?.required && parsed.positionals.length === 0 && !parsed.values.help) {
+	if (!positional || parsed.values.help) return parsed;
+
+	if (positional.required && parsed.positionals.length === 0) {
 		throw new UserError(`Missing <${positional.name}>`, { detail: 'See --help' });
+	}
+
+	const { choices } = positional;
+
+	if (!choices) return parsed;
+
+	const unknown = parsed.positionals.find((value) => !choices.includes(value));
+
+	if (unknown !== undefined) {
+		throw new UserError(`Unknown ${positional.name} "${unknown}"`, {
+			detail: `Expected one of: ${choices.join(', ')}`,
+		});
 	}
 
 	return parsed;
@@ -299,7 +356,10 @@ export function createCommandRunner<Context extends object = object>(
 		process.on('SIGINT', onInterrupt);
 		process.on('SIGTERM', onInterrupt);
 
+		const previousSignal = activeSignal;
 		let hasStarted = false;
+
+		activeSignal = controller.signal;
 
 		try {
 			const { positionals, values } = parseCommandArgs(command);
@@ -348,6 +408,7 @@ export function createCommandRunner<Context extends object = object>(
 
 			process.exitCode = report.exitCode;
 		} finally {
+			activeSignal = previousSignal;
 			process.off('SIGINT', onInterrupt);
 			process.off('SIGTERM', onInterrupt);
 		}

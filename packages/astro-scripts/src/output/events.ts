@@ -25,6 +25,7 @@ interface StatusEvent {
 	argv?: Array<string>;
 	id: number;
 	state: StatusState;
+	step?: true;
 	text: string;
 	type: 'status';
 }

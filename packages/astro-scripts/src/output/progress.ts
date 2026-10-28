@@ -1,6 +1,6 @@
 import type { ProgressSnapshot } from './format.js';
 
-import { formatProgressText } from './format.js';
+import { formatDuration, formatProgressText } from './format.js';
 import { createStatus, emit, startStatus } from './output.js';
 
 export interface Progress {
@@ -111,6 +111,34 @@ export async function withStatus<Result>(text: string, task: () => Promise<Resul
 	status.stop();
 
 	return result;
+}
+
+export async function runStep<Result>(
+	text: string,
+	task: (id: number) => Promise<Result>,
+	argv?: Array<string>,
+) {
+	const { id, status } = startStatus(text, argv ? { argv } : {});
+	const startTime = Date.now();
+
+	function finalText() {
+		return `${text} · ${formatDuration(Date.now() - startTime)}`;
+	}
+
+	try {
+		const result = await task(id);
+
+		status.succeed(finalText());
+
+		return result;
+	} catch (error) {
+		status.fail(finalText());
+		throw error;
+	}
+}
+
+export async function withStep<Result>(text: string, task: () => Promise<Result>) {
+	return runStep(text, task);
 }
 
 export async function withSpinner<Result>(

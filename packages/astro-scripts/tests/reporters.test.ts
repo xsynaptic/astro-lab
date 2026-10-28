@@ -292,7 +292,14 @@ describe('pretty reporter on a terminal', () => {
 
 		harness.emit(
 			{ id: 1, state: 'start', text: 'Deploying', type: 'status' },
-			{ argv: ['pnpm', 'astro', 'build'], id: 2, state: 'start', text: 'Building', type: 'status' },
+			{
+				argv: ['pnpm', 'astro', 'build'],
+				id: 2,
+				state: 'start',
+				step: true,
+				text: 'Building',
+				type: 'status',
+			},
 			{ id: 2, stream: 'stdout', text: 'built 3 pages', type: 'output' },
 			{ id: 2, state: 'succeed', text: 'Building · 3.0s', type: 'status' },
 		);
@@ -309,11 +316,36 @@ describe('pretty reporter on a terminal', () => {
 		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
 	});
 
+	test('heads an in-process step over its inner spinner and closes it after', () => {
+		const harness = createTerminalHarness({ isStdoutTerminal: false });
+
+		harness.emit(
+			{ id: 1, state: 'start', step: true, text: 'Sitemap lastmod', type: 'status' },
+			{ id: 2, state: 'start', text: 'Reading git', type: 'status' },
+			{ id: 2, state: 'succeed', text: 'Read 40 dates', type: 'status' },
+			{ id: 1, state: 'succeed', text: 'Sitemap lastmod · 1.2s', type: 'status' },
+		);
+
+		expect(harness.transcript.filter((line) => !line.endsWith('clear'))).toEqual([
+			'stderr: Sitemap lastmod',
+			spinnerFrame('Reading git'),
+			'stderr: ✓ Read 40 dates',
+			'stderr: ✓ Sitemap lastmod · 1.2s',
+		]);
+	});
+
 	test('marks a child step failed when the run ends inside it', () => {
 		const harness = createTerminalHarness({ isStdoutTerminal: false });
 
 		harness.emit(
-			{ argv: ['pnpm', 'astro', 'build'], id: 1, state: 'start', text: 'Building', type: 'status' },
+			{
+				argv: ['pnpm', 'astro', 'build'],
+				id: 1,
+				state: 'start',
+				step: true,
+				text: 'Building',
+				type: 'status',
+			},
 			{
 				durationMs: 1,
 				exitCode: 130,
@@ -337,7 +369,14 @@ describe('plain reporter', () => {
 		const harness = createHarness(createPlainReporter);
 
 		harness.emit(
-			{ argv: ['pnpm', 'astro', 'build'], id: 1, state: 'start', text: 'Building', type: 'status' },
+			{
+				argv: ['pnpm', 'astro', 'build'],
+				id: 1,
+				state: 'start',
+				step: true,
+				text: 'Building',
+				type: 'status',
+			},
 			{ id: 1, stream: 'stdout', text: '\u{1B}[32mbuilt\u{1B}[39m', type: 'output' },
 			{ id: 1, state: 'succeed', text: 'Building · 3.0s', type: 'status' },
 		);
@@ -361,7 +400,7 @@ describe('plain reporter', () => {
 
 	test('prints progress once every ten seconds', () => {
 		const clock = createClock();
-		const harness = createHarness((streams) => createPlainReporter(streams, clock.now));
+		const harness = createHarness((streams) => createPlainReporter(streams, { now: clock.now }));
 
 		harness.emit({ id: 1, state: 'start', text: 'Rendering 0 / 100 (0%)', type: 'status' });
 
@@ -411,6 +450,45 @@ describe('plain reporter', () => {
 function parse(lines: Array<string>) {
 	return lines.map((line) => JSON.parse(line) as Record<string, unknown>);
 }
+
+describe.each([
+	['pretty', createPrettyReporter],
+	['plain', createPlainReporter],
+] as const)('%s reporter under runChild', (_name, createReporter) => {
+	function createNestedHarness() {
+		return createHarness((streams) => createReporter(streams, { isNested: true }));
+	}
+
+	test("leaves the title and a successful run's footer to the parent's step line", () => {
+		const harness = createNestedHarness();
+
+		harness.emit(
+			{ title: 'Validate content', type: 'start' },
+			{ level: 'success', text: '18 checks passed', type: 'message' },
+			{ durationMs: 6200, exitCode: 0, status: 'ok', type: 'end' },
+		);
+
+		expect(harness.stderr()).toEqual(['✓ 18 checks passed']);
+	});
+
+	test('still reports why a run failed', () => {
+		const harness = createNestedHarness();
+
+		harness.emit(
+			{ title: 'Validate content', type: 'start' },
+			{
+				detail: 'See --help',
+				durationMs: 1,
+				exitCode: 1,
+				message: 'Missing <id>',
+				status: 'failed',
+				type: 'end',
+			},
+		);
+
+		expect(harness.stderr()).toEqual(['✗ Missing <id>', '  See --help']);
+	});
+});
 
 describe('json reporter', () => {
 	test('wraps child lines with their step and stream, and relays nested events verbatim', () => {
@@ -516,5 +594,18 @@ describe('json reporter', () => {
 		expect(harness.stdout()).toEqual(['{"missing":2}']);
 		expect(harness.stderr()).toEqual([]);
 		expect(render).not.toHaveBeenCalled();
+	});
+
+	test("puts a nested command's data on the event stream, leaving stdout to the parent", () => {
+		const harness = createHarness((streams) =>
+			createJsonReporter(streams, { command: 'lqip', isNested: true, now: () => 0 }),
+		);
+
+		harness.emit({ render: () => 'Generated 0', type: 'data', value: { generated: 0 } });
+
+		expect(harness.stdout()).toEqual([]);
+		expect(harness.stderr()).toEqual([
+			'{"type":"data","command":"lqip","time":"1970-01-01T00:00:00.000Z","value":{"generated":0}}',
+		]);
 	});
 });

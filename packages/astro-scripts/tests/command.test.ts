@@ -1,7 +1,8 @@
 import { stripVTControlCharacters } from 'node:util';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { ProcessOutput } from 'zx';
 
+import { runChild } from '../src/child.js';
 import {
 	createCommandRunner,
 	formatHelp,
@@ -134,6 +135,21 @@ describe('formatHelp', () => {
 			['--json', 'Print output as JSON lines'],
 			['-h, --help', 'Show this help'],
 		]);
+	});
+
+	test('lists allowed values under the positional, wrapped to the help width', () => {
+		const checks = Array.from({ length: 12 }, (_, index) => `check-number-${String(index)}`);
+		const lines = stripVTControlCharacters(
+			formatHelp({ ...command, positional: { ...command.positional, choices: checks } }),
+		).split('\n');
+		const choiceLines = lines.slice(
+			6,
+			lines.indexOf(lines.find((line) => line.includes('--clear-cache')) ?? ''),
+		);
+
+		expect(choiceLines.length).toBeGreaterThan(1);
+		expect(choiceLines.every((line) => line.length <= 100)).toBe(true);
+		expect(choiceLines.join(' ').split(/,?\s+/).filter(Boolean)).toEqual(checks);
 	});
 });
 
@@ -289,6 +305,86 @@ describe('runCommand', () => {
 		expect(stripVTControlCharacters(stdout.join(''))).toContain(
 			'Usage: pnpm comments-delete <id> [options]',
 		);
+	});
+
+	test('refuses a value outside the choices before the context loads', async () => {
+		const createContext = vi.fn(() => ({}));
+		const checks: Array<string> = [];
+		const { runCommand } = createCommandRunner({ context: createContext });
+		const command = {
+			name: 'validate-content',
+			positional: { choices: ['entry-ids', 'images'], description: 'One check', name: 'check' },
+			run: ({ positionals }: { positionals: Array<'entry-ids' | 'images'> }) => {
+				checks.push(...positionals);
+			},
+			summary: 'Validate content',
+			title: 'Validate',
+		} as const;
+
+		setArgs('imgaes');
+		await runCommand(command);
+
+		expect(createContext).not.toHaveBeenCalled();
+		expect(readEvents().at(-1)).toMatchObject({
+			detail: 'Expected one of: entry-ids, images',
+			message: 'Unknown check "imgaes"',
+			status: 'failed',
+		});
+
+		setArgs('images');
+		await runCommand(command);
+
+		expect(checks).toEqual(['images']);
+	});
+
+	test('types positionals as the declared choices', async () => {
+		const { runCommand } = createCommandRunner();
+
+		setArgs();
+		await runCommand({
+			name: 'validate-content',
+			positional: { choices: ['entry-ids', 'images'], description: 'One check', name: 'check' },
+			run: ({ positionals }) => {
+				expectTypeOf(positionals).toEqualTypeOf<Array<'entry-ids' | 'images'>>();
+			},
+			summary: 'Validate content',
+			title: 'Validate',
+		});
+	});
+
+	test('stops a child on interrupt without the command passing its signal', async () => {
+		const { runCommand } = createCommandRunner();
+
+		setArgs();
+		await runCommand({
+			name: 'deploy-site',
+			run: async () => {
+				await runChild(
+					'Waiting',
+					[
+						process.execPath,
+						'-e',
+						'process.on("SIGTERM", () => { console.log("stopped"); process.exit(130); }); console.log("ready"); setInterval(() => {}, 1000)',
+					],
+					{
+						filter: (line) => {
+							if (line === 'ready') process.emit('SIGINT');
+							return true;
+						},
+					},
+				);
+			},
+			summary: 'Deploy',
+			title: 'Deploy',
+		});
+
+		const events = readEvents();
+
+		expect(events.filter((event) => event.type === 'output').map((event) => event.text)).toEqual([
+			'ready',
+			'stopped',
+		]);
+		expect(events.at(-1)).toMatchObject({ status: 'interrupted', type: 'end' });
 	});
 
 	test('refuses an unknown SCRIPTS_OUTPUT rather than guessing', async () => {

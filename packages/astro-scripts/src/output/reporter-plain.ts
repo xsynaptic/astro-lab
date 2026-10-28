@@ -12,6 +12,11 @@ import {
 	plainPalette,
 } from './human-format.js';
 
+interface PlainReporterOptions {
+	isNested?: boolean;
+	now?: () => number;
+}
+
 interface OpenStatus {
 	lastPrint: number;
 	text: string;
@@ -21,7 +26,7 @@ const progressIntervalMs = 10_000;
 
 export function createPlainReporter(
 	{ stderr, stdout }: ReporterStreams,
-	now: () => number = Date.now,
+	{ isNested = false, now = Date.now }: PlainReporterOptions = {},
 ): Reporter {
 	type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
 
@@ -82,6 +87,8 @@ export function createPlainReporter(
 					statuses.clear();
 					openIds.length = 0;
 
+					if (isNested && event.status === 'ok') break;
+
 					for (const line of formatEnd(event, plainPalette)) writeLine(line);
 					break;
 				}
@@ -108,6 +115,8 @@ export function createPlainReporter(
 					break;
 				}
 				case 'start': {
+					if (isNested) break;
+
 					writeLine(formatMessage('title', event.title, plainPalette));
 					break;
 				}

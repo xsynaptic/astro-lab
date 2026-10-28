@@ -32,7 +32,7 @@ Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`: e
 
 `withAstroModules` and `withAstroContent` need a content store written by `astro sync`.
 
-`runChild` runs a child process as a step. The child writes straight to stderr, except under `--json` or a `filter`, where each line becomes an `output` event.
+`runChild` runs a child process as a step, and `withStep` runs in-process work as one. The child writes straight to stderr, except under `--json` or a `filter`, where each line becomes an `output` event; a nested command's `log.data` arrives as a `data` event.
 
 ## License
 

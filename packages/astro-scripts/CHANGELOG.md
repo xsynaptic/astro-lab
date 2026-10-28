@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.7.0
+
+### Minor Changes
+
+- Add `withStep` and positional `choices`; `runChild` defaults to the command's signal, nested commands skip their title and footer, nested `log.data` arrives as a `data` event, a failed child names its command, and a zero-width terminal renders `plain`.
+
 ## 0.6.0
 
 ### Minor Changes

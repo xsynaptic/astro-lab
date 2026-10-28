@@ -7,8 +7,9 @@ import { stripVTControlCharacters } from 'node:util';
 
 import type { OutputStream } from './output/events.js';
 
-import { formatDuration } from './output/format.js';
-import { emit, getOutputMode, startStatus } from './output/output.js';
+import { getCommandSignal } from './command.js';
+import { emit, getOutputMode } from './output/output.js';
+import { runStep } from './output/progress.js';
 
 interface RunChildOptions {
 	cwd?: string;
@@ -33,6 +34,7 @@ class ChildProcessError extends Error {
 }
 
 const eventTypes = new Set<unknown>([
+	'data',
 	'end',
 	'message',
 	'output',
@@ -76,21 +78,22 @@ async function relayLines(
 	for await (const line of lines) onLine(line, stream);
 }
 
-export async function runChild(
-	text: string,
+async function spawnChild(
+	id: number,
 	argv: [string, ...Array<string>],
-	{ cwd, filter, signal }: RunChildOptions = {},
+	{ cwd, filter }: RunChildOptions,
+	signal: AbortSignal | undefined,
 ) {
-	signal?.throwIfAborted();
-
 	const mode = getOutputMode();
 	const isPiped = mode === 'json' || filter !== undefined;
-	const { id, status } = startStatus(text, argv);
-	const startTime = Date.now();
 	const [file, ...args] = argv;
 	const child = spawn(file, args, {
 		cwd,
-		env: isPiped && mode === 'pretty' ? { ...process.env, FORCE_COLOR: '1' } : process.env,
+		env: {
+			...process.env,
+			...(isPiped && mode === 'pretty' ? { FORCE_COLOR: '1' } : {}),
+			SCRIPTS_NESTED: '1',
+		},
 		stdio: isPiped ? ['inherit', 'pipe', 'pipe'] : ['inherit', 2, 2],
 	});
 
@@ -109,10 +112,6 @@ export async function runChild(
 		child.kill('SIGTERM');
 	}
 
-	function finalText() {
-		return `${text} · ${formatDuration(Date.now() - startTime)}`;
-	}
-
 	signal?.addEventListener('abort', onAbort, { once: true });
 
 	const relays = [
@@ -127,12 +126,19 @@ export async function runChild(
 		])) as [unknown, [null | number, ExitSignal]];
 
 		if (exitCode !== 0) throw new ChildProcessError(argv, exitCode, exitSignal);
-
-		status.succeed(finalText());
-	} catch (error) {
-		status.fail(finalText());
-		throw error;
 	} finally {
 		signal?.removeEventListener('abort', onAbort);
 	}
+}
+
+export async function runChild(
+	text: string,
+	argv: [string, ...Array<string>],
+	options: RunChildOptions = {},
+) {
+	const signal = options.signal ?? getCommandSignal();
+
+	signal?.throwIfAborted();
+
+	await runStep(text, (id) => spawnChild(id, argv, options, signal), argv);
 }

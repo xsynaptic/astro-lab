@@ -14,15 +14,23 @@ import {
 	getStateSymbol,
 } from './human-format.js';
 
+interface PrettyReporterOptions {
+	isNested?: boolean;
+}
+
 function isTerminal(stream: NodeJS.WritableStream) {
 	return 'isTTY' in stream && stream.isTTY === true;
 }
 
-export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Reporter {
+export function createPrettyReporter(
+	{ stderr, stdout }: ReporterStreams,
+	{ isNested = false }: PrettyReporterOptions = {},
+): Reporter {
+	type EndEvent = Extract<OutputEvent, { type: 'end' }>;
 	type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
 
 	const spinners = new Map<number, Ora>();
-	const childTexts = new Map<number, string>();
+	const stepTexts = new Map<number, string>();
 	const openIds: Array<number> = [];
 
 	function getActiveSpinner() {
@@ -58,8 +66,8 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 		if (wasActive && outer?.isEnabled) outer.start();
 	}
 
-	function endChild(id: number, state: Exclude<StatusState, 'start' | 'update'>, text: string) {
-		childTexts.delete(id);
+	function endStep(id: number, state: Exclude<StatusState, 'start' | 'update'>, text: string) {
+		stepTexts.delete(id);
 
 		if (state !== 'stop') writeLine(`${getStateSymbol(state, chalk)} ${text}`);
 
@@ -81,10 +89,10 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 		closeStatus(id);
 	}
 
-	function onStatus({ argv, id, state, text }: StatusEvent) {
-		if (state === 'start' && argv) {
+	function onStatus({ id, state, step, text }: StatusEvent) {
+		if (state === 'start' && step) {
 			getActiveSpinner()?.stop();
-			childTexts.set(id, text);
+			stepTexts.set(id, text);
 			openIds.push(id);
 			writeLine(formatMessage('step', text, chalk));
 			return;
@@ -105,12 +113,38 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 			return;
 		}
 
-		if (childTexts.has(id)) {
-			endChild(id, state, text);
+		if (stepTexts.has(id)) {
+			endStep(id, state, text);
 			return;
 		}
 
 		endSpinner(id, state, text);
+	}
+
+	function onEnd(event: EndEvent) {
+		const activeId = openIds.at(-1);
+		const active = getActiveSpinner();
+		const activeStep = activeId === undefined ? undefined : stepTexts.get(activeId);
+
+		if (active && activeId !== undefined && event.status !== 'ok') {
+			spinners.delete(activeId);
+			active.stopAndPersist({ symbol: getStateSymbol('fail', chalk), text: active.text });
+		}
+
+		if (activeStep !== undefined && event.status !== 'ok') {
+			writeLine(`${getStateSymbol('fail', chalk)} ${activeStep}`);
+		}
+
+		// An open spinner's render interval keeps the process alive
+		for (const spinner of spinners.values()) spinner.stop();
+
+		spinners.clear();
+		stepTexts.clear();
+		openIds.length = 0;
+
+		if (isNested && event.status === 'ok') return;
+
+		for (const line of formatEnd(event, chalk)) writeLine(line);
 	}
 
 	return {
@@ -127,27 +161,7 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 					break;
 				}
 				case 'end': {
-					const activeId = openIds.at(-1);
-					const active = getActiveSpinner();
-					const activeChild = activeId === undefined ? undefined : childTexts.get(activeId);
-
-					if (active && activeId !== undefined && event.status !== 'ok') {
-						spinners.delete(activeId);
-						active.stopAndPersist({ symbol: getStateSymbol('fail', chalk), text: active.text });
-					}
-
-					if (activeChild !== undefined && event.status !== 'ok') {
-						writeLine(`${getStateSymbol('fail', chalk)} ${activeChild}`);
-					}
-
-					// An open spinner's render interval keeps the process alive
-					for (const spinner of spinners.values()) spinner.stop();
-
-					spinners.clear();
-					childTexts.clear();
-					openIds.length = 0;
-
-					for (const line of formatEnd(event, chalk)) writeLine(line);
+					onEnd(event);
 					break;
 				}
 				case 'message': {
@@ -169,6 +183,8 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 					break;
 				}
 				case 'start': {
+					if (isNested) break;
+
 					writeLine(formatMessage('title', event.title, chalk));
 					break;
 				}
