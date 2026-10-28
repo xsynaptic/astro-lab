@@ -12,13 +12,6 @@ minimumReleaseAge: 1440
 verifyDepsBeforeRun: error
 strictDepBuilds: true
 
-minimumReleaseAgeExclude:
-  # Bypass the 24h guard while Astro 7 prereleases still churn
-  - 'astro'
-  - '@astrojs/*'
-  - '@bruits/*'
-  - 'satteri'
-
 allowBuilds:
   esbuild: true
   lefthook: true
