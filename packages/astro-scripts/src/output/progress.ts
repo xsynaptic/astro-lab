@@ -1,6 +1,6 @@
 import type { ProgressSnapshot } from './format.js';
 
-import { formatDuration, formatProgressText } from './format.js';
+import { formatProgressText } from './format.js';
 import { createStatus, emit, startStatus } from './output.js';
 
 export interface Progress {
@@ -8,6 +8,14 @@ export interface Progress {
 	succeed: (text?: string) => void;
 	tick: (count?: number) => void;
 	warn: (text?: string) => void;
+}
+
+export interface Step {
+	warn: () => void;
+}
+
+interface StepHandle extends Step {
+	id: number;
 }
 
 interface ProgressOptions {
@@ -115,29 +123,35 @@ export async function withStatus<Result>(text: string, task: () => Promise<Resul
 
 export async function runStep<Result>(
 	text: string,
-	task: (id: number) => Promise<Result>,
+	task: (step: StepHandle) => Promise<Result>,
 	argv?: Array<string>,
 ) {
-	const { id, status } = startStatus(text, argv ? { argv } : {});
+	const { id } = startStatus(text, argv ? { argv } : {});
 	const startTime = Date.now();
+	let closingState: 'succeed' | 'warn' = 'succeed';
 
-	function finalText() {
-		return `${text} · ${formatDuration(Date.now() - startTime)}`;
+	function close(state: 'fail' | 'succeed' | 'warn') {
+		emit({ durationMs: Date.now() - startTime, id, state, text, type: 'status' });
 	}
 
 	try {
-		const result = await task(id);
+		const result = await task({
+			id,
+			warn: () => {
+				closingState = 'warn';
+			},
+		});
 
-		status.succeed(finalText());
+		close(closingState);
 
 		return result;
 	} catch (error) {
-		status.fail(finalText());
+		close('fail');
 		throw error;
 	}
 }
 
-export async function withStep<Result>(text: string, task: () => Promise<Result>) {
+export async function withStep<Result>(text: string, task: (step: Step) => Promise<Result>) {
 	return runStep(text, task);
 }
 

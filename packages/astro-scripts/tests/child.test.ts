@@ -226,7 +226,7 @@ describe('runChild without a filter', () => {
 			'Echoing',
 			'child stdout',
 			'child stderr',
-			expect.stringMatching(/^✓ Echoing · \d+\.\ds$/),
+			expect.stringMatching(/^✓ Echoing · \d+(ms|\.\ds)$/),
 			'',
 		]);
 	});

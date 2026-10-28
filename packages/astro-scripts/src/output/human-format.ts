@@ -15,6 +15,8 @@ export interface Palette {
 
 type EndEvent = Extract<OutputEvent, { type: 'end' }>;
 
+type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
+
 type TerminalState = Exclude<StatusState, 'start' | 'stop' | 'update'>;
 
 function unpainted(text: string) {
@@ -35,6 +37,12 @@ export function getStateSymbol(state: TerminalState, palette: Palette) {
 	if (state === 'fail') return palette.red('✗');
 
 	return palette.yellow('⚠');
+}
+
+export function formatStatusText({ durationMs, text }: StatusEvent) {
+	if (durationMs === undefined) return text;
+
+	return `${text} · ${formatDuration(durationMs)}`;
 }
 
 export function formatMessage(level: MessageLevel, text: string, palette: Palette) {

@@ -301,7 +301,7 @@ describe('pretty reporter on a terminal', () => {
 				type: 'status',
 			},
 			{ id: 2, stream: 'stdout', text: 'built 3 pages', type: 'output' },
-			{ id: 2, state: 'succeed', text: 'Building · 3.0s', type: 'status' },
+			{ durationMs: 3000, id: 2, state: 'succeed', text: 'Building', type: 'status' },
 		);
 
 		const step = harness.transcript.indexOf('stderr: Building');
@@ -323,7 +323,7 @@ describe('pretty reporter on a terminal', () => {
 			{ id: 1, state: 'start', step: true, text: 'Sitemap lastmod', type: 'status' },
 			{ id: 2, state: 'start', text: 'Reading git', type: 'status' },
 			{ id: 2, state: 'succeed', text: 'Read 40 dates', type: 'status' },
-			{ id: 1, state: 'succeed', text: 'Sitemap lastmod · 1.2s', type: 'status' },
+			{ durationMs: 1200, id: 1, state: 'succeed', text: 'Sitemap lastmod', type: 'status' },
 		);
 
 		expect(harness.transcript.filter((line) => !line.endsWith('clear'))).toEqual([
@@ -378,7 +378,7 @@ describe('plain reporter', () => {
 				type: 'status',
 			},
 			{ id: 1, stream: 'stdout', text: '\u{1B}[32mbuilt\u{1B}[39m', type: 'output' },
-			{ id: 1, state: 'succeed', text: 'Building · 3.0s', type: 'status' },
+			{ durationMs: 3000, id: 1, state: 'succeed', text: 'Building', type: 'status' },
 		);
 
 		expect(harness.stderr()).toEqual(['Building', 'built', '✓ Building · 3.0s']);

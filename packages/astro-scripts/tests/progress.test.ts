@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { formatDuration, formatProgressText } from '../src/output/format.js';
 import { captureOutput } from '../src/output/output.js';
-import { createProgress, createRateWindow } from '../src/output/progress.js';
+import { createProgress, createRateWindow, withStep } from '../src/output/progress.js';
 
 describe('createProgress', () => {
 	test('reports the last tick even when the throttle swallowed it', async () => {
@@ -21,6 +21,24 @@ describe('createProgress', () => {
 
 		expect(progressDone).toEqual([1, 4]);
 		expect(statusTexts.at(-1)).toMatch(/^Rendering 4 \/ 4 \(100%\)/);
+	});
+});
+
+describe('withStep', () => {
+	test('closes as a warning when the task flags one, carrying the duration apart from the text', async () => {
+		const { events } = await captureOutput(() =>
+			withStep('Pulling stats', (step) => {
+				step.warn();
+
+				return Promise.resolve();
+			}),
+		);
+
+		expect(events.at(-1)).toMatchObject({
+			durationMs: expect.any(Number),
+			state: 'warn',
+			text: 'Pulling stats',
+		});
 	});
 });
 
@@ -86,5 +104,10 @@ describe('formatProgressText', () => {
 describe('formatDuration', () => {
 	test('carries rounded seconds into the minute', () => {
 		expect(formatDuration(119_600)).toBe('2m 00s');
+	});
+
+	test('counts milliseconds below a second', () => {
+		expect(formatDuration(12.4)).toBe('12ms');
+		expect(formatDuration(999.6)).toBe('1.0s');
 	});
 });

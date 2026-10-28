@@ -7,6 +7,7 @@ import {
 	formatData,
 	formatEnd,
 	formatMessage,
+	formatStatusText,
 	formatSummaryRows,
 	getStateSymbol,
 	plainPalette,
@@ -42,7 +43,9 @@ export function createPlainReporter(
 		openIds.splice(openIds.indexOf(id), 1);
 	}
 
-	function onStatus({ id, state, text }: StatusEvent) {
+	function onStatus(event: StatusEvent) {
+		const { id, state, text } = event;
+
 		if (state === 'start') {
 			statuses.set(id, { lastPrint: now(), text });
 			openIds.push(id);
@@ -59,7 +62,9 @@ export function createPlainReporter(
 			return;
 		}
 
-		if (state !== 'stop') writeLine(`${getStateSymbol(state, plainPalette)} ${text}`);
+		if (state !== 'stop') {
+			writeLine(`${getStateSymbol(state, plainPalette)} ${formatStatusText(event)}`);
+		}
 
 		closeStatus(id);
 	}

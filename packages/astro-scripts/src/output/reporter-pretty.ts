@@ -10,6 +10,7 @@ import {
 	formatData,
 	formatEnd,
 	formatMessage,
+	formatStatusText,
 	formatSummaryRows,
 	getStateSymbol,
 } from './human-format.js';
@@ -89,7 +90,9 @@ export function createPrettyReporter(
 		closeStatus(id);
 	}
 
-	function onStatus({ id, state, step, text }: StatusEvent) {
+	function onStatus(event: StatusEvent) {
+		const { id, state, step, text } = event;
+
 		if (state === 'start' && step) {
 			getActiveSpinner()?.stop();
 			stepTexts.set(id, text);
@@ -114,11 +117,11 @@ export function createPrettyReporter(
 		}
 
 		if (stepTexts.has(id)) {
-			endStep(id, state, text);
+			endStep(id, state, formatStatusText(event));
 			return;
 		}
 
-		endSpinner(id, state, text);
+		endSpinner(id, state, formatStatusText(event));
 	}
 
 	function onEnd(event: EndEvent) {

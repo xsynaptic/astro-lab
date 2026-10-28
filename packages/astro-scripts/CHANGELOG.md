@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.8.0
+
+### Minor Changes
+
+- Add `step.warn()` to `withStep`; a step's closing status carries `durationMs`, `runValidations` takes `(names, checks, { only })` and defaults to the command's signal, and durations under a second read in milliseconds.
+
 ## 0.7.0
 
 ### Minor Changes

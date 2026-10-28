@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 
+import { getCommandSignal } from './command.js';
 import { formatMessage } from './output/human-format.js';
 import { log } from './output/output.js';
 import { UserError } from './user-error.js';
@@ -27,18 +28,15 @@ export interface ValidationResult {
 	summary: string;
 }
 
-export interface Validation {
-	name: string;
-	run: () => Promise<ValidationResult> | ValidationResult;
-}
+export type ValidationCheck = () => Promise<ValidationResult> | ValidationResult;
 
 interface ValidationSummaries {
 	fail: string;
 	pass: string;
 }
 
-interface RunValidationsOptions {
-	only?: string | undefined;
+interface RunValidationsOptions<Name extends string> {
+	only?: Name | undefined;
 	signal?: AbortSignal;
 }
 
@@ -91,25 +89,18 @@ export function reportValidationResult(result: ValidationResult): void {
 	log.data(result, formatValidationResult);
 }
 
-export async function runValidations(
-	validations: Array<Validation>,
-	{ only, signal }: RunValidationsOptions = {},
+export async function runValidations<Name extends string>(
+	names: ReadonlyArray<Name>,
+	checks: Record<NoInfer<Name>, ValidationCheck>,
+	{ only, signal = getCommandSignal() }: RunValidationsOptions<NoInfer<Name>> = {},
 ): Promise<void> {
-	const selected =
-		only === undefined ? validations : validations.filter((validation) => validation.name === only);
-
-	if (only !== undefined && selected.length === 0) {
-		const names = validations.map((validation) => validation.name).join(', ');
-
-		throw new UserError(`Unknown check "${only}"; choose from ${names}`);
-	}
-
+	const selected = only === undefined ? names : [only];
 	let failureCount = 0;
 
-	for (const { name, run } of selected) {
+	for (const name of selected) {
 		signal?.throwIfAborted();
 
-		const result = await run();
+		const result = await checks[name]();
 
 		log.data({ name, ...result }, formatValidationResult);
 

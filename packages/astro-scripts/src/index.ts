@@ -13,7 +13,7 @@ export { formatBytes, formatCount, formatDuration, formatError } from './output/
 export { captureOutput, createStatus, getOutputMode, log } from './output/output.js';
 export type { OutputMode, Status } from './output/output.js';
 export { createProgress, withSpinner, withStatus, withStep } from './output/progress.js';
-export type { Progress } from './output/progress.js';
+export type { Progress, Step } from './output/progress.js';
 export { UserError } from './user-error.js';
 export {
 	reportValidationResult,
@@ -24,7 +24,7 @@ export {
 export type {
 	EntryReference,
 	ReferenceIssue,
-	Validation,
+	ValidationCheck,
 	ValidationIssue,
 	ValidationResult,
 } from './validation.js';

@@ -140,5 +140,5 @@ export async function runChild(
 
 	signal?.throwIfAborted();
 
-	await runStep(text, (id) => spawnChild(id, argv, options, signal), argv);
+	await runStep(text, ({ id }) => spawnChild(id, argv, options, signal), argv);
 }

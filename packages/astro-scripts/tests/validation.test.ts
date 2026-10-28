@@ -2,7 +2,7 @@ import { stripVTControlCharacters } from 'node:util';
 import { describe, expect, test } from 'vitest';
 
 import type { OutputEvent } from '../src/output/events.js';
-import type { Validation } from '../src/validation.js';
+import type { ValidationCheck } from '../src/validation.js';
 
 import { captureOutput } from '../src/output/output.js';
 import {
@@ -27,16 +27,10 @@ async function getRejection(task: () => Promise<unknown>) {
 	throw new Error('Expected the run to fail');
 }
 
-function passing(name: string): Validation {
-	return { name, run: () => ({ issues: [], status: 'pass', summary: `${name} ok` }) };
-}
+const passing: ValidationCheck = () => ({ issues: [], status: 'pass', summary: 'ok' });
 
-function failing(name: string): Validation {
-	return {
-		name,
-		run: () => Promise.resolve({ issues: [{ message: 'broken' }], status: 'fail', summary: name }),
-	};
-}
+const failing: ValidationCheck = () =>
+	Promise.resolve({ issues: [{ message: 'broken' }], status: 'fail', summary: 'broken' });
 
 describe('reportValidationResult', () => {
 	test('renders the pass summary, then any notes', async () => {
@@ -109,7 +103,11 @@ describe('runValidations', () => {
 	test('reports every check as named data, sync or async, and fails a full run on any failure', async () => {
 		const { events, result } = await captureOutput(() =>
 			getRejection(() =>
-				runValidations([passing('entry-ids'), failing('references'), passing('mdx')]),
+				runValidations(['entry-ids', 'references', 'mdx'] as const, {
+					'entry-ids': passing,
+					mdx: passing,
+					references: failing,
+				}),
 			),
 		);
 
@@ -125,32 +123,31 @@ describe('runValidations', () => {
 
 	test('runs one check by name for inspection without failing the run', async () => {
 		const { events } = await captureOutput(() =>
-			runValidations([passing('entry-ids'), failing('references')], { only: 'references' }),
+			runValidations(
+				['entry-ids', 'references'] as const,
+				{ 'entry-ids': passing, references: failing },
+				{ only: 'references' },
+			),
 		);
 
 		expect(events).toMatchObject([{ type: 'data', value: { name: 'references' } }]);
 	});
 
-	test('rejects an unknown check, naming the choices', async () => {
-		await expect(
-			runValidations([passing('entry-ids'), passing('mdx')], { only: 'mxd' }),
-		).rejects.toMatchObject({ message: 'Unknown check "mxd"; choose from entry-ids, mdx' });
-	});
-
 	test('stops between checks once the signal aborts', async () => {
 		const controller = new AbortController();
-		const stopping: Validation = {
-			name: 'entry-ids',
-			run: () => {
-				controller.abort();
+		const stopping: ValidationCheck = () => {
+			controller.abort();
 
-				return { issues: [], status: 'pass', summary: 'ok' };
-			},
+			return passing();
 		};
 
 		const { events, result } = await captureOutput(() =>
 			getRejection(() =>
-				runValidations([stopping, failing('references')], { signal: controller.signal }),
+				runValidations(
+					['entry-ids', 'references'] as const,
+					{ 'entry-ids': stopping, references: failing },
+					{ signal: controller.signal },
+				),
 			),
 		);
 

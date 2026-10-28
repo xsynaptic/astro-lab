@@ -23,6 +23,7 @@ interface MessageEvent {
 
 interface StatusEvent {
 	argv?: Array<string>;
+	durationMs?: number;
 	id: number;
 	state: StatusState;
 	step?: true;

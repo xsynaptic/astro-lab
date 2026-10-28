@@ -25,6 +25,10 @@ export function formatError(error: unknown) {
 }
 
 export function formatDuration(milliseconds: number) {
+	const rounded = Math.round(milliseconds);
+
+	if (rounded < 1000) return `${String(rounded)}ms`;
+
 	const seconds = milliseconds / 1000;
 
 	if (seconds < 60) return `${seconds.toFixed(1)}s`;

@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-scripts",
-	"version": "0.7.0",
+	"version": "0.8.0",
 	"description": "Plumbing for an Astro project's scripts package: a command runner, output with interchangeable reporters, and a bridge into Astro's content layer",
 	"type": "module",
 	"license": "MIT",
