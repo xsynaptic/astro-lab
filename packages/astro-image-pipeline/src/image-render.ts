@@ -5,7 +5,7 @@ import sharp from 'sharp';
 
 import type { ResolvedImageEncoding } from './image-encoding.js';
 import type { ImageFormat } from './image-name.js';
-import type { ImageDimensions } from './image-presets.js';
+import type { ImageDimensions } from './image-sizes.js';
 
 export const engineVersions = sharp.versions;
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { pipeline } from 'node:stream/promises';
 
-import type { ImageDimensions } from './image-presets.js';
+import type { ImageDimensions } from './image-sizes.js';
 
 import { readSourceSize } from './image-render.js';
 

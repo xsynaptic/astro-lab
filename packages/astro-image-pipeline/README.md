@@ -36,7 +36,7 @@ The pipeline owns everything in `cachePath`, so keep other files out of it.
 
 ## Rules
 
-Only names made with `getName` (or `getCardName` for OpenGraph cards) during a build get rendered.
+Only names made with `getSizedName` (or `getCardName` for OpenGraph cards) during a build get rendered.
 
 - Make image URLs while pages render, or in prerendered endpoints.
 - Don't make them in content loaders (a cached run records nothing) or in on-demand routes.

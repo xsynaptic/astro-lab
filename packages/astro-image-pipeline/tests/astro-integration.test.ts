@@ -6,18 +6,20 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { RenditionSize } from '../src/image-sizes.js';
+
 import imagePipeline from '../src/astro-integration.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
-import { defineImagePipeline } from '../src/image-presets.js';
 import { imageRecordsVariable } from '../src/image-recorder.js';
+import { defineImagePipeline } from '../src/image-sizes.js';
 import { readManifest } from '../src/image-state.js';
 import { defineOpenGraphCards } from '../src/open-graph-cards.js';
 
 type Hooks = AstroIntegration['hooks'];
 
-const pipeline = defineImagePipeline({
-	presets: { card: { aspectRatio: 3 / 2, fit: 'cover', format: 'webp', widths: [600] } },
-});
+const pipeline = defineImagePipeline({});
+
+const cardSize = { format: 'webp', height: 400, width: 600 } satisfies RenditionSize;
 
 const openGraphCards = defineOpenGraphCards({ format: 'jpg' });
 
@@ -79,12 +81,11 @@ describe('imagePipeline recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
-		pipeline.getName(
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		pipeline.getSizedName(
 			{ height: 1000, id: 'c.jpg', path: 'elsewhere/c.jpg', width: 1500 },
-			'card',
-			600,
+			cardSize,
 		);
 		await finishBuild(hooks);
 
@@ -98,7 +99,7 @@ describe('imagePipeline recording', () => {
 		expect(process.env[imageRecordsVariable]).toBeUndefined();
 	});
 
-	test('sized names enter the manifest beside preset names', async () => {
+	test('width-only names enter the manifest beside cropped ones', async () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
@@ -124,8 +125,8 @@ describe('imagePipeline recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
-		pipeline.getName({ height: 1000, id: 'a/b.png', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.png', width: 1500 }, cardSize);
 
 		await expect(finishBuild(hooks)).rejects.toThrow(/recorded from more than one source/);
 		expect(existsSync(path.join(root, 'records'))).toBe(true);
@@ -144,7 +145,7 @@ describe('imagePipeline recording', () => {
 		const full = createIntegration();
 
 		await startBuild(full.hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		await finishBuild(full.hooks);
 
 		const incremental = createIntegration();
@@ -161,13 +162,13 @@ describe('imagePipeline recording', () => {
 		const first = createIntegration();
 
 		await startBuild(first.hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		await finishBuild(first.hooks);
 
 		const second = createIntegration();
 
 		await startBuild(second.hooks);
-		pipeline.getName({ height: 1000, id: 'c.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'c.jpg', width: 1500 }, cardSize);
 		await finishBuild(second.hooks);
 
 		const manifest = await readManifest(root);
@@ -176,7 +177,7 @@ describe('imagePipeline recording', () => {
 	});
 
 	test('nothing is recorded outside a build', () => {
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 
 		expect(existsSync(path.join(root, 'records'))).toBe(false);
 	});
@@ -187,7 +188,7 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		openGraphCards.getCardName({
 			id: 'posts-a',
 			image: { id: 'a/b.jpg' },
@@ -231,7 +232,7 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		openGraphCards.getCardName({ id: 'posts-a', input: { title: 'A' } });
 		openGraphCards.getCardName({ id: 'posts-a', input: { title: 'B' } });
 
@@ -244,7 +245,7 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const { hooks } = createIntegration();
 
 		await startBuild(hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		openGraphCards.getCardName({ id: 'posts-a', image: { id: 'a/b.jpg' }, input: { title: 'A' } });
 		openGraphCards.getCardName({
 			id: 'posts-a',
@@ -259,7 +260,7 @@ describe('imagePipeline OpenGraph card recording', () => {
 		const full = createIntegration();
 
 		await startBuild(full.hooks);
-		pipeline.getName({ height: 1000, id: 'a/b.jpg', width: 1500 }, 'card', 600);
+		pipeline.getSizedName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
 		openGraphCards.getCardName({ id: 'posts-a', input: { title: 'A' } });
 		await finishBuild(full.hooks);
 
