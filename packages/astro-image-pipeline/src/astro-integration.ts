@@ -28,7 +28,7 @@ import {
 import { UserError } from './user-error.js';
 
 export type { ImageEncoding } from './image-encoding.js';
-export type { ImagePlaceholderOptions, PlaceholderRecipe } from './image-placeholders.js';
+export type { ImagePlaceholderOptions, ImagePlaceholderRecipe } from './image-placeholders.js';
 export type { ImageSourceResolver } from './image-sources.js';
 export { createDirectorySources } from './image-sources.js';
 
@@ -196,6 +196,14 @@ export default function imagePipeline({
 	const absoluteMediaPath = path.resolve(mediaPath);
 	const resolvedEncoding = resolveImageEncoding(encoding);
 	const absoluteCachePath = path.resolve(cachePath);
+	const placeholderVariable =
+		placeholders &&
+		JSON.stringify({
+			...placeholders,
+			cachePath: absoluteCachePath,
+			limitInputPixels,
+			mediaPath: absoluteMediaPath,
+		} satisfies PlaceholderConfig);
 	const { devPath, recordsPath, renditionsPath } = getImageCachePaths(absoluteCachePath);
 	let isIncremental = false;
 	let buildRecordsPath = recordsPath;
@@ -230,14 +238,10 @@ export default function imagePipeline({
 				}
 			},
 			'astro:config:setup': async ({ command, config }) => {
-				if (placeholders) {
-					process.env[imagePlaceholdersVariable] = JSON.stringify({
-						...placeholders,
-						cachePath: absoluteCachePath,
-						limitInputPixels,
-						mediaPath: absoluteMediaPath,
-					} satisfies PlaceholderConfig);
-				}
+				// Dev restarts reuse the process; a removed option must clear the old config
+				Reflect.deleteProperty(process.env, imagePlaceholdersVariable);
+
+				if (placeholderVariable) process.env[imagePlaceholdersVariable] = placeholderVariable;
 
 				if (command !== 'build') return;
 

@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.7.0
+
+### Minor Changes
+
+- `getPlaceholder(source, { pixels?, size? })` validates both and names the image; `PlaceholderSize` is now `ImagePlaceholderRequest` and `PlaceholderRecipe` is now `ImagePlaceholderRecipe`. Delete `<cachePath>/placeholders.sqlite`.
+
 ## 0.6.0
 
 ### Minor Changes

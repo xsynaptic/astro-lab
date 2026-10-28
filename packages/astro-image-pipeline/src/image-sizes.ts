@@ -19,11 +19,15 @@ export function getSourcePath({ id, path = id }: ImageSourceReference) {
 	return path;
 }
 
-function isWholeSize({ height = 1, width }: ImageSize) {
-	return [width, height].every((value) => Number.isSafeInteger(value) && value > 0);
+export function isPixelCount(value: unknown) {
+	return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
 }
 
-function formatSize({ height, width }: ImageSize) {
+export function isWholeSize({ height = 1, width }: ImageSize) {
+	return isPixelCount(width) && isPixelCount(height);
+}
+
+export function formatSize({ height, width }: ImageSize) {
 	return height === undefined ? `${String(width)} wide` : `${String(width)}x${String(height)}`;
 }
 

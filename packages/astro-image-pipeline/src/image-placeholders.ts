@@ -10,7 +10,7 @@ import type { ImageDimensions, ImageSource } from './image-sizes.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { openImageSource } from './image-render.js';
-import { getSourcePath } from './image-sizes.js';
+import { formatSize, getSourcePath, isPixelCount, isWholeSize } from './image-sizes.js';
 import { getImageCachePaths } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
@@ -25,11 +25,11 @@ const placeholderRecipes = {
 	mosaic: (image: Sharp) => image.modulate({ saturation: 1.2 }).webp({ quality: 10 }),
 } as const satisfies Record<string, (image: Sharp) => Sharp>;
 
-export type PlaceholderRecipe = keyof typeof placeholderRecipes;
+export type ImagePlaceholderRecipe = keyof typeof placeholderRecipes;
 
 export interface ImagePlaceholderOptions {
 	pixels: number;
-	recipe: PlaceholderRecipe;
+	recipe: ImagePlaceholderRecipe;
 }
 
 export interface PlaceholderConfig extends ImagePlaceholderOptions {
@@ -38,24 +38,23 @@ export interface PlaceholderConfig extends ImagePlaceholderOptions {
 	mediaPath: string;
 }
 
-export interface PlaceholderSize extends ImageSize {
+export interface ImagePlaceholderRequest {
 	pixels?: number;
+	size?: ImageSize;
 }
 
 interface PlaceholderStore {
+	close(): void;
 	config: PlaceholderConfig;
 	fingerprints: SourceFingerprints;
 	inFlight: Map<string, Promise<string | undefined>>;
-	read(key: string): undefined | { dataUrl?: string };
+	// `null` caches a source that has no placeholder
+	read(key: string): null | string | undefined;
 	variable: string;
-	write(key: string, dataUrl?: string): void;
+	write(key: string, dataUrl: string | undefined): void;
 }
 
 let store: PlaceholderStore | undefined;
-
-function isPixelCount(value: unknown) {
-	return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
-}
 
 export function validatePlaceholderOptions({ pixels, recipe }: ImagePlaceholderOptions) {
 	if (!Object.hasOwn(placeholderRecipes, recipe)) {
@@ -87,7 +86,7 @@ export function getPlaceholderKey({
 }: {
 	digest: string;
 	grid: ImageDimensions;
-	recipe: PlaceholderRecipe;
+	recipe: ImagePlaceholderRecipe;
 }) {
 	return hashRenderKey([digest, grid.width, grid.height, recipe, placeholderRevision]);
 }
@@ -102,35 +101,50 @@ function openPlaceholderStore(variable: string): PlaceholderStore {
 	database.exec(
 		'PRAGMA busy_timeout = 10000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL',
 	);
-	database.exec(
-		'CREATE TABLE IF NOT EXISTS placeholders (key TEXT PRIMARY KEY, data_url TEXT NOT NULL)',
-	);
+	database.exec('CREATE TABLE IF NOT EXISTS placeholders (key TEXT PRIMARY KEY, data_url TEXT)');
 
 	const selectStatement = database.prepare('SELECT data_url FROM placeholders WHERE key = ?');
 	const upsertStatement = database.prepare(
 		'INSERT INTO placeholders (key, data_url) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET data_url = excluded.data_url',
 	);
 
+	const fingerprints = createSourceFingerprints(config.cachePath);
+
 	return {
+		close() {
+			database.close();
+			fingerprints.close();
+		},
 		config,
-		fingerprints: createSourceFingerprints(config.cachePath),
+		fingerprints,
 		inFlight: new Map(),
 		read(key) {
-			const row = selectStatement.get(key) as undefined | { data_url: string };
+			const row = selectStatement.get(key) as undefined | { data_url: null | string };
 
-			if (!row) return;
-
-			return row.data_url === '' ? {} : { dataUrl: row.data_url };
+			return row?.data_url;
 		},
 		variable,
-		write(key, dataUrl = '') {
-			upsertStatement.run(key, dataUrl);
+		write(key, dataUrl) {
+			// eslint-disable-next-line unicorn/no-null -- node:sqlite binds NULL only from null
+			upsertStatement.run(key, dataUrl ?? null);
 		},
 	};
 }
 
+// Requests already running on a replaced store still write to it
+function closeWhenSettled(placeholderStore: PlaceholderStore) {
+	void Promise.allSettled(placeholderStore.inFlight.values()).then(() => {
+		placeholderStore.close();
+	});
+}
+
 function getPlaceholderStore() {
 	const variable = process.env[imagePlaceholdersVariable];
+
+	if (store && store.variable !== variable) {
+		closeWhenSettled(store);
+		store = undefined;
+	}
 
 	if (!variable) {
 		throw new UserError(
@@ -138,7 +152,7 @@ function getPlaceholderStore() {
 		);
 	}
 
-	if (store?.variable !== variable) store = openPlaceholderStore(variable);
+	if (!store) store = openPlaceholderStore(variable);
 
 	return store;
 }
@@ -149,7 +163,7 @@ async function renderPlaceholder(
 		grid,
 		limitInputPixels,
 		recipe,
-	}: { grid: ImageDimensions; limitInputPixels: number; recipe: PlaceholderRecipe },
+	}: { grid: ImageDimensions; limitInputPixels: number; recipe: ImagePlaceholderRecipe },
 ) {
 	const { data, info } = await openImageSource(filePath, { failOn: 'error', limitInputPixels })
 		.resize(grid.width, grid.height, { fit: 'cover' })
@@ -179,7 +193,7 @@ async function resolvePlaceholder(
 	const key = getPlaceholderKey({ digest: fingerprint.sha256, grid, recipe: config.recipe });
 	const cached = placeholderStore.read(key);
 
-	if (cached) return cached.dataUrl;
+	if (cached !== undefined) return cached ?? undefined;
 
 	const dataUrl = await renderPlaceholder(filePath, {
 		grid,
@@ -205,12 +219,27 @@ async function resolveOnce(
 	}
 }
 
-export async function getPlaceholder(source: ImageSource, size?: PlaceholderSize) {
+export async function getPlaceholder(
+	source: ImageSource,
+	{ pixels, size }: ImagePlaceholderRequest = {},
+) {
+	if (size && !isWholeSize(size)) {
+		throw new Error(
+			`Image ${source.id} can't have a ${formatSize(size)} placeholder: sizes are whole pixels`,
+		);
+	}
+
+	if (pixels !== undefined && !isPixelCount(pixels)) {
+		throw new Error(
+			`Image ${source.id} placeholders take a whole, positive pixel count, not ${String(pixels)}`,
+		);
+	}
+
 	const placeholderStore = getPlaceholderStore();
 	const { config, inFlight } = placeholderStore;
 	const aspectRatio =
 		size?.height === undefined ? source.width / source.height : size.width / size.height;
-	const grid = getPlaceholderGrid(aspectRatio, size?.pixels ?? config.pixels);
+	const grid = getPlaceholderGrid(aspectRatio, pixels ?? config.pixels);
 	const filePath = path.resolve(config.mediaPath, getSourcePath(source));
 	const requestKey = `${filePath}:${String(grid.width)}x${String(grid.height)}`;
 	const pending = inFlight.get(requestKey);

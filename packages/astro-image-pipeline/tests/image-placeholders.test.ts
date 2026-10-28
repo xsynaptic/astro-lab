@@ -26,12 +26,15 @@ let mediaPath: string;
 
 const mosaic = { pixels: 250, recipe: 'mosaic' } satisfies ImagePlaceholderOptions;
 
-async function startDev(placeholders: ImagePlaceholderOptions = mosaic) {
+async function startDev(
+	placeholders: ImagePlaceholderOptions | undefined,
+	cachePath = path.join(root, 'cache'),
+) {
 	type Hooks = AstroIntegration['hooks'];
 	const { hooks }: { hooks: Hooks } = imagePipeline({
-		cachePath: path.join(root, 'cache'),
+		cachePath,
 		mediaPath,
-		placeholders,
+		...(placeholders ? { placeholders } : {}),
 	});
 
 	await hooks['astro:config:setup']?.({
@@ -111,7 +114,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('mosaic reproduces known bytes', async () => {
-		await startDev();
+		await startDev(mosaic);
 
 		const source = await writeSource('blocks.png', await createBlockImage());
 
@@ -120,23 +123,69 @@ describe('getPlaceholder', () => {
 		);
 	});
 
+	test('blur reproduces known bytes', async () => {
+		await startDev({ pixels: 250, recipe: 'blur' });
+
+		const source = await writeSource('blocks.png', await createBlockImage());
+
+		expect(await getPlaceholder(source)).toMatchInlineSnapshot(
+			`"data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAADwAwCdASoTAA0APyV8tlIuJ6UisAgBwCSJbACdMoHgAAUHaEuKYhqAAP5xXftbXrqVh5OECx6XNASx0t16zOemj+3Ba9Eqb85uEzYVM0OgAA=="`,
+		);
+	});
+
 	test('a size with a height sets the grid ratio, and pixels override the configured count', async () => {
 		await startDev({ pixels: 1024, recipe: 'blur' });
 
 		const source = await writeSource('blocks.png', await createBlockImage());
 		const cropped = await decodeDataUrl(
-			await getPlaceholder(source, { height: 100, width: 300 }),
+			await getPlaceholder(source, { size: { height: 100, width: 300 } }),
 		).metadata();
 		const finer = await decodeDataUrl(
-			await getPlaceholder(source, { height: 100, pixels: 1600, width: 100 }),
+			await getPlaceholder(source, { pixels: 1600, size: { height: 100, width: 100 } }),
+		).metadata();
+		const sourceRatio = await decodeDataUrl(
+			await getPlaceholder(source, { pixels: 1536, size: { width: 300 } }),
 		).metadata();
 
 		expect(cropped).toMatchObject({ height: 18, width: 55 });
 		expect(finer).toMatchObject({ height: 40, width: 40 });
+		expect(sourceRatio).toMatchObject({ height: 32, width: 48 });
+	});
+
+	test.each([
+		[{ size: { height: 0, width: 300 } }, "Image blocks.png can't have a 300x0 placeholder"],
+		[{ size: { width: NaN } }, "Image blocks.png can't have a NaN wide placeholder"],
+		[{ pixels: 0.5 }, 'Image blocks.png placeholders take a whole, positive pixel count, not 0.5'],
+	])('refuses %j, naming the image', async (request, message) => {
+		await startDev(mosaic);
+
+		await expect(
+			getPlaceholder({ height: 80, id: 'blocks.png', width: 120 }, request),
+		).rejects.toThrow(message);
+	});
+
+	test('a dev restart without the option drops the old config', async () => {
+		await startDev(mosaic);
+		await startDev(undefined);
+
+		await expect(getPlaceholder({ height: 1, id: 'a.jpg', width: 1 })).rejects.toThrow(UserError);
+	});
+
+	test('a config change mid-request lets the running request finish', async () => {
+		await startDev(mosaic);
+
+		const source = await writeSource('blocks.png', await createBlockImage());
+		const running = getPlaceholder(source);
+
+		await startDev(mosaic, path.join(root, 'other-cache'));
+
+		const [first, second] = await Promise.all([running, getPlaceholder(source)]);
+
+		expect(second).toBe(first);
 	});
 
 	test('a cache hit makes no second decode', async () => {
-		await startDev();
+		await startDev(mosaic);
 
 		const source = await writeSource('blocks.png', await createBlockImage());
 		const first = await getPlaceholder(source);
@@ -147,7 +196,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('a transparent source has no placeholder, and the absence is cached', async () => {
-		await startDev();
+		await startDev(mosaic);
 
 		const source = await writeSource(
 			'cutout.png',
@@ -169,7 +218,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('an opaque source with an alpha channel has a placeholder', async () => {
-		await startDev();
+		await startDev(mosaic);
 
 		const blocks = await createBlockImage();
 		const source = await writeSource('opaque.png', blocks.ensureAlpha(1));
@@ -178,7 +227,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('an EXIF-rotated source gets an oriented, portrait grid', async () => {
-		await startDev();
+		await startDev(mosaic);
 
 		const blocks = await createBlockImage();
 		const source = await writeSource('rotated.jpg', blocks.jpeg().withMetadata({ orientation: 6 }));
@@ -191,7 +240,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('a missing source throws', async () => {
-		await startDev();
+		await startDev(mosaic);
 
 		await expect(getPlaceholder({ height: 80, id: 'missing.jpg', width: 120 })).rejects.toThrow(
 			'missing',
