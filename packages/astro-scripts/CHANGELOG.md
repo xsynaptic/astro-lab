@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.5.0
+
+### Minor Changes
+
+- `createProgress` requires its `total` again and `setTotal` is gone: its only callers now learn the total before the run starts. A JSON `progress` event always carries `total`.
+
 ## 0.4.1
 
 ### Patch Changes

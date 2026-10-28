@@ -45,12 +45,10 @@ export interface ProgressSnapshot {
 	label: string;
 	note?: string;
 	perSecond?: number;
-	total?: number;
+	total: number;
 }
 
-function formatCounts(done: number, total: number | undefined) {
-	if (total === undefined) return formatCount(done);
-
+function formatCounts(done: number, total: number) {
 	const percent = total === 0 ? 100 : Math.floor((done / total) * 100);
 
 	return `${formatCount(done)} / ${formatCount(total)} (${String(percent)}%)`;
@@ -62,7 +60,7 @@ export function formatProgressText({ done, label, note, perSecond, total }: Prog
 	if (perSecond !== undefined && perSecond > 0) {
 		parts.push(`${formatRate(perSecond)}/s`);
 
-		if (total !== undefined && total > done) {
+		if (total > done) {
 			parts.push(`~${formatDuration(((total - done) / perSecond) * 1000)} left`);
 		}
 	}
