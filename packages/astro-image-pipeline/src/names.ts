@@ -1,4 +1,3 @@
-export type { ImageEncoding } from './image-encoding.js';
 export type { ImageFormat, ImageSize, RenditionSize } from './image-name.js';
 
 export {

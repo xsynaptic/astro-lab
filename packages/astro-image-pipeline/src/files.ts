@@ -25,6 +25,26 @@ export async function readDirectoryIfExists(directory: string) {
 	}
 }
 
+export async function readDirectoryTreeIfExists(directory: string) {
+	try {
+		return await fs.readdir(directory, { recursive: true, withFileTypes: true });
+	} catch (error) {
+		if (isMissing(error)) return [];
+
+		throw error;
+	}
+}
+
+export async function statIfExists(filePath: string) {
+	try {
+		return await fs.stat(filePath);
+	} catch (error) {
+		if (isMissing(error)) return;
+
+		throw error;
+	}
+}
+
 export async function readJsonFile<Value>(filePath: string) {
 	const data = await readFileIfExists(filePath);
 

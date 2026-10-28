@@ -2,7 +2,14 @@ export type { ImageRenderRunOptions } from './image-build.js';
 export { prepareImageRender } from './image-build.js';
 export { engineVersions, openImageSource, readSourceSize } from './image-render.js';
 export type { ImageBuild, ImageManifest, ImageRenderTarget } from './image-state.js';
-export { getImageCachePaths, listImageBuilds, readDistManifest } from './image-state.js';
+export {
+	findDistManifest,
+	getImageCachePaths,
+	listImageBuilds,
+	readDistManifest,
+} from './image-state.js';
+export type { ImageSweepFile, ImageSweepOptions } from './image-sweep.js';
+export { prepareImageSweep } from './image-sweep.js';
 export type {
 	OpenGraphCardRenderOptions,
 	OpenGraphCardRenderRunOptions,

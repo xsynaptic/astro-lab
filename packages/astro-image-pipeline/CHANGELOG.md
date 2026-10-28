@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.4.0
+
+### Minor Changes
+
+- `prepareImageSweep` deletes renditions no kept build references, `findDistManifest` returns `undefined` when dist has no build, and `ImageEncoding` moves from `./names` to the root entry.
+
 ## 0.3.0
 
 ### Minor Changes

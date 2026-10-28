@@ -12,6 +12,35 @@ interface RenderKeys {
 	files: Record<string, FileCacheRecord>;
 }
 
+function getKeysPath(directory: string) {
+	return `${directory}-keys.json`;
+}
+
+async function readRenderKeys(directory: string) {
+	const stored = await readJsonFile<RenderKeys>(getKeysPath(directory));
+
+	return new Map(Object.entries(stored?.files ?? {}));
+}
+
+async function writeRenderKeys(directory: string, records: ReadonlyMap<string, FileCacheRecord>) {
+	await writeJsonFile(getKeysPath(directory), {
+		files: Object.fromEntries(
+			[...records].toSorted(([first], [second]) => first.localeCompare(second)),
+		),
+	} satisfies RenderKeys);
+}
+
+export async function pruneFileCache(directory: string, names: ReadonlySet<string>) {
+	const records = await readRenderKeys(directory);
+	const stale = [...records.keys()].filter((name) => !names.has(name));
+
+	if (stale.length === 0) return;
+
+	for (const name of stale) records.delete(name);
+
+	await writeRenderKeys(directory, records);
+}
+
 export async function createFileCache({
 	directory,
 	onReplace,
@@ -19,9 +48,7 @@ export async function createFileCache({
 	directory: string;
 	onReplace?: (name: string) => Promise<void>;
 }) {
-	const keysPath = `${directory}-keys.json`;
-	const stored = await readJsonFile<RenderKeys>(keysPath);
-	const records = new Map(Object.entries(stored?.files ?? {}));
+	const records = await readRenderKeys(directory);
 
 	function filePath(name: string) {
 		return path.join(directory, name);
@@ -33,11 +60,7 @@ export async function createFileCache({
 		},
 
 		async save() {
-			await writeJsonFile(keysPath, {
-				files: Object.fromEntries(
-					[...records].toSorted(([first], [second]) => first.localeCompare(second)),
-				),
-			} satisfies RenderKeys);
+			await writeRenderKeys(directory, records);
 		},
 
 		// Identical bytes keep the old file and its mtime, so rsync has nothing to send

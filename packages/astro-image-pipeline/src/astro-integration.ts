@@ -25,6 +25,7 @@ import {
 } from './image-state.js';
 import { UserError } from './user-error.js';
 
+export type { ImageEncoding } from './image-encoding.js';
 export type { ImageSourceResolver } from './image-sources.js';
 
 export interface ImagePipelineOptions {
