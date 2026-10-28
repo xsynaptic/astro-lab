@@ -1,5 +1,11 @@
 # @xsynaptic/remark-img-group
 
+## 0.1.1
+
+### Patch Changes
+
+- Bump `unist-util-visit` to 5.2.0.
+
 ## 0.1.0
 
 ### Minor Changes

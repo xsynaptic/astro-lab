@@ -9,7 +9,6 @@ import { getFailureReport } from '../src/command.js';
 import { captureOutput, configureOutput } from '../src/output/output.js';
 
 type ChildOutputEvent = Extract<OutputEvent, { type: 'output' }>;
-type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
 
 const fixturePath = fileURLToPath(new URL('fixtures/run-child.ts', import.meta.url));
 
@@ -25,6 +24,8 @@ function outputs(events: Array<OutputEvent>, stream?: ChildOutputEvent['stream']
 }
 
 function statuses(events: Array<OutputEvent>) {
+	type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
+
 	return events.filter((event): event is StatusEvent => event.type === 'status');
 }
 

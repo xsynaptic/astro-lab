@@ -18,8 +18,6 @@ interface RenditionRecord {
 	sourcePath: string;
 }
 
-type ImageRecord = OpenGraphCardRecord | RenditionRecord;
-
 interface RecordedValues {
 	conflicts: Map<string, Set<string>>;
 	values: Map<string, string>;
@@ -101,6 +99,8 @@ export async function readImageRecords(recordsPath: string) {
 		const text = await fs.readFile(path.join(recordsPath, recordFile), 'utf8');
 
 		for (const line of text.split('\n')) {
+			type ImageRecord = OpenGraphCardRecord | RenditionRecord;
+
 			if (line === '') continue;
 
 			const record = JSON.parse(line) as ImageRecord;

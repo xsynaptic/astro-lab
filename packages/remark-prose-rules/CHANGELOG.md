@@ -1,5 +1,11 @@
 # @xsynaptic/remark-prose-rules
 
+## 0.3.1
+
+### Patch Changes
+
+- Bump `unist-util-visit-parents` to 6.1.0.
+
 ## 0.3.0
 
 ### Minor Changes

@@ -127,14 +127,12 @@ export const extract: ImagorExtractor = (url, options) => {
 	}
 
 	const hAlignToken = segments[index];
-	// eslint-disable-next-line unicorn/prefer-includes-over-repeated-comparisons -- the chain narrows hAlignToken to the union for the assignment
 	if (hAlignToken === 'left' || hAlignToken === 'right' || hAlignToken === 'center') {
 		operations.hAlign = hAlignToken;
 		index += 1;
 	}
 
 	const vAlignToken = segments[index];
-	// eslint-disable-next-line unicorn/prefer-includes-over-repeated-comparisons -- the chain narrows vAlignToken to the union for the assignment
 	if (vAlignToken === 'top' || vAlignToken === 'bottom' || vAlignToken === 'middle') {
 		operations.vAlign = vAlignToken;
 		index += 1;
@@ -352,9 +350,9 @@ function applyTrim(operations: ImagorOperations, token: string): void {
 }
 
 function applyCrop(operations: ImagorOperations, token: string): void {
-	const [leftTop, rightBottom] = token.split(':', 2);
-	const [left, top] = (leftTop ?? '').split('x', 2);
-	const [right, bottom] = (rightBottom ?? '').split('x', 2);
+	const [leftTop = '', rightBottom = ''] = token.split(':', 2);
+	const [left, top] = leftTop.split('x', 2);
+	const [right, bottom] = rightBottom.split('x', 2);
 	operations.crop = {
 		left: Number(left),
 		top: Number(top),
@@ -375,8 +373,8 @@ function applyDimensions(operations: ImagorOperations, token: string): void {
 }
 
 function applyPadding(operations: ImagorOperations, token: string): void {
-	const [leftTop, rightBottom] = token.split(':', 2);
-	const [left, top] = (leftTop ?? '').split('x', 2);
+	const [leftTop = '', rightBottom] = token.split(':', 2);
+	const [left, top] = leftTop.split('x', 2);
 	const leftValue = Number(left);
 	const topValue = Number(top);
 	if (rightBottom === undefined) {

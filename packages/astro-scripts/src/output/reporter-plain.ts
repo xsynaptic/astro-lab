@@ -12,8 +12,6 @@ import {
 	plainPalette,
 } from './human-format.js';
 
-type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
-
 interface OpenStatus {
 	lastPrint: number;
 	text: string;
@@ -25,6 +23,8 @@ export function createPlainReporter(
 	{ stderr, stdout }: ReporterStreams,
 	now: () => number = Date.now,
 ): Reporter {
+	type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
+
 	const statuses = new Map<number, OpenStatus>();
 	const openIds: Array<number> = [];
 

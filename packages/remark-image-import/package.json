@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/remark-image-import",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "A remark plugin that auto-imports images referenced by a component in MDX files",
 	"type": "module",
 	"license": "MIT",
@@ -43,7 +43,7 @@
 	"dependencies": {
 		"@types/mdast": "^4.0.4",
 		"acorn": "^8.19.0",
-		"unist-util-visit": "^5.0.0",
+		"unist-util-visit": "^5.2.0",
 		"zod": "^4.6.7"
 	},
 	"peerDependencies": {

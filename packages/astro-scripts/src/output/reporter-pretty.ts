@@ -14,13 +14,13 @@ import {
 	getStateSymbol,
 } from './human-format.js';
 
-type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
-
 function isTerminal(stream: NodeJS.WritableStream) {
 	return 'isTTY' in stream && stream.isTTY === true;
 }
 
 export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Reporter {
+	type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
+
 	const spinners = new Map<number, Ora>();
 	const childTexts = new Map<number, string>();
 	const openIds: Array<number> = [];

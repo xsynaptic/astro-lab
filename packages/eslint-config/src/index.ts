@@ -158,17 +158,10 @@ export function getConfig(
 				'unicorn/no-unnecessary-array-flat-map': 'off', // Unwraps one arm of the `[value] : []` filter-map idiom
 				'unicorn/number-literal-case': ['error', { hexadecimalValue: 'lowercase' }], // Matches Prettier
 				'unicorn/prefer-combined-guards': 'off', // Merges guards that check distinct things into one compound condition
-				'unicorn/prefer-default-parameters': 'off', // A default skips `null` and the empty string, which `??` and `||` fallbacks cover
 				'unicorn/prefer-early-return': 'off', // Since v75 it inverts an optional trailing block, which is not the guard-clause pattern
 				'unicorn/prefer-iterator-to-array': 'off', // Iterator#toArray() needs the esnext.iterator lib
 				'unicorn/prefer-ternary': 'off', // Since v75 it rewrites flat guard-clause ladders into ternary chains
 				'unicorn/single-line-block-comment-style': 'off', // Rewrites single-line /* */ comments into three-line blocks
-			},
-		},
-		{
-			files: ['**/*.config.{ts,mts,cts,js,mjs,cjs}', '**/.*rc.{ts,mts,cts,js,mjs,cjs}'],
-			rules: {
-				'unicorn/no-top-level-side-effects': 'off', // Flags `export default` calls, getConfig() included
 			},
 		},
 		perfectionist.configs['recommended-natural'],

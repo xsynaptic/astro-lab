@@ -37,7 +37,7 @@ interface OpenGraphCardSourceState {
 }
 
 export function getOpenGraphCardKey({
-	digest,
+	digest = '',
 	engine,
 	image,
 	input,
@@ -54,7 +54,7 @@ export function getOpenGraphCardKey({
 		templateVersion,
 		JSON.stringify(input),
 		image ? JSON.stringify(image) : '',
-		digest ?? '',
+		digest,
 	]);
 }
 

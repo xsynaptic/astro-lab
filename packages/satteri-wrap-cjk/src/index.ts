@@ -42,9 +42,6 @@ function presetFor(value: string): RegExp | undefined {
 // Code-like elements whose CJK must stay verbatim
 const skipTags = new Set(['code', 'kbd', 'pre', 'samp', 'script', 'style']);
 
-// Lowercase MDX elements stay as mdxJsx nodes at hast time, so an author's <span class="cjk"> is one of these
-type Ancestor = Readonly<Element | MdxJsxFlowElementHast | MdxJsxTextElementHast | Root>;
-
 const rawCloseTagPattern = /^<\/([a-zA-Z][^\s/>]*)/;
 
 export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
@@ -122,6 +119,9 @@ export function wrapCjk(options?: null | Readonly<WrapCjkOptions>) {
 	// ctx.parent climbs to the root, letting us shield text under code or an existing wrapper
 	function isShielded(node: Readonly<Text>, ctx: HastVisitorContext): boolean {
 		if (isShieldedByRawSiblings(node, ctx)) return true;
+
+		// Lowercase MDX elements stay as mdxJsx nodes at hast time, so an author's <span class="cjk"> is one of these
+		type Ancestor = Readonly<Element | MdxJsxFlowElementHast | MdxJsxTextElementHast | Root>;
 
 		let ancestor: Ancestor | undefined = ctx.parent(node);
 		while (ancestor) {

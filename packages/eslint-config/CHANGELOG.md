@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.8.0
+
+### Minor Changes
+
+- Bump `eslint-plugin-unicorn` `^78.0` → `^79.0` and `typescript-eslint` to 8.72.1. Turn `prefer-default-parameters` back on, since it now skips the unsafe `||` fallbacks it was disabled for, and drop the config-file override for `no-top-level-side-effects`, which no longer reports unknown calls such as `export default getConfig()`. `prefer-smaller-scope` now checks type aliases, so expect reports on a module-level `type` used in only one block.
+
 ## 6.7.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.6
+
+### Patch Changes
+
+- Bump `stylelint-config-recess-order` to 7.9.0.
+
 ## 1.1.5
 
 ### Patch Changes

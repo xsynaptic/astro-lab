@@ -27,8 +27,8 @@ function runHandler(handler: ReturnType<typeof createResolveHandler>, url: strin
 		(resolve) => {
 			const res = {
 				body: '',
-				end(chunk?: string) {
-					res.body = chunk ?? '';
+				end(chunk = '') {
+					res.body = chunk;
 					resolve({ body: res.body, headers: res.headers, statusCode: res.statusCode });
 				},
 				headers: {} as Record<string, string>,

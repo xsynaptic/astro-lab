@@ -12,9 +12,9 @@ interface InjectedImport {
 	specifiers: Array<string>;
 }
 
-type SyncTransform = (tree: Root, file: { basename?: string }) => void;
-
 function inject(options: RemarkAutoImportOptions, basename: string): Root {
+	type SyncTransform = (tree: Root, file: { basename?: string }) => void;
+
 	const tree: Root = { children: [{ children: [], type: 'paragraph' }], type: 'root' };
 	const createTransform = remarkAutoImport(options) as unknown as () => SyncTransform;
 

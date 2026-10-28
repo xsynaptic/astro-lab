@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/eslint-config",
-	"version": "6.7.0",
+	"version": "6.8.0",
 	"description": "An ESLint config factory for TypeScript projects",
 	"type": "module",
 	"license": "MIT",
@@ -42,9 +42,9 @@
 		"@eslint/js": "^10.0.1",
 		"eslint-plugin-astro": "^3.2.1",
 		"eslint-plugin-perfectionist": "^5.13.0",
-		"eslint-plugin-unicorn": "^78.0.0",
+		"eslint-plugin-unicorn": "^79.0.0",
 		"eslint-plugin-wc": "^3.1.0",
 		"globals": "^17.13.0",
-		"typescript-eslint": "^8.72.0"
+		"typescript-eslint": "^8.72.1"
 	}
 }

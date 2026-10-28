@@ -1,5 +1,11 @@
 # @xsynaptic/satteri-wrap-cjk
 
+## 0.3.1
+
+### Patch Changes
+
+- Accept satteri `^0.11.0` as a peer alongside `^0.10.0`, which `@astrojs/markdown-satteri` still bundles.
+
 ## 0.3.0
 
 ### Minor Changes

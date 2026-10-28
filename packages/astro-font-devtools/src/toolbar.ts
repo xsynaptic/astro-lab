@@ -301,7 +301,6 @@ function setDisabled(button: Element, isDisabled: boolean): void {
 	button.classList.toggle('fdt-disabled', isDisabled);
 }
 
-// eslint-disable-next-line unicorn/no-top-level-side-effects -- Astro loads a toolbar app from its default export
 export default defineToolbarApp({
 	beforeTogglingOff() {
 		activePicker?.stop();

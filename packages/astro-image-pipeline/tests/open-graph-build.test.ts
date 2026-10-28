@@ -53,10 +53,8 @@ function prepare(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
 		cachePath: root,
 		decode: createDecode(),
 		distPath,
-		render: (input, decoded) =>
-			Promise.resolve(
-				new TextEncoder().encode(`${JSON.stringify(input.title)}|${decoded ?? 'none'}`),
-			),
+		render: (input, decoded = 'none') =>
+			Promise.resolve(new TextEncoder().encode(`${JSON.stringify(input.title)}|${decoded}`)),
 		templateVersion: 'template-1',
 		...options,
 	});

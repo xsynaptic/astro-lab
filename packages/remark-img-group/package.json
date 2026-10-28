@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/remark-img-group",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Remark plugin for MDX that handles custom image layout for Spectral Codex.",
 	"type": "module",
 	"license": "MIT",
@@ -42,7 +42,7 @@
 	},
 	"dependencies": {
 		"@types/mdast": "^4.0.4",
-		"unist-util-visit": "^5.1.0",
+		"unist-util-visit": "^5.2.0",
 		"zod": "^4.6.7"
 	},
 	"peerDependencies": {

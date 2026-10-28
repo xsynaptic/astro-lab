@@ -1,5 +1,11 @@
 # @xsynaptic/rehype-wrap-cjk
 
+## 3.0.3
+
+### Patch Changes
+
+- Bump `unist-util-visit-parents` to 6.1.0.
+
 ## 3.0.2
 
 ### Patch Changes

@@ -15,12 +15,12 @@ export interface ImageSourceReference {
 
 export interface ImageSource extends ImageDimensions, ImageSourceReference {}
 
-export function getSourcePath({ id, path }: ImageSourceReference) {
-	return path ?? id;
+export function getSourcePath({ id, path = id }: ImageSourceReference) {
+	return path;
 }
 
-function isWholeSize({ height, width }: ImageSize) {
-	return [width, height ?? 1].every((value) => Number.isSafeInteger(value) && value > 0);
+function isWholeSize({ height = 1, width }: ImageSize) {
+	return [width, height].every((value) => Number.isSafeInteger(value) && value > 0);
 }
 
 function formatSize({ height, width }: ImageSize) {
