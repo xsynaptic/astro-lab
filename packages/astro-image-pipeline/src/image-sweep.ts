@@ -23,7 +23,8 @@ export interface ImageSweepFile {
 }
 
 async function resolveKeep(cachePath: string, keep: ReadonlyArray<string>) {
-	const [newest] = await listImageBuilds(cachePath);
+	const builds = await listImageBuilds(cachePath);
+	const [newest] = builds;
 	const buildIds = new Set(keep);
 
 	if (newest) buildIds.add(newest.buildId);
@@ -35,7 +36,9 @@ async function resolveKeep(cachePath: string, keep: ReadonlyArray<string>) {
 	);
 	const names = new Set(manifests.flatMap((manifest) => Object.keys(manifest.renditions)));
 
-	return { buildIds, names };
+	const dropped = builds.map((build) => build.buildId).filter((buildId) => !buildIds.has(buildId));
+
+	return { dropped, names };
 }
 
 function isSwept(name: string, keep: ReadonlySet<string>) {
@@ -91,9 +94,9 @@ export async function prepareImageSweep({ cachePath, keep }: ImageSweepOptions) 
 			await removeEmptyDirectories(renditionsPath);
 			await pruneFileCache(renditionsPath, current.names);
 
-			const droppedBuilds = await dropImageManifests(resolvedCachePath, current.buildIds);
+			await dropImageManifests(resolvedCachePath, current.dropped);
 
-			return { deletions: removed, droppedBuilds };
+			return { deletions: removed, droppedBuilds: current.dropped, keep: current.names };
 		});
 	}
 

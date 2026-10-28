@@ -125,13 +125,8 @@ export async function readBuildManifest(cachePath: string, buildId: string) {
 	return manifest;
 }
 
-export async function dropImageManifests(cachePath: string, keep: ReadonlySet<string>) {
-	const builds = await listImageBuilds(cachePath);
-	const dropped = builds.map((build) => build.buildId).filter((buildId) => !keep.has(buildId));
-
-	await Promise.all(dropped.map((buildId) => fs.rm(getManifestPath(cachePath, buildId))));
-
-	return dropped;
+export async function dropImageManifests(cachePath: string, buildIds: ReadonlyArray<string>) {
+	await Promise.all(buildIds.map((buildId) => fs.rm(getManifestPath(cachePath, buildId))));
 }
 
 export async function findDistManifest({ cachePath, distPath }: ImageRenderTarget) {

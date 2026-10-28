@@ -126,6 +126,7 @@ describe('prepareImageSweep', () => {
 		const result = await sweep.run();
 
 		expect(getNames(result.deletions)).toStrictEqual(['c-450.jpg']);
+		expect(sortNames(result.keep)).toStrictEqual(['a-450.jpg', 'b-450.jpg']);
 		expect(await listFiles()).toStrictEqual(['a-450.jpg', 'b-450.jpg']);
 		expect(await listBuildIds()).toStrictEqual(['newer', 'live']);
 	});

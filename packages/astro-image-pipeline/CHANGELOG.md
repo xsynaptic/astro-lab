@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.4.1
+
+### Patch Changes
+
+- A sweep keeps the manifest of a build that lands mid-sweep, and `run()` returns `keep`.
+
 ## 0.4.0
 
 ### Minor Changes
