@@ -98,6 +98,28 @@ describe('imagePipeline recording', () => {
 		expect(process.env[imageRecordsVariable]).toBeUndefined();
 	});
 
+	test('sized names enter the manifest beside preset names', async () => {
+		const { hooks } = createIntegration();
+
+		await startBuild(hooks);
+		pipeline.getSizedName(
+			{ height: 1000, id: 'a/b.jpg', width: 1500 },
+			{ format: 'jpg', height: 300, width: 400 },
+		);
+		pipeline.getSizedName(
+			{ height: 1000, id: 'c.jpg', path: 'elsewhere/c.jpg', width: 1500 },
+			{ format: 'jpg', width: 1500 },
+		);
+		await finishBuild(hooks);
+
+		const manifest = await readManifest(root);
+
+		expect(manifest?.renditions).toStrictEqual({
+			'a/b-400x300.jpg': 'a/b.jpg',
+			'c-1500.jpg': 'elsewhere/c.jpg',
+		});
+	});
+
 	test('a name recorded from two sources fails the build', async () => {
 		const { hooks } = createIntegration();
 

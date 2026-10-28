@@ -8,7 +8,7 @@ export {
 	isImageSource,
 	parseImageName,
 } from './image-name.js';
-export type { CoverPresetName, ImagePreset, ImageSource } from './image-presets.js';
+export type { CoverPresetName, ImagePreset, ImageSource, RenditionSize } from './image-presets.js';
 export { defineImagePipeline } from './image-presets.js';
 export type {
 	OpenGraphCard,

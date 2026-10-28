@@ -46,6 +46,10 @@ export interface ImageSource extends ImageDimensions {
 	path?: string;
 }
 
+export interface RenditionSize extends ImageSize {
+	format: ImageFormat;
+}
+
 function getPresetSize(preset: ImagePreset, width: number, source: ImageDimensions): ImageSize {
 	switch (preset.fit) {
 		case 'cover': {
@@ -58,6 +62,14 @@ function getPresetSize(preset: ImagePreset, width: number, source: ImageDimensio
 			return { width };
 		}
 	}
+}
+
+function isWholeSize({ height, width }: ImageSize) {
+	return [width, height ?? 1].every((value) => Number.isSafeInteger(value) && value > 0);
+}
+
+function formatSize({ height, width }: ImageSize) {
+	return height === undefined ? `${String(width)} wide` : `${String(width)}x${String(height)}`;
 }
 
 export function isWithinSource(size: ImageSize, source: ImageDimensions) {
@@ -89,6 +101,34 @@ function resolvePresetSize(preset: ImagePreset, width: number, source: ImageDime
 	}
 
 	return;
+}
+
+function getSizedName(source: ImageSource, { format, ...size }: RenditionSize) {
+	if (!isWholeSize(size)) {
+		throw new Error(
+			`Image ${source.id} can't be named ${formatSize(size)}: sizes are whole pixels`,
+		);
+	}
+
+	if (!isWithinSource(size, source)) {
+		throw new Error(
+			`Image ${source.id} (${String(source.width)}x${String(source.height)}) is smaller than the requested ${formatSize(size)}`,
+		);
+	}
+
+	const stem = getImageStem(source.id);
+
+	if (!isImageStem(stem)) {
+		throw new Error(
+			`Image ${source.id} can't be named: whitespace, quotes, &, <, >, ), commas and "." or ".." segments don't fit in an image URL; rename the file`,
+		);
+	}
+
+	const name = formatImageName({ format, stem, ...size });
+
+	recordImageName(name, source.path ?? source.id);
+
+	return name;
 }
 
 export function createImagePresets<const Table extends Record<keyof Table, ImagePreset>>(
@@ -127,22 +167,10 @@ export function createImagePresets<const Table extends Record<keyof Table, Image
 			);
 		}
 
-		const stem = getImageStem(source.id);
-
-		if (!isImageStem(stem)) {
-			throw new Error(
-				`Image ${source.id} can't be named: whitespace, quotes, &, <, >, ), commas and "." or ".." segments don't fit in an image URL; rename the file`,
-			);
-		}
-
-		const name = formatImageName({ format: preset.format, stem, ...size });
-
-		recordImageName(name, source.path ?? source.id);
-
-		return name;
+		return getSizedName(source, { format: preset.format, ...size });
 	}
 
-	return { getName, getSize, getWidths };
+	return { getName, getSize, getSizedName, getWidths };
 }
 
 export function defineImagePipeline<const Table extends Record<keyof Table, ImagePreset>>({
