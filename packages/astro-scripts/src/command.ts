@@ -17,6 +17,10 @@ interface CommandPositional {
 	required?: boolean;
 }
 
+type Positionals<Positional> = [Positional] extends [{ required: true }]
+	? [string, ...Array<string>]
+	: Array<string>;
+
 type ParsedValues<Options extends CommandOptions> = ReturnType<
 	typeof parseArgs<{ allowPositionals: true; options: Options; strict: true }>
 >['values'];
@@ -29,17 +33,22 @@ interface CommandDescription {
 	title: string;
 }
 
-export interface CommandContext<Options extends CommandOptions> {
-	positionals: Array<string>;
+export interface CommandContext<Options extends CommandOptions, Positional = CommandPositional> {
+	positionals: Positionals<Positional>;
 	rootPath: string;
 	signal: AbortSignal;
 	values: ParsedValues<Options>;
 }
 
-export interface Command<Options extends CommandOptions, Context> extends CommandDescription {
+export interface Command<
+	Options extends CommandOptions,
+	Context,
+	Positional extends CommandPositional = CommandPositional,
+> extends CommandDescription {
 	interrupted?: string;
 	options?: Options;
-	run: (context: CommandContext<Options> & Context) => Promise<void> | void;
+	positional?: Positional;
+	run: (context: CommandContext<Options, Positional> & Context) => Promise<void> | void;
 }
 
 interface CommandRunnerOptions<Context> {
@@ -243,13 +252,17 @@ export function createCommandRunner<Context extends object = object>(
 ) {
 	const { context: createContext, usagePrefix = 'pnpm' } = runnerOptions;
 
-	function defineCommand<const Options extends CommandOptions>(command: Command<Options, Context>) {
+	function defineCommand<
+		const Options extends CommandOptions,
+		const Positional extends CommandPositional = CommandPositional,
+	>(command: Command<Options, Context, Positional>) {
 		return command;
 	}
 
-	async function runCommand<const Options extends CommandOptions>(
-		command: Command<Options, Context>,
-	) {
+	async function runCommand<
+		const Options extends CommandOptions,
+		const Positional extends CommandPositional = CommandPositional,
+	>(command: Command<Options, Context, Positional>) {
 		const controller = new AbortController();
 		const startTime = Date.now();
 		let interruptTime: number | undefined;
@@ -306,7 +319,7 @@ export function createCommandRunner<Context extends object = object>(
 
 			await command.run({
 				...context,
-				positionals,
+				positionals: positionals as Positionals<Positional>,
 				rootPath,
 				signal: controller.signal,
 				values: values as ParsedValues<Options>,

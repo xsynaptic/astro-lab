@@ -28,7 +28,7 @@ await runCommand({
 });
 ```
 
-Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`. Run a `--json` command through `pnpm --silent -C <scripts package>` so pnpm's own lines stay out of the stream.
+Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`: events on stderr, each `log.data` value bare on stdout. Run a `--json` command through `pnpm --silent -C <scripts package>` so pnpm's own lines stay out of the stream.
 
 `withAstroModules` and `withAstroContent` need a content store written by `astro sync`.
 

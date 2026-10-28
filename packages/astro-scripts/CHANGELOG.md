@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.4.1
+
+### Patch Changes
+
+- A positional marked `required: true` types as present, so `const [id] = positionals` reads a `string` and a `[id = '']` default can go.
+
 ## 0.4.0
 
 ### Minor Changes

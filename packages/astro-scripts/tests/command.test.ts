@@ -289,6 +289,24 @@ describe('runCommand', () => {
 		]);
 	});
 
+	test('hands a required positional to the command as a string', async () => {
+		const ids: Array<string> = [];
+		const { runCommand } = createCommandRunner();
+
+		setArgs('c-42');
+		await runCommand({
+			name: 'comments-delete',
+			positional: { description: 'Comment id', name: 'id', required: true },
+			run: ({ positionals }) => {
+				ids.push(positionals[0]);
+			},
+			summary: 'Delete a comment',
+			title: 'Comments',
+		});
+
+		expect(ids).toEqual(['c-42']);
+	});
+
 	test('refuses to run without a required positional, but still prints help', async () => {
 		const run = vi.fn();
 		const { runCommand } = createCommandRunner();
