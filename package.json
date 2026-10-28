@@ -33,11 +33,12 @@
 		"fix": "lefthook run fix",
 		"check": "lefthook run check",
 		"check:pkg": "pnpm --filter './packages/*' --no-bail exec publint",
-		"release": "pnpm check && pnpm --filter './packages/*' build && pnpm test && pnpm test:e2e && pnpm check:pkg && changeset publish",
-		"postrelease": "git push --follow-tags origin main"
+		"version-packages": "changeset version && pnpm install --ignore-scripts",
+		"release": "node scripts/release.ts"
 	},
 	"devDependencies": {
 		"@changesets/cli": "^3.0.3",
+		"@types/node": "^24.19.2",
 		"@xsynaptic/eslint-config": "workspace:*",
 		"eslint": "^10.13.0",
 		"jiti": "^2.7.0",

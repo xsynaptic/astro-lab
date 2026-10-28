@@ -4,7 +4,8 @@
 		"noEmit": true,
 		"declaration": false,
 		"allowJs": true,
-		"checkJs": false
+		"checkJs": false,
+		"types": ["node"]
 	},
-	"include": ["*.ts", "*.mjs"]
+	"include": ["*.ts", "*.mjs", "scripts/*.ts"]
 }
