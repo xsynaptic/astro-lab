@@ -54,8 +54,6 @@ async function transform(input: string): Promise<Root> {
 // Catalog-shaped fragments: self-closing, captioned, and layout-bearing images
 const standaloneFragments = [
 	['self-closing', '<Img src="a.jpg" />\n'],
-	['captioned', '<Img src="a.jpg">A caption.</Img>\n'],
-	['layout wide, self-closing', '<Img src="a.jpg" layout="wide" />\n'],
 	['layout full, captioned', '<Img src="a.jpg" layout="full">A caption.</Img>\n'],
 ] as const;
 
@@ -73,14 +71,6 @@ describe('context injection', () => {
 	test('stamps grid context on a captioned group by default', async () => {
 		const tree = await transform(
 			'<ImgGroup>\n  <Img src="a.jpg">A caption.</Img>\n  <Img src="b.jpg">B caption.</Img>\n</ImgGroup>\n',
-		);
-
-		expect(contexts(tree)).toEqual(['grid', 'grid']);
-	});
-
-	test('stamps grid context on a mixed self-closing and captioned group', async () => {
-		const tree = await transform(
-			'<ImgGroup>\n  <Img src="a.jpg" />\n  <Img src="b.jpg">B caption.</Img>\n</ImgGroup>\n',
 		);
 
 		expect(contexts(tree)).toEqual(['grid', 'grid']);

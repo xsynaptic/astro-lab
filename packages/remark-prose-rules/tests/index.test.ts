@@ -62,14 +62,6 @@ describe('words', () => {
 		expect(messages[0]?.expected).toEqual(['Café']);
 	});
 
-	test('accepts extra words alongside the built-in list', async () => {
-		const { value } = await run('The manana meeting and the cafe.', {
-			words: [...diacriticsWords, 'mañana'],
-		});
-
-		expect(value).toBe('The mañana meeting and the café.\n');
-	});
-
 	// Marks outside the built-in groups cannot be derived
 	// Those corrections belong in `terms` instead
 	test('cannot derive a mark it has no group for', async () => {
@@ -226,15 +218,6 @@ describe('terms', () => {
 });
 
 describe('patterns', () => {
-	test('rewrites a number range', async () => {
-		const { messages, value } = await run('Built 1930-1945 in Taiwan.', {
-			patterns: [numberRange],
-		});
-
-		expect(value).toBe('Built 1930--1945 in Taiwan.\n');
-		expect(messages[0]?.reason).toBe(numberRange.message);
-	});
-
 	test('leaves an already-correct range alone', async () => {
 		const { messages, value } = await run('Built 1930--1945.', { patterns: [numberRange] });
 

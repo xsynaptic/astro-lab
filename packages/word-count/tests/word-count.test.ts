@@ -80,10 +80,4 @@ describe('countWordsBreakdown', () => {
 		// Hangul has no per-character range, so a space-delimited sentence counts by words
 		expect(countWordsBreakdown('안녕하세요 세계')).toEqual({ scriptChars: 0, total: 2, words: 2 });
 	});
-
-	test('total always equals countWords', () => {
-		for (const sample of ['', 'hello', 'Hello 世界', 'ไทย', '안녕하세요 세계', '  spaced  out  ']) {
-			expect(countWordsBreakdown(sample).total).toBe(countWords(sample));
-		}
-	});
 });

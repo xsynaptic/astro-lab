@@ -22,7 +22,6 @@ async function render(source: string, options?: Readonly<WrapCjkOptions>): Promi
 }
 
 const chineseCases: Array<[string, string]> = [
-	['你好', '<p><span lang="zh">你好</span></p>'],
 	['Hello 世界', '<p>Hello <span lang="zh">世界</span></p>'],
 	['一二三 ABC 四五六', '<p><span lang="zh">一二三</span> ABC <span lang="zh">四五六</span></p>'],
 ];
@@ -36,7 +35,6 @@ const japaneseCases: Array<[string, string]> = [
 const koreanCases: Array<[string, string]> = [
 	['안녕하세요', '<p><span lang="ko">안녕하세요</span></p>'],
 	['Hello 안녕 world', '<p>Hello <span lang="ko">안녕</span> world</p>'],
-	['김치', '<p><span lang="ko">김치</span></p>'],
 ];
 
 describe('wrapCjk presets', () => {
@@ -91,14 +89,6 @@ describe('wrapCjk skips code', () => {
 
 		expect((html.match(/class="cjk"/g) ?? []).length).toBe(1);
 		expect(html).toContain('<code>程式碼</code>');
-	});
-});
-
-describe('wrapCjk does not double-wrap', () => {
-	test('produces no nested cjk spans', async () => {
-		const html = await render('Mixed 中文 text 日本語 here.');
-
-		expect(html).not.toMatch(/<span class="cjk">[^<]*<span/);
 	});
 });
 

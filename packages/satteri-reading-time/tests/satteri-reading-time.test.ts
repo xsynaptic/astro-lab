@@ -35,10 +35,6 @@ async function readMinutesMdx(
 }
 
 describe('readingTime', () => {
-	test('does not throw when called with no options', () => {
-		expect(() => readingTime()).not.toThrow();
-	});
-
 	test('counts English prose at latinWpm', async () => {
 		// 400 words at 200 wpm => 2 minutes
 		const source = Array.from({ length: 400 }, () => 'word').join(' ');

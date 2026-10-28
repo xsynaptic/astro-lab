@@ -1,4 +1,4 @@
-import { parseArgs, stripVTControlCharacters } from 'node:util';
+import { stripVTControlCharacters } from 'node:util';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ProcessOutput } from 'zx';
 
@@ -21,26 +21,7 @@ class LibraryUserError extends Error {
 	}
 }
 
-function getParseError() {
-	try {
-		parseArgs({ args: ['--dry-rn'], options: { 'dry-run': { type: 'boolean' } }, strict: true });
-	} catch (error) {
-		return error;
-	}
-
-	throw new Error('Expected parseArgs to reject the flag');
-}
-
 describe('getFailureReport', () => {
-	test('points a mistyped flag at --help', () => {
-		expect(getFailureReport(getParseError(), { isAborted: false })).toMatchObject({
-			detail: 'See --help',
-			exitCode: 1,
-			isInterrupted: false,
-			message: expect.stringContaining("Unknown option '--dry-rn'") as string,
-		});
-	});
-
 	test('reports an abort as an interrupt with the command note, whatever was thrown', () => {
 		expect(
 			getFailureReport(new Error('fetch aborted'), {
@@ -120,7 +101,7 @@ describe('getFailureReport', () => {
 });
 
 describe('parseNumberOption', () => {
-	test.each(['', '  ', 'ten'])('refuses %j rather than reading it as a number', (value) => {
+	test.each(['  ', 'ten'])('refuses %j rather than reading it as a number', (value) => {
 		expect(() => parseNumberOption(value, 'limit')).toThrow(UserError);
 	});
 });

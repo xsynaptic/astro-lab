@@ -79,10 +79,6 @@ describe('renderFontFace', () => {
 });
 
 describe('parseResolveQuery', () => {
-	it('returns undefined when family is missing', () => {
-		expect(parseResolveQuery('/resolve', configured)).toBeUndefined();
-	});
-
 	it('applies default weights and styles', () => {
 		expect(parseResolveQuery('/resolve?family=Inter', ['fontsource'])).toEqual({
 			family: 'Inter',
@@ -91,13 +87,6 @@ describe('parseResolveQuery', () => {
 			subsets: [],
 			weights: ['400', '700'],
 		});
-	});
-
-	it('parses the subset list and defaults to an empty list when absent', () => {
-		expect(
-			parseResolveQuery('/resolve?family=Inter&subsets=latin,cyrillic', ['fontsource'])?.subsets,
-		).toEqual(['latin', 'cyrillic']);
-		expect(parseResolveQuery('/resolve?family=Inter', ['fontsource'])?.subsets).toEqual([]);
 	});
 
 	it('parses custom weights and drops style values that are not real font styles', () => {

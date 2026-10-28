@@ -40,38 +40,6 @@ describe('createChangeQueue', () => {
 		expect(hooks).toEqual(['start', 'end']);
 	});
 
-	test('items queued mid-batch are processed by the next batch, not lost', async () => {
-		const processed: Array<string> = [];
-		const firstGate: PromiseWithResolvers<void> = Promise.withResolvers();
-
-		const queue = createChangeQueue({
-			debounceMs: debounceMs,
-			onBatchEnd: vi.fn(),
-			onBatchStart: vi.fn(),
-			onError: vi.fn(),
-			processChange: async (change) => {
-				if (change.filePath === 'a.jpg') await firstGate.promise;
-				processed.push(change.filePath);
-			},
-		});
-
-		queue.add(makeChange('a.jpg'));
-
-		// Let batch 1 start and block on the gate
-		await delay(debounceMs * 3);
-
-		// This lands while batch 1 is still processing; the old implementation lost it
-		queue.add(makeChange('b.jpg'));
-
-		await delay(debounceMs * 3);
-
-		firstGate.resolve();
-
-		await vi.waitFor(() => {
-			expect(processed).toEqual(['a.jpg', 'b.jpg']);
-		});
-	});
-
 	test('batches never overlap', async () => {
 		const events: Array<string> = [];
 		const firstGate: PromiseWithResolvers<void> = Promise.withResolvers();

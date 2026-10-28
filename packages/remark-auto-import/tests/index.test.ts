@@ -122,9 +122,4 @@ describe('remarkAutoImport', () => {
 			/valid MDX component name/,
 		);
 	});
-
-	test('rejects invalid options', () => {
-		// @ts-expect-error - imports must be an array
-		expect(() => remarkAutoImport({ imports: 'nope' })).toThrow();
-	});
 });

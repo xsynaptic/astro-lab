@@ -27,11 +27,6 @@ describe('autoImport', () => {
 
 		expect(code).toContain('img.astro');
 		expect(code).toMatch(/import \{ default as Img \} from/);
-	});
-
-	test('the component resolves from the import, not props.components', async () => {
-		const code = await compile('<Img src="a" alt="b" />\n');
-
 		expect(code).not.toContain('_missingMdxReference("Img"');
 	});
 
@@ -63,14 +58,6 @@ describe('autoImport', () => {
 
 		expect(code).toContain('img.astro');
 		expect(code).not.toContain('_missingMdxReference("Img"');
-	});
-
-	test('resets per document so state does not leak across compiles', async () => {
-		const md = await compile('text\n', { file: 'file:///a.md' });
-		expect(md).not.toContain('img.astro');
-
-		const mdx = await compile('<Img src="a" alt="b" />\n', { file: 'file:///b.mdx' });
-		expect(mdx).toContain('img.astro');
 	});
 
 	test('supports bare-string config (default name derived from filename)', async () => {

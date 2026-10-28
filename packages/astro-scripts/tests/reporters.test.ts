@@ -507,15 +507,6 @@ describe('json reporter', () => {
 		]);
 	});
 
-	test('writes data as one JSON line on stdout', () => {
-		const harness = createHarness(createJsonReporter);
-
-		harness.emit({ type: 'data', value: { files: ['a.jpg'] } });
-
-		expect(harness.stdout()).toEqual(['{"files":["a.jpg"]}']);
-		expect(harness.stderr()).toEqual([]);
-	});
-
 	test('writes the value without rendering its human formatting', () => {
 		const harness = createHarness(createJsonReporter);
 		const render = vi.fn(() => 'Missing 2');
@@ -523,6 +514,7 @@ describe('json reporter', () => {
 		harness.emit({ render, type: 'data', value: { missing: 2 } });
 
 		expect(harness.stdout()).toEqual(['{"missing":2}']);
+		expect(harness.stderr()).toEqual([]);
 		expect(render).not.toHaveBeenCalled();
 	});
 });

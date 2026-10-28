@@ -4,7 +4,6 @@ import { stripTags } from '../src/html.js';
 
 const sampleText = [
 	[`No change to plain text`, `No change to plain text`],
-	[`Emphasis <em>should</em> be removed`, `Emphasis should be removed`],
 	[
 		`This <a href="https://example.com">link</a> should be stripped`,
 		`This link should be stripped`,

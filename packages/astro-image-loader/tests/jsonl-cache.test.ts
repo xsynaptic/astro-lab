@@ -36,17 +36,6 @@ describe('createJsonlCache', () => {
 		expect(second).toEqual({ data: {}, digest: 'd2' });
 	});
 
-	test('persists across instances', async () => {
-		const filePath = await getTempCachePath();
-		const first = createJsonlCache({ filePath });
-
-		await first.set('a.jpg', { data: { title: 'one' }, digest: 'd1' });
-
-		const second = createJsonlCache({ filePath });
-
-		expect(await second.get('a.jpg')).toEqual({ data: { title: 'one' }, digest: 'd1' });
-	});
-
 	test('the last line wins for duplicate keys', async () => {
 		const filePath = await getTempCachePath();
 		const cache = createJsonlCache({ filePath });

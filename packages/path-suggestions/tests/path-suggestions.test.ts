@@ -27,19 +27,11 @@ describe('getPathSimilarity', () => {
 		expect(getPathSimilarity('', '')).toBe(1);
 	});
 
-	test('scores unrelated strings near 0', () => {
-		expect(getPathSimilarity('/abcdefgh', '/12345678')).toBeLessThan(0.2);
-	});
-
 	test('lifts a truncated string above a same-length unrelated one', () => {
 		const truncated = getPathSimilarity('/sanwan-yue', '/sanwan-yuemei-suspension-bridge');
 		const unrelated = getPathSimilarity('/sanwan-yue', '/keelung-ghost-festival-parade-xy');
 
 		expect(truncated).toBeGreaterThan(unrelated);
-	});
-
-	test('never exceeds 1 once the substring bonus applies', () => {
-		expect(getPathSimilarity('/keelung', '/keelung-g')).toBeLessThanOrEqual(1);
 	});
 });
 

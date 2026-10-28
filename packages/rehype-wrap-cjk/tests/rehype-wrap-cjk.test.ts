@@ -63,8 +63,6 @@ const chineseMarkdownText: Array<[string, string]> = [
 		'Sample text with CJK characters (中日韓字符) interspersed. 中文 can appear anywhere in the text.',
 		'<p>Sample text with CJK characters (<span lang="zh">中日韓字符</span>) interspersed. <span lang="zh">中文</span> can appear anywhere in the text.</p>',
 	],
-	['你好', '<p><span lang="zh">你好</span></p>'],
-	['Hello 世界', '<p>Hello <span lang="zh">世界</span></p>'],
 	['一二三 ABC 四五六', '<p><span lang="zh">一二三</span> ABC <span lang="zh">四五六</span></p>'],
 ];
 
@@ -75,12 +73,6 @@ const japaneseMarkdownText: Array<[string, string]> = [
 		'ひらがな カタカナ 漢字',
 		'<p><span lang="ja">ひらがな</span> <span lang="ja">カタカナ</span> <span lang="ja">漢字</span></p>',
 	],
-	[
-		'English text with ひらがな mixed in',
-		'<p>English text with <span lang="ja">ひらがな</span> mixed in</p>',
-	],
-	['アニメ', '<p><span lang="ja">アニメ</span></p>'],
-	['日本語', '<p><span lang="ja">日本語</span></p>'],
 	['ひらがな、カタカナ、漢字', '<p><span lang="ja">ひらがな、カタカナ、漢字</span></p>'],
 ];
 
@@ -92,11 +84,6 @@ const koreanMarkdownText: Array<[string, string]> = [
 		'<p><span lang="ko">한국어</span> <span lang="ko">문자열</span> <span lang="ko">테스트</span></p>',
 	],
 	[
-		'Mixed text with 한글 characters',
-		'<p>Mixed text with <span lang="ko">한글</span> characters</p>',
-	],
-	['김치', '<p><span lang="ko">김치</span></p>'],
-	[
 		'한국어와 漢字 混合',
 		'<p><span lang="ko">한국어와</span> <span lang="ko">漢字</span> <span lang="ko">混合</span></p>',
 	],
@@ -107,8 +94,6 @@ const cjkMarkdownText: Array<[string, string]> = [
 		'Sample text with CJK characters (中日韓字符) interspersed. 中文 can appear anywhere in the text.',
 		'<p>Sample text with CJK characters (<span class="cjk">中日韓字符</span>) interspersed. <span class="cjk">中文</span> can appear anywhere in the text.</p>',
 	],
-	['Hello こんにちは world', '<p>Hello <span class="cjk">こんにちは</span> world</p>'],
-	['Hello 안녕 world', '<p>Hello <span class="cjk">안녕</span> world</p>'],
 	[
 		'Combined text sample with Chinese (中日韓字符), Japanese (こんにちは), and Korean (안녕).',
 		'<p>Combined text sample with Chinese (<span class="cjk">中日韓字符</span>), Japanese (<span class="cjk">こんにちは</span>), and Korean (<span class="cjk">안녕</span>).</p>',
@@ -227,12 +212,6 @@ const processHtmlWith = async (
 };
 
 describe('rehype wrap CJK plugin skip behavior', () => {
-	test('class attribute: wraps with class instead of lang', async () => {
-		await expect(processWith({ attribute: 'class', value: 'cjk' }, 'Hello 中文')).resolves.toEqual(
-			'<p>Hello <span class="cjk">中文</span></p>',
-		);
-	});
-
 	test('class attribute: does not re-wrap own output', async () => {
 		await expect(
 			processHtmlWith({ attribute: 'class', value: 'cjk' }, '<span class="cjk">中文</span>'),

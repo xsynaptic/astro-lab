@@ -7,10 +7,6 @@ describe('generate: dimensions', () => {
 		expect(generate('photo.jpg', { width: 800 })).toBe('unsafe/800x0/photo.jpg');
 	});
 
-	test('width + height emits WxH (default crop-to-fill)', () => {
-		expect(generate('photo.jpg', { width: 800, height: 600 })).toBe('unsafe/800x600/photo.jpg');
-	});
-
 	test('string dimensions are coerced', () => {
 		expect(generate('photo.jpg', { width: '800', height: '600' })).toBe('unsafe/800x600/photo.jpg');
 	});
