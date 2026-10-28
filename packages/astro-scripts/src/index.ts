@@ -14,4 +14,17 @@ export type { OutputMode, Status } from './output/output.js';
 export { createProgress, withSpinner, withStatus } from './output/progress.js';
 export type { Progress } from './output/progress.js';
 export { UserError } from './user-error.js';
+export {
+	reportValidationResult,
+	runValidations,
+	toReferenceValidationResult,
+	toValidationResult,
+} from './validation.js';
+export type {
+	EntryReference,
+	ReferenceIssue,
+	Validation,
+	ValidationIssue,
+	ValidationResult,
+} from './validation.js';
 export { findWorkspaceRoot } from './workspace.js';

@@ -1,6 +1,6 @@
 # @xsynaptic/astro-scripts
 
-Plumbing for an Astro project's `scripts` package: a command runner, output through interchangeable reporters, workspace root discovery, and a bridge for reading `astro:content` outside the Astro runtime. Early prototype; the API will move.
+Plumbing for an Astro project's `scripts` package: a command runner, output through interchangeable reporters, content validation, and a bridge for reading `astro:content` outside the Astro runtime. Early prototype; the API will move.
 
 ```sh
 pnpm add @xsynaptic/astro-scripts
@@ -28,15 +28,9 @@ await runCommand({
 });
 ```
 
-Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`; `SCRIPTS_OUTPUT` overrides the choice. Run a `--json` command through `pnpm --silent`, or pnpm's own lines land in the stream. Address the scripts package with `-C` rather than `-F`: a filtered run is recursive, so a failure still appends pnpm's `ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL` box after the `end` event.
+Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`. Run a `--json` command through `pnpm --silent -C <scripts package>` so pnpm's own lines stay out of the stream.
 
-Throw `UserError` for an expected failure: the run ends with its message and optional `detail`, and no stack. The runner matches it by `name === 'UserError'` and reads `detail` when it is a string, so a library can throw its own class of that name without depending on this package:
-
-```ts
-throw new UserError('Caddy did not reload', { detail: stderrTail });
-```
-
-`withAstroModules` and `withAstroContent` load `astro` and `vite` only when called, and need a content store written by `astro sync`.
+`withAstroModules` and `withAstroContent` need a content store written by `astro sync`.
 
 ## License
 

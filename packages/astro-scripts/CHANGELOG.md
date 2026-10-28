@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.4.0
+
+### Minor Changes
+
+- Add content validation: `runValidations` runs a project's checks and reports each result as command output, structured under `--json`.
+
 ## 0.3.1
 
 ### Patch Changes
