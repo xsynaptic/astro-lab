@@ -27,9 +27,10 @@ import { UserError } from './user-error.js';
 
 export type { ImageEncoding } from './image-encoding.js';
 export type { ImageSourceResolver } from './image-sources.js';
+export { createDirectorySources } from './image-sources.js';
 
 export interface ImagePipelineOptions {
-	baseUrl: string;
+	baseUrl?: string;
 	cachePath: string;
 	encoding?: ImageEncoding;
 	limitInputPixels?: number;
@@ -179,7 +180,7 @@ export default function imagePipeline({
 	mediaPath,
 	sources,
 }: ImagePipelineOptions): AstroIntegration {
-	if (baseUrl.replace(/\/+$/, '') === '') {
+	if (baseUrl?.replace(/\/+$/, '') === '') {
 		throw new Error(
 			'imagePipeline needs a baseUrl below the site root; at the root, every request and every root-relative URL would count as an image',
 		);
@@ -230,7 +231,7 @@ export default function imagePipeline({
 			},
 			'astro:server:setup': async ({ logger, server }) => {
 				// An absolute base URL means dev fetches images from the live host
-				if (!baseUrl.startsWith('/')) return;
+				if (!baseUrl?.startsWith('/')) return;
 
 				const mediaPathKey = createHash('sha256')
 					.update(absoluteMediaPath)

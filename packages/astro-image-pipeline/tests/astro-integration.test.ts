@@ -74,6 +74,24 @@ describe('imagePipeline', () => {
 			}),
 		).toThrow('below the site root');
 	});
+
+	test('without a base URL, records cards and serves nothing in dev', async () => {
+		const { hooks } = imagePipeline({ cachePath: root, mediaPath: path.join(root, 'media') });
+		const use = vi.fn();
+
+		await hooks['astro:server:setup']?.({
+			logger: createLogger(),
+			server: { middlewares: { use } },
+		} as unknown as Parameters<NonNullable<Hooks['astro:server:setup']>>[0]);
+		await startBuild(hooks);
+		getCardName({ id: 'atlas', input: { title: 'Atlas' } }, cardFormat);
+		await finishBuild(hooks);
+
+		const manifest = await readDistManifest({ cachePath: root, distPath: path.join(root, 'dist') });
+
+		expect(use).not.toHaveBeenCalled();
+		expect(Object.keys(manifest.openGraphCards)).toEqual(['atlas.jpg']);
+	});
 });
 
 describe('imagePipeline recording', () => {

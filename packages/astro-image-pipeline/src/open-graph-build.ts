@@ -20,8 +20,11 @@ export type OpenGraphCardRenderRunOptions = Pick<
 	'concurrency' | 'onFailure' | 'onProgress' | 'onReplace' | 'signal'
 >;
 
+type MissingImagePolicy = 'fail' | 'omit';
+
 export interface OpenGraphCardRenderOptions<Decoded> extends ImageRenderTarget {
 	decode: (source: OpenGraphCardSource) => Promise<Decoded>;
+	missingImage?: MissingImagePolicy;
 	render: (input: OpenGraphCardInput, decoded?: Decoded) => Promise<Uint8Array>;
 	templateVersion: string;
 }
@@ -83,18 +86,23 @@ async function readSourceState(
 	return fingerprint ? { digest: fingerprint.sha256, source } : { source };
 }
 
-function createGroupDecoder<Decoded>(decode: OpenGraphCardRenderOptions<Decoded>['decode']) {
-	let current: undefined | { decoded: Promise<Decoded>; state: OpenGraphCardSourceState };
+function createGroupDecoder<Decoded>({
+	decode,
+	missingImage,
+}: Pick<OpenGraphCardRenderOptions<Decoded>, 'decode'> & { missingImage: MissingImagePolicy }) {
+	let current:
+		undefined | { decoded: Promise<Decoded | undefined>; state: OpenGraphCardSourceState };
+
+	function startDecode(state: OpenGraphCardSourceState) {
+		if (state.digest) return decode(state.source);
+
+		if (missingImage === 'omit') return Promise.resolve(undefined);
+
+		return Promise.reject(new Error(`Missing image: ${state.source.path}`));
+	}
 
 	return function getDecoded(state: OpenGraphCardSourceState) {
-		if (current?.state !== state) {
-			current = {
-				decoded: state.digest
-					? decode(state.source)
-					: Promise.reject(new Error(`Missing image: ${state.source.path}`)),
-				state,
-			};
-		}
+		if (current?.state !== state) current = { decoded: startDecode(state), state };
 
 		return current.decoded;
 	};
@@ -105,20 +113,25 @@ async function createCardJobs<Decoded>({
 	decode,
 	groups,
 	mediaPath,
+	missingImage,
 	render,
 	templateVersion,
 }: Pick<OpenGraphCardRenderOptions<Decoded>, 'decode' | 'render' | 'templateVersion'> & {
 	cachePath: string;
 	groups: ReadonlyArray<OpenGraphCardGroup>;
 	mediaPath: string;
+	missingImage: MissingImagePolicy;
 }) {
 	const fingerprints = createSourceFingerprints(cachePath);
-	const getDecoded = createGroupDecoder(decode);
+	const getDecoded = createGroupDecoder({ decode, missingImage });
 	const jobs: Array<RenderJob> = [];
+	const missingImages = new Set<string>();
 
 	try {
 		for (const { cards, image } of groups) {
 			const state = image ? await readSourceState(fingerprints, mediaPath, image) : undefined;
+
+			if (state && !state.digest) missingImages.add(state.source.path);
 
 			for (const [name, input] of cards) {
 				jobs.push({
@@ -138,13 +151,17 @@ async function createCardJobs<Decoded>({
 		fingerprints.close();
 	}
 
-	return jobs;
+	return {
+		jobs,
+		missingImages: [...missingImages].toSorted((first, second) => first.localeCompare(second)),
+	};
 }
 
 export async function prepareOpenGraphCardRender<Decoded>({
 	cachePath,
 	decode,
 	distPath,
+	missingImage = 'fail',
 	render,
 	templateVersion,
 }: OpenGraphCardRenderOptions<Decoded>) {
@@ -152,11 +169,12 @@ export async function prepareOpenGraphCardRender<Decoded>({
 	const { openGraphCardsPath } = getImageCachePaths(resolvedCachePath);
 	const manifest = await readDistManifest({ cachePath: resolvedCachePath, distPath });
 	const groups = groupByImage(manifest.openGraphCards);
-	const jobs = await createCardJobs({
+	const { jobs, missingImages } = await createCardJobs({
 		cachePath: resolvedCachePath,
 		decode,
 		groups,
 		mediaPath: manifest.mediaPath,
+		missingImage,
 		render,
 		templateVersion,
 	});
@@ -165,5 +183,13 @@ export async function prepareOpenGraphCardRender<Decoded>({
 		return runRenderJobs({ ...options, directory: openGraphCardsPath, jobs });
 	}
 
-	return { run, sources: groups.filter((group) => group.image).length, total: jobs.length };
+	return {
+		directory: openGraphCardsPath,
+		missingImages,
+		run,
+		sources: groups.filter((group) => group.image).length,
+		total: jobs.length,
+	};
 }
+
+export type PreparedOpenGraphCardRender = Awaited<ReturnType<typeof prepareOpenGraphCardRender>>;

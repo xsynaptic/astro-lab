@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
+import { readDirectoryTreeIfExists } from './files.js';
 import { getImageStem, isImageSource } from './image-name.js';
 
 export interface ImageSourceResolver {
@@ -27,4 +28,16 @@ export function createDirectorySources(mediaPath: string): ImageSourceResolver {
 			return entry === undefined ? undefined : path.posix.join(directory, entry);
 		},
 	};
+}
+
+export async function listImageSources(mediaPath: string) {
+	const entries = await readDirectoryTreeIfExists(mediaPath);
+
+	return new Set(
+		entries
+			.filter((entry) => entry.isFile() && isImageSource(entry.name))
+			.map((entry) =>
+				path.relative(mediaPath, path.join(entry.parentPath, entry.name)).split(path.sep).join('/'),
+			),
+	);
 }

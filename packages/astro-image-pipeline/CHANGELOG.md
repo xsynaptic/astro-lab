@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.5.0
+
+### Minor Changes
+
+- `baseUrl` is optional, for a site that only renders OpenGraph cards; `prepareOpenGraphCardRender` takes `missingImage: 'omit'` and returns `missingImages`; prepared renders and sweeps carry their output `directory` and export their result types; image runs take `concurrency`; add `createDirectorySources` to the root entry and `listImageSources` and `hashTemplateVersion` to `./node`.
+
 ## 0.4.1
 
 ### Patch Changes

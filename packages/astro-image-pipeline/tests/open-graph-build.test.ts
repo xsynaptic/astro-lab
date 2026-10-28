@@ -117,6 +117,28 @@ describe('prepareOpenGraphCardRender', () => {
 		expect(existsSync(path.join(directory, 'gone.jpg'))).toBe(false);
 	});
 
+	test('omitting a missing photo draws its cards without art and names it', async () => {
+		const prepared = await prepare({ missingImage: 'omit' });
+		const counts = await prepared.run({ onFailure: 'report' });
+
+		expect(prepared.missingImages).toEqual(['gone.jpg']);
+		expect(counts.failures).toEqual([]);
+		expect(await fs.readFile(path.join(prepared.directory, 'gone.jpg'), 'utf8')).toBe(
+			'"Gone"|none',
+		);
+	});
+
+	test('a photo that turns up later renders its card again', async () => {
+		await render({ missingImage: 'omit' });
+		await fs.copyFile(path.join(mediaPath, 'photo.jpg'), path.join(mediaPath, 'gone.jpg'));
+
+		const prepared = await prepare({ missingImage: 'omit' });
+		const counts = await prepared.run({ onFailure: 'report' });
+
+		expect(prepared.missingImages).toEqual([]);
+		expect(counts).toMatchObject({ fresh: 4, rendered: 1 });
+	});
+
 	test('a warm run decodes and renders nothing', async () => {
 		await render();
 

@@ -100,5 +100,7 @@ export async function prepareImageSweep({ cachePath, keep }: ImageSweepOptions) 
 		});
 	}
 
-	return { deletions, keep: kept.names, run, total: names.length };
+	return { deletions, directory: renditionsPath, keep: kept.names, run, total: names.length };
 }
+
+export type PreparedImageSweep = Awaited<ReturnType<typeof prepareImageSweep>>;

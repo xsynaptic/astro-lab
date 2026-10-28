@@ -23,7 +23,7 @@ import { UserError } from './user-error.js';
 
 export type ImageRenderRunOptions = Pick<
 	RenderJobOptions,
-	'onFailure' | 'onProgress' | 'onReplace' | 'signal'
+	'concurrency' | 'onFailure' | 'onProgress' | 'onReplace' | 'signal'
 >;
 
 interface ImageRendition extends ImageName {
@@ -200,12 +200,20 @@ export async function prepareImageRender({ cachePath, distPath }: ImageRenderTar
 		concurrency,
 	);
 
-	async function run(options: ImageRenderRunOptions = {}) {
+	async function run({
+		concurrency: runConcurrency = concurrency,
+		...options
+	}: ImageRenderRunOptions = {}) {
 		// Process-wide; the job pool supplies the parallelism instead of libvips threads
 		sharp.concurrency(1);
 		sharp.cache(false);
 
-		const counts = await runRenderJobs({ ...options, concurrency, directory, jobs });
+		const counts = await runRenderJobs({
+			...options,
+			concurrency: runConcurrency,
+			directory,
+			jobs,
+		});
 
 		// Dev serves built renditions first, so its own renders are redundant now
 		await fs.rm(getImageCachePaths(resolvedCachePath).devPath, { force: true, recursive: true });
@@ -213,5 +221,7 @@ export async function prepareImageRender({ cachePath, distPath }: ImageRenderTar
 		return counts;
 	}
 
-	return { run, total: jobs.length };
+	return { directory, run, total: jobs.length };
 }
+
+export type PreparedImageRender = Awaited<ReturnType<typeof prepareImageRender>>;
