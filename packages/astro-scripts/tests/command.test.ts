@@ -2,13 +2,14 @@ import { stripVTControlCharacters } from 'node:util';
 import { afterEach, beforeEach, describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { ProcessOutput } from 'zx';
 
-import { runChild } from '../src/child.js';
+import { readChild, runChild } from '../src/child.js';
 import {
 	createCommandRunner,
 	formatHelp,
 	getFailureReport,
 	parseNumberOption,
 } from '../src/command.js';
+import { withStep } from '../src/output/progress.js';
 import { UserError } from '../src/user-error.js';
 
 class LibraryUserError extends Error {
@@ -367,7 +368,7 @@ describe('runCommand', () => {
 						'process.on("SIGTERM", () => { console.log("stopped"); process.exit(130); }); console.log("ready"); setInterval(() => {}, 1000)',
 					],
 					{
-						filter: (line) => {
+						onLine: (line) => {
 							if (line === 'ready') process.emit('SIGINT');
 							return true;
 						},
@@ -385,6 +386,77 @@ describe('runCommand', () => {
 			'stopped',
 		]);
 		expect(events.at(-1)).toMatchObject({ status: 'interrupted', type: 'end' });
+	});
+
+	test('ends with the steps that warned or skipped', async () => {
+		const { runCommand } = createCommandRunner();
+
+		setArgs();
+		await runCommand({
+			name: 'deploy-site',
+			run: async () => {
+				await withStep('Pulling stats', (step) => {
+					step.warn();
+					return Promise.resolve();
+				});
+				await withStep('Fetching webmentions', (step) => {
+					step.skip();
+					return Promise.resolve();
+				});
+				await withStep('Building', () => Promise.resolve());
+			},
+			summary: 'Deploy',
+			title: 'Deploy',
+		});
+
+		expect(readEvents().at(-1)).toMatchObject({
+			skipped: ['Fetching webmentions'],
+			status: 'ok',
+			type: 'end',
+			warned: ['Pulling stats'],
+		});
+	});
+
+	test('drops the literal -- pnpm forwards before the options', async () => {
+		const run = vi.fn();
+		const { runCommand } = createCommandRunner();
+
+		setArgs('--', '--dry-run');
+		await runCommand({
+			name: 'deploy-site',
+			options: { 'dry-run': { default: false, description: 'Dry run', type: 'boolean' } },
+			run: ({ values }) => {
+				run(values['dry-run']);
+			},
+			summary: 'Deploy',
+			title: 'Deploy',
+		});
+
+		expect(run).toHaveBeenCalledWith(true);
+	});
+
+	test('reports a captured child that fails with its output tail', async () => {
+		const { runCommand } = createCommandRunner();
+
+		setArgs();
+		await runCommand({
+			name: 'deploy-app',
+			run: async () => {
+				await readChild([
+					process.execPath,
+					'-e',
+					'console.error("quota exceeded"); process.exit(2)',
+				]);
+			},
+			summary: 'Deploy',
+			title: 'Deploy',
+		});
+
+		expect(readEvents().at(-1)).toMatchObject({
+			detail: 'quota exceeded',
+			message: expect.stringMatching(/exited with code 2$/),
+			status: 'failed',
+		});
 	});
 
 	test('refuses an unknown SCRIPTS_OUTPUT rather than guessing', async () => {
@@ -423,12 +495,12 @@ describe('runCommand', () => {
 		});
 	});
 
-	test('reads --json after the -- separator as a positional, not the flag', async () => {
+	test('reads --json after a second -- separator as a positional, not the flag', async () => {
 		const run = vi.fn();
 		const { runCommand } = createCommandRunner();
 
 		delete process.env.SCRIPTS_OUTPUT;
-		setArgs('--', '--json');
+		setArgs('--', '--', '--json');
 		await runCommand({
 			name: 'improve-content',
 			positional: { description: 'One entry by id', name: 'entry' },

@@ -1,5 +1,12 @@
 # @xsynaptic/astro-scripts
 
+## 0.9.0
+
+### Minor Changes
+
+- Add `readChild` to capture a child's output, and `env`, `input`, `onLine` (replacing `filter`) and `describe` on `runChild`; `withStep` takes `describe`, its `Step` gains `warn(detail)` and `skip(reason)`, and `end` lists warned and skipped steps; every status close carries `durationMs`; nested events carry `parent`; a leading `--` is dropped; `plain` progress prints at each tenth; `withStatus` is removed in favour of `withSpinner`.
+- Add the shared content checks (`checkReferences`, `checkEntryIds`, `checkComponentProps`, `checkComponentTargets`) with their MDX helpers, `getEntryCommitDates`, `fetchWithRetry`, and a `severity` option on `toValidationResult`; each check locates an issue as `file:line`.
+
 ## 0.8.0
 
 ### Minor Changes

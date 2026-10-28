@@ -35,14 +35,41 @@ export const plainPalette: Palette = {
 export function getStateSymbol(state: TerminalState, palette: Palette) {
 	if (state === 'succeed') return palette.green('✓');
 	if (state === 'fail') return palette.red('✗');
+	if (state === 'skip') return palette.gray('–');
 
 	return palette.yellow('⚠');
 }
 
-export function formatStatusText({ durationMs, text }: StatusEvent) {
+function formatStatusText({ durationMs, text }: StatusEvent) {
 	if (durationMs === undefined) return text;
 
 	return `${text} · ${formatDuration(durationMs)}`;
+}
+
+export function isClosingStatus(
+	event: StatusEvent,
+): event is StatusEvent & { state: TerminalState } {
+	return event.state !== 'start' && event.state !== 'stop' && event.state !== 'update';
+}
+
+export function formatStatusClose(event: StatusEvent & { state: TerminalState }, palette: Palette) {
+	const line = `${getStateSymbol(event.state, palette)} ${formatStatusText(event)}`;
+
+	if (event.detail === undefined) return [line];
+
+	return [line, formatMessage('detail', event.detail, palette)];
+}
+
+function formatStepOutcomes({ skipped = [], warned = [] }: EndEvent, palette: Palette) {
+	const lines: Array<string> = [];
+
+	if (warned.length > 0) lines.push(formatMessage('warn', `Warned: ${warned.join(', ')}`, palette));
+
+	if (skipped.length > 0) {
+		lines.push(`${getStateSymbol('skip', palette)} Skipped: ${skipped.join(', ')}`);
+	}
+
+	return lines;
 }
 
 export function formatMessage(level: MessageLevel, text: string, palette: Palette) {
@@ -91,12 +118,17 @@ export function formatData(value: unknown) {
 }
 
 export function formatEnd(event: EndEvent, palette: Palette) {
+	const lines = formatStepOutcomes(event, palette);
+
 	if (event.status === 'ok') {
-		return [formatMessage('detail', `Finished in ${formatDuration(event.durationMs)}`, palette)];
+		lines.push(formatMessage('detail', `Finished in ${formatDuration(event.durationMs)}`, palette));
+
+		return lines;
 	}
 
 	const level = event.status === 'failed' || event.forced ? 'error' : 'warn';
-	const lines = event.message === undefined ? [] : [formatMessage(level, event.message, palette)];
+
+	if (event.message !== undefined) lines.push(formatMessage(level, event.message, palette));
 
 	if (event.detail) lines.push(formatMessage('detail', event.detail, palette));
 

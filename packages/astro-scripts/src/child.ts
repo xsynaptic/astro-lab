@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'node:child_process';
 import type { Readable } from 'node:stream';
 
 import { spawn } from 'node:child_process';
@@ -8,13 +9,31 @@ import { stripVTControlCharacters } from 'node:util';
 import type { OutputStream } from './output/events.js';
 
 import { getCommandSignal } from './command.js';
-import { emit, getOutputMode } from './output/output.js';
+import { emit, getCommandName, getOutputMode } from './output/output.js';
 import { runStep } from './output/progress.js';
 
-interface RunChildOptions {
+type Argv = [string, ...Array<string>];
+
+interface ChildOptions {
 	cwd?: string;
-	filter?: (line: string) => boolean;
+	env?: Record<string, string | undefined>;
+	input?: string;
 	signal?: AbortSignal;
+}
+
+interface RunChildOptions extends ChildOptions {
+	describe?: () => string;
+	onLine?: (line: string, stream: OutputStream) => boolean;
+}
+
+interface ReadChildOptions extends ChildOptions {
+	allowFailure?: boolean;
+}
+
+export interface ChildResult {
+	exitCode: null | number;
+	stderr: string;
+	stdout: string;
 }
 
 type ExitSignal = NodeJS.Signals | null;
@@ -22,14 +41,25 @@ type ExitSignal = NodeJS.Signals | null;
 class ChildProcessError extends Error {
 	exitCode: null | number;
 	signal: ExitSignal;
+	stderr?: string;
+	stdout?: string;
 
-	constructor(argv: Array<string>, exitCode: null | number, signal: ExitSignal) {
+	constructor(
+		argv: Array<string>,
+		{ exitCode, signal }: { exitCode: null | number; signal: ExitSignal },
+		output?: { stderr: string; stdout: string },
+	) {
 		const reason = signal ? `was killed by ${signal}` : `exited with code ${String(exitCode)}`;
 
 		super(`${argv.join(' ')} ${reason}`);
 		this.name = 'ChildProcessError';
 		this.exitCode = exitCode;
 		this.signal = signal;
+
+		if (output) {
+			this.stderr = output.stderr;
+			this.stdout = output.stdout;
+		}
 	}
 }
 
@@ -47,25 +77,52 @@ const eventTypes = new Set<unknown>([
 // eslint-disable-next-line no-control-regex -- matching escape sequences is the point
 const nonColourSequence = /\u{1B}\[[\d;?]*[A-Za-ln-z]|\u{1B}\][^\u{7}\u{1B}]*(?:\u{7}|\u{1B}\\)/gu;
 
-function isEventLine(line: string) {
-	if (!line.startsWith('{')) return false;
+function parseEventLine(line: string) {
+	if (!line.startsWith('{')) return;
 
 	try {
 		const parsed: unknown = JSON.parse(line);
 
-		if (typeof parsed !== 'object' || parsed === null) return false;
+		if (typeof parsed !== 'object' || parsed === null) return;
 
-		return (
+		const isEvent =
 			'type' in parsed &&
 			eventTypes.has(parsed.type) &&
 			'command' in parsed &&
 			typeof parsed.command === 'string' &&
 			'time' in parsed &&
-			typeof parsed.time === 'string'
-		);
+			typeof parsed.time === 'string';
+
+		return isEvent ? parsed : undefined;
 	} catch {
-		return false;
+		return;
 	}
+}
+
+function withParent(line: string, event: object, id: number) {
+	if ('parent' in event) return line;
+
+	return JSON.stringify({ ...event, parent: { command: getCommandName(), id } });
+}
+
+function getChildEnv(env: ChildOptions['env'], extra: Record<string, string>) {
+	return { ...process.env, ...env, ...extra };
+}
+
+function writeInput(child: ChildProcess, input: string | undefined) {
+	if (input !== undefined) child.stdin?.end(input);
+}
+
+function forwardAbort(child: ChildProcess, signal: AbortSignal | undefined) {
+	function onAbort() {
+		child.kill('SIGTERM');
+	}
+
+	signal?.addEventListener('abort', onAbort, { once: true });
+
+	return () => {
+		signal?.removeEventListener('abort', onAbort);
+	};
 }
 
 async function relayLines(
@@ -78,45 +135,56 @@ async function relayLines(
 	for await (const line of lines) onLine(line, stream);
 }
 
+async function readStream(input: null | Readable) {
+	if (!input) return '';
+
+	input.setEncoding('utf8');
+
+	let text = '';
+
+	for await (const chunk of input) text += String(chunk);
+
+	return text;
+}
+
 async function spawnChild(
 	id: number,
-	argv: [string, ...Array<string>],
-	{ cwd, filter }: RunChildOptions,
+	argv: Argv,
+	{ cwd, env, input, onLine }: RunChildOptions,
 	signal: AbortSignal | undefined,
 ) {
 	const mode = getOutputMode();
-	const isPiped = mode === 'json' || filter !== undefined;
+	const isPiped = mode === 'json' || onLine !== undefined;
 	const [file, ...args] = argv;
 	const child = spawn(file, args, {
 		cwd,
-		env: {
-			...process.env,
+		env: getChildEnv(env, {
 			...(isPiped && mode === 'pretty' ? { FORCE_COLOR: '1' } : {}),
 			SCRIPTS_NESTED: '1',
-		},
-		stdio: isPiped ? ['inherit', 'pipe', 'pipe'] : ['inherit', 2, 2],
+		}),
+		stdio: [input === undefined ? 'inherit' : 'pipe', isPiped ? 'pipe' : 2, isPiped ? 'pipe' : 2],
 	});
 
-	function onLine(line: string, stream: OutputStream) {
-		if (mode === 'json' && stream === 'stderr' && isEventLine(line)) {
-			emit({ line, type: 'nested' });
+	function relayLine(line: string, stream: OutputStream) {
+		const event = mode === 'json' && stream === 'stderr' ? parseEventLine(line) : undefined;
+
+		if (event) {
+			emit({ line: withParent(line, event, id), type: 'nested' });
 			return;
 		}
 
-		if (filter && !filter(stripVTControlCharacters(line))) return;
+		if (onLine && !onLine(stripVTControlCharacters(line), stream)) return;
 
 		emit({ id, stream, text: line.replaceAll(nonColourSequence, ''), type: 'output' });
 	}
 
-	function onAbort() {
-		child.kill('SIGTERM');
-	}
+	const stopForwarding = forwardAbort(child, signal);
 
-	signal?.addEventListener('abort', onAbort, { once: true });
+	writeInput(child, input);
 
 	const relays = [
-		...(child.stdout ? [relayLines(child.stdout, 'stdout', onLine)] : []),
-		...(child.stderr ? [relayLines(child.stderr, 'stderr', onLine)] : []),
+		...(child.stdout ? [relayLines(child.stdout, 'stdout', relayLine)] : []),
+		...(child.stderr ? [relayLines(child.stderr, 'stderr', relayLine)] : []),
 	];
 
 	try {
@@ -125,20 +193,54 @@ async function spawnChild(
 			once(child, 'close'),
 		])) as [unknown, [null | number, ExitSignal]];
 
-		if (exitCode !== 0) throw new ChildProcessError(argv, exitCode, exitSignal);
+		if (exitCode !== 0) throw new ChildProcessError(argv, { exitCode, signal: exitSignal });
 	} finally {
-		signal?.removeEventListener('abort', onAbort);
+		stopForwarding();
 	}
 }
 
-export async function runChild(
-	text: string,
-	argv: [string, ...Array<string>],
-	options: RunChildOptions = {},
-) {
+export async function runChild(text: string, argv: Argv, options: RunChildOptions = {}) {
 	const signal = options.signal ?? getCommandSignal();
 
 	signal?.throwIfAborted();
 
-	await runStep(text, ({ id }) => spawnChild(id, argv, options, signal), argv);
+	await runStep(text, ({ id }) => spawnChild(id, argv, options, signal), {
+		argv,
+		describe: options.describe,
+	});
+}
+
+export async function readChild(
+	argv: Argv,
+	{ allowFailure = false, cwd, env, input, signal = getCommandSignal() }: ReadChildOptions = {},
+): Promise<ChildResult> {
+	signal?.throwIfAborted();
+
+	const [file, ...args] = argv;
+	const child = spawn(file, args, {
+		cwd,
+		env: getChildEnv(env, {}),
+		stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+	});
+	const stopForwarding = forwardAbort(child, signal);
+
+	writeInput(child, input);
+
+	try {
+		const [stdout, stderr, [exitCode, exitSignal]] = (await Promise.all([
+			readStream(child.stdout),
+			readStream(child.stderr),
+			once(child, 'close'),
+		])) as [string, string, [null | number, ExitSignal]];
+
+		signal?.throwIfAborted();
+
+		if (exitCode !== 0 && !allowFailure) {
+			throw new ChildProcessError(argv, { exitCode, signal: exitSignal }, { stderr, stdout });
+		}
+
+		return { exitCode, stderr, stdout };
+	} finally {
+		stopForwarding();
+	}
 }

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 
 import type { OutputEvent } from '../src/output/events.js';
 
-import { runChild } from '../src/child.js';
+import { readChild, runChild } from '../src/child.js';
 import { getFailureReport } from '../src/command.js';
 import { captureOutput, configureOutput } from '../src/output/output.js';
 
@@ -71,8 +71,8 @@ describe('runChild in json mode', () => {
 		expect(end).toMatchObject({ id: start?.id, state: 'succeed' });
 	});
 
-	test("passes a nested command's events through, but wraps its data and anything event-like", async () => {
-		configureOutput('json');
+	test("passes a nested command's events through under its parent step, but wraps its data and anything event-like", async () => {
+		configureOutput('json', 'deploy-site');
 
 		const event =
 			'{"type":"status","command":"validate-content","time":"t","id":1,"state":"start"}';
@@ -85,8 +85,16 @@ describe('runChild in json mode', () => {
 			),
 		);
 
+		const [start] = statuses(events);
+
 		expect(events.filter((item) => item.type === 'nested')).toEqual([
-			{ line: event, type: 'nested' },
+			{
+				line: JSON.stringify({
+					...(JSON.parse(event) as object),
+					parent: { command: 'deploy-site', id: start?.id },
+				}),
+				type: 'nested',
+			},
 		]);
 		expect(outputs(events).map((item) => item.text)).toEqual(
 			expect.arrayContaining([
@@ -124,14 +132,14 @@ describe('runChild running a nested command', () => {
 		configureOutput('plain');
 
 		const { events } = await captureOutput(() =>
-			runChild('Generating placeholders', argv, { filter: () => true }),
+			runChild('Generating placeholders', argv, { onLine: () => true }),
 		);
 
 		expect(outputs(events).map((event) => event.text)).toEqual(['{', '  "generated": 2', '}']);
 	});
 });
 
-describe('runChild with a filter', () => {
+describe('runChild with onLine', () => {
 	test('judges the line without colour, keeps its colour, and drops cursor movement', async () => {
 		configureOutput('pretty');
 
@@ -143,7 +151,7 @@ describe('runChild with a filter', () => {
 					String.raw`console.log("\u001B[2K\u001B[32m+ /a.js\u001B[39m"); console.log("\u001B[1A\u001B[2K\u001B[32mUploaded\u001B[39m")`,
 				),
 				{
-					filter: (line) => {
+					onLine: (line) => {
 						seen.push(line);
 						return !line.startsWith('+ /');
 					},
@@ -153,6 +161,123 @@ describe('runChild with a filter', () => {
 
 		expect(seen).toEqual(['+ /a.js', 'Uploaded']);
 		expect(outputs(events).map((event) => event.text)).toEqual(['\u{1B}[32mUploaded\u{1B}[39m']);
+	});
+});
+
+describe('runChild relaying a nested step', () => {
+	test('keeps a parent a deeper command already stamped', async () => {
+		configureOutput('json', 'deploy-site');
+
+		const event =
+			'{"type":"status","command":"lqip","time":"t","id":1,"state":"start","parent":{"command":"build","id":4}}';
+		const { events } = await captureOutput(() =>
+			runChild('Building', node(`console.error(${JSON.stringify(event)})`)),
+		);
+
+		expect(events.filter((item) => item.type === 'nested')).toEqual([
+			{ line: event, type: 'nested' },
+		]);
+	});
+});
+
+describe('runChild with onLine and describe', () => {
+	test('parses every line, shows only the ones it keeps, and closes with the parsed summary', async () => {
+		configureOutput('json');
+
+		const changed: Array<string> = [];
+		const { events } = await captureOutput(() =>
+			runChild(
+				'Uploading',
+				node(
+					String.raw`console.log(">f+++++++++ a.webp\n>f.st...... b.webp\nTotal bytes sent: 10")`,
+				),
+				{
+					describe: () => `Uploaded · ${String(changed.length)} changed`,
+					onLine: (line) => {
+						if (!line.startsWith('>f')) return true;
+
+						changed.push(line.slice(12));
+						return false;
+					},
+				},
+			),
+		);
+
+		expect(changed).toEqual(['a.webp', 'b.webp']);
+		expect(outputs(events).map((event) => event.text)).toEqual(['Total bytes sent: 10']);
+		expect(statuses(events).at(-1)).toMatchObject({
+			durationMs: expect.any(Number),
+			state: 'succeed',
+			text: 'Uploaded · 2 changed',
+		});
+	});
+
+	test('feeds input to the child and merges env over the parent environment', async () => {
+		configureOutput('json');
+
+		const { events } = await captureOutput(() =>
+			runChild(
+				'Writing secrets',
+				node(
+					'process.stdin.on("data", (chunk) => console.log(`${process.env.TARGET}:${String(chunk)}:${typeof process.env.PATH}`))',
+				),
+				{ env: { TARGET: 'vps' }, input: 'token', onLine: () => true },
+			),
+		);
+
+		expect(outputs(events).map((event) => event.text)).toEqual(['vps:token:string']);
+	});
+});
+
+describe('readChild', () => {
+	test('returns what the child wrote, emitting nothing', async () => {
+		configureOutput('json');
+
+		const { events, result } = await captureOutput(() =>
+			readChild(node('console.log("main"); console.error("noise")')),
+		);
+
+		expect(result).toEqual({ exitCode: 0, stderr: 'noise\n', stdout: 'main\n' });
+		expect(events).toEqual([]);
+	});
+
+	test('feeds input and env', async () => {
+		const result = await readChild(
+			node(
+				'process.stdin.on("data", (chunk) => process.stdout.write(`${process.env.TARGET}:${String(chunk)}`))',
+			),
+			{ env: { TARGET: 'vps' }, input: 'token' },
+		);
+
+		expect(result.stdout).toBe('vps:token');
+	});
+
+	test('reports the stdout of a child that failed with an empty stderr', async () => {
+		const { error } = await captureFailure(async () => {
+			await readChild(node('console.log("Authentication error [code: 10000]"); process.exit(1)'));
+		});
+
+		expect(getFailureReport(error, { isAborted: false })).toEqual({
+			detail: 'Authentication error [code: 10000]',
+			exitCode: 1,
+			isInterrupted: false,
+			message: expect.stringMatching(/exited with code 1$/),
+		});
+	});
+
+	test('returns a failed exit code instead of throwing when allowed', async () => {
+		const result = await readChild(node('process.exit(4)'), { allowFailure: true });
+
+		expect(result.exitCode).toBe(4);
+	});
+
+	test('stops the child on abort', async () => {
+		const controller = new AbortController();
+		const pending = readChild(node('setInterval(() => {}, 1000)'), { signal: controller.signal });
+
+		controller.abort();
+
+		await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
 	});
 });
 
@@ -189,7 +314,7 @@ describe('runChild failures', () => {
 					'process.on("SIGTERM", () => setTimeout(() => { console.log("saved"); process.exit(130); }, 50)); console.log("ready"); setInterval(() => {}, 1000)',
 				),
 				{
-					filter: (line) => {
+					onLine: (line) => {
 						if (line === 'ready') controller.abort();
 						return true;
 					},
@@ -214,7 +339,7 @@ describe('runChild failures', () => {
 	});
 });
 
-describe('runChild without a filter', () => {
+describe('runChild without onLine', () => {
 	test('hands the child our stderr for both streams, keeping stdout for data', () => {
 		const result = spawnSync(process.execPath, ['--import', 'jiti/register', fixturePath], {
 			encoding: 'utf8',

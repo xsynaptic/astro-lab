@@ -398,20 +398,38 @@ describe('plain reporter', () => {
 		expect(harness.stderr()).toEqual(['Syncing', '✓ Synced', 'Pruning']);
 	});
 
-	test('prints progress once every ten seconds', () => {
+	test('prints progress every ten seconds between tenths', () => {
 		const clock = createClock();
 		const harness = createHarness((streams) => createPlainReporter(streams, { now: clock.now }));
 
 		harness.emit({ id: 1, state: 'start', text: 'Rendering 0 / 100 (0%)', type: 'status' });
 
-		for (const done of [10, 20, 30, 40]) {
+		for (const done of [1, 2, 3, 4]) {
 			clock.advance(4000);
-			harness.emit(progress(done, 2.5));
+			harness.emit(progress(done, 0.25));
 		}
 
 		expect(harness.stderr()).toEqual([
 			'Rendering 0 / 100 (0%)',
-			'Rendering 30 / 100 (30%) · 2.5/s · ~28.0s left',
+			'Rendering 3 / 100 (3%) · 0.3/s · ~6m 28s left',
+		]);
+	});
+
+	test('prints progress as soon as it reaches a new tenth', () => {
+		const clock = createClock();
+		const harness = createHarness((streams) => createPlainReporter(streams, { now: clock.now }));
+
+		harness.emit({ id: 1, state: 'start', text: 'Rendering 0 / 100 (0%)', type: 'status' });
+
+		for (const done of [5, 10, 15, 20]) {
+			clock.advance(100);
+			harness.emit(progress(done));
+		}
+
+		expect(harness.stderr()).toEqual([
+			'Rendering 0 / 100 (0%)',
+			'Rendering 10 / 100 (10%)',
+			'Rendering 20 / 100 (20%)',
 		]);
 	});
 
@@ -450,6 +468,44 @@ describe('plain reporter', () => {
 function parse(lines: Array<string>) {
 	return lines.map((line) => JSON.parse(line) as Record<string, unknown>);
 }
+
+describe.each([
+	['pretty', createPrettyReporter],
+	['plain', createPlainReporter],
+] as const)('%s reporter with step outcomes', (_name, createReporter) => {
+	test('closes a skipped step with its reason beneath, and lists warned and skipped steps before the footer', () => {
+		const harness = createHarness((streams) => createReporter(streams));
+
+		harness.emit(
+			{ id: 1, state: 'start', step: true, text: 'Fetching webmentions', type: 'status' },
+			{
+				detail: 'WEBMENTIONS_SHOW is off',
+				durationMs: 2,
+				id: 1,
+				state: 'skip',
+				text: 'Fetching webmentions',
+				type: 'status',
+			},
+			{
+				durationMs: 1500,
+				exitCode: 0,
+				skipped: ['Fetching webmentions'],
+				status: 'ok',
+				type: 'end',
+				warned: ['Pulling stats', 'Pulling listens'],
+			},
+		);
+
+		expect(harness.stderr()).toEqual([
+			'Fetching webmentions',
+			'– Fetching webmentions · 2ms',
+			'  WEBMENTIONS_SHOW is off',
+			'⚠ Warned: Pulling stats, Pulling listens',
+			'– Skipped: Fetching webmentions',
+			'  Finished in 1.5s',
+		]);
+	});
+});
 
 describe.each([
 	['pretty', createPrettyReporter],

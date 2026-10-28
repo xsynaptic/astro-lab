@@ -3,7 +3,16 @@ import type { ParseArgsOptionDescriptor } from 'node:util';
 import chalk from 'chalk';
 import { parseArgs } from 'node:util';
 
-import { configureOutput, emit, getOutputMode, isOutputMode, log } from './output/output.js';
+import type { StepOutcome } from './output/output.js';
+
+import {
+	configureOutput,
+	emit,
+	getOutputMode,
+	isOutputMode,
+	log,
+	trackStepOutcomes,
+} from './output/output.js';
 import { isUserError, UserError } from './user-error.js';
 import { findWorkspaceRoot } from './workspace.js';
 
@@ -67,6 +76,7 @@ interface ChildProcessFailure extends Error {
 	exitCode: null | number | undefined;
 	signal: null | string | undefined;
 	stderr?: unknown;
+	stdout?: unknown;
 }
 
 interface FailureReport {
@@ -79,7 +89,7 @@ interface FailureReport {
 const interruptedExitCode = 130;
 const helpWidth = 100;
 const interruptBurstMs = 1000;
-const stderrTailLines = 20;
+const outputTailLines = 20;
 
 const jsonOption = {
 	description: 'Print output as JSON lines',
@@ -110,6 +120,32 @@ export function parseNumberOption(value: string, name: string) {
 		throw new UserError(`--${name} expects a number, got "${value}"`);
 
 	return parsed;
+}
+
+function getArgs() {
+	const args = process.argv.slice(2);
+
+	return args[0] === '--' ? args.slice(1) : args;
+}
+
+function getOutputTail({ stderr, stdout }: { stderr?: unknown; stdout?: unknown }) {
+	for (const output of [stderr, stdout]) {
+		const text = typeof output === 'string' ? output.trimEnd() : '';
+
+		if (text !== '') return text.split('\n').slice(-outputTailLines).join('\n');
+	}
+
+	return;
+}
+
+function getStepOutcomeFields(outcomes: ReadonlyArray<StepOutcome>) {
+	const warned = outcomes.filter(({ state }) => state === 'warn').map(({ text }) => text);
+	const skipped = outcomes.filter(({ state }) => state === 'skip').map(({ text }) => text);
+
+	return {
+		...(skipped.length > 0 ? { skipped } : {}),
+		...(warned.length > 0 ? { warned } : {}),
+	};
 }
 
 function getUsage(command: CommandDescription, usagePrefix: string) {
@@ -218,20 +254,14 @@ function describeError(error: unknown): Pick<FailureReport, 'detail' | 'message'
 		return typeof detail === 'string' && detail !== '' ? { detail, message } : { message };
 	}
 
-	if (error instanceof Error && error.name === 'ChildProcessError')
-		return { message: error.message };
-
 	if (isChildProcessFailure(error)) {
 		const reason = error.signal
 			? `was killed by ${error.signal}`
 			: `exited with code ${String(error.exitCode)}`;
+		const message = error.name === 'ChildProcessError' ? error.message : `Child process ${reason}`;
+		const detail = getOutputTail(error);
 
-		const message = `Child process ${reason}`;
-		const stderr = typeof error.stderr === 'string' ? error.stderr.trimEnd() : '';
-
-		if (stderr === '') return { message };
-
-		return { detail: stderr.split('\n').slice(-stderrTailLines).join('\n'), message };
+		return detail === undefined ? { message } : { detail, message };
 	}
 
 	if (!(error instanceof Error)) return { message: String(error) };
@@ -260,7 +290,7 @@ function parseCommandArgs(command: CommandDescription) {
 	const options = [...Object.entries(command.options ?? {}), ...builtInOptions];
 	const parsed = parseArgs({
 		allowPositionals: command.positional !== undefined,
-		args: process.argv.slice(2),
+		args: getArgs(),
 		options: Object.fromEntries(
 			options.map(([name, { description: _description, ...descriptor }]) => [name, descriptor]),
 		),
@@ -324,7 +354,7 @@ export function createCommandRunner<Context extends object = object>(
 		const startTime = Date.now();
 		let interruptTime: number | undefined;
 		// Read before parsing, so a parse error in a `--json` run still reports as JSON
-		const args = process.argv.slice(2);
+		const args = getArgs();
 		const separator = args.indexOf('--');
 		const isJson = (separator === -1 ? args : args.slice(0, separator)).includes('--json');
 
@@ -357,6 +387,7 @@ export function createCommandRunner<Context extends object = object>(
 		process.on('SIGTERM', onInterrupt);
 
 		const previousSignal = activeSignal;
+		const stepOutcomes = trackStepOutcomes();
 		let hasStarted = false;
 
 		activeSignal = controller.signal;
@@ -388,7 +419,13 @@ export function createCommandRunner<Context extends object = object>(
 			// A command that honours the signal by returning early was still interrupted
 			controller.signal.throwIfAborted();
 
-			emit({ durationMs: Date.now() - startTime, exitCode: 0, status: 'ok', type: 'end' });
+			emit({
+				...getStepOutcomeFields(stepOutcomes.outcomes),
+				durationMs: Date.now() - startTime,
+				exitCode: 0,
+				status: 'ok',
+				type: 'end',
+			});
 		} catch (error) {
 			if (!hasStarted && getOutputMode() === 'json') emit({ title: command.title, type: 'start' });
 
@@ -398,6 +435,7 @@ export function createCommandRunner<Context extends object = object>(
 			});
 
 			emit({
+				...getStepOutcomeFields(stepOutcomes.outcomes),
 				...(report.detail === undefined ? {} : { detail: report.detail }),
 				durationMs: Date.now() - startTime,
 				exitCode: report.exitCode,
@@ -408,6 +446,7 @@ export function createCommandRunner<Context extends object = object>(
 
 			process.exitCode = report.exitCode;
 		} finally {
+			stepOutcomes.restore();
 			activeSignal = previousSignal;
 			process.off('SIGINT', onInterrupt);
 			process.off('SIGTERM', onInterrupt);

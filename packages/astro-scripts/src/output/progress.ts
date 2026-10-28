@@ -1,7 +1,7 @@
 import type { ProgressSnapshot } from './format.js';
 
 import { formatProgressText } from './format.js';
-import { createStatus, emit, startStatus } from './output.js';
+import { createStatus, emit, recordStepOutcome, startStatus } from './output.js';
 
 export interface Progress {
 	fail: (text?: string) => void;
@@ -11,7 +11,8 @@ export interface Progress {
 }
 
 export interface Step {
-	warn: () => void;
+	skip: (reason?: string) => void;
+	warn: (detail?: string) => void;
 }
 
 interface StepHandle extends Step {
@@ -111,48 +112,68 @@ export function createProgress({ label, note, total }: ProgressOptions) {
 	return progress;
 }
 
-// A failure leaves the status open for `runCommand` to mark as failed
-export async function withStatus<Result>(text: string, task: () => Promise<Result>) {
-	const status = createStatus(text);
-	const result = await task();
+interface StepOutcomeState {
+	detail?: string;
+	state: 'skip' | 'warn';
+}
 
-	status.stop();
+interface RunStepOptions<Result> {
+	argv?: Array<string>;
+	describe?: ((result: Result) => string) | undefined;
+}
 
-	return result;
+function toOutcome(state: StepOutcomeState['state'], detail: string | undefined): StepOutcomeState {
+	return detail === undefined ? { state } : { detail, state };
 }
 
 export async function runStep<Result>(
 	text: string,
 	task: (step: StepHandle) => Promise<Result>,
-	argv?: Array<string>,
+	{ argv, describe }: RunStepOptions<Result> = {},
 ) {
-	const { id } = startStatus(text, argv ? { argv } : {});
-	const startTime = Date.now();
-	let closingState: 'succeed' | 'warn' = 'succeed';
-
-	function close(state: 'fail' | 'succeed' | 'warn') {
-		emit({ durationMs: Date.now() - startTime, id, state, text, type: 'status' });
-	}
+	const { close, id } = startStatus(text, argv ? { argv } : {});
+	let outcome: StepOutcomeState | undefined;
 
 	try {
 		const result = await task({
 			id,
-			warn: () => {
-				closingState = 'warn';
+			skip: (reason) => {
+				outcome = toOutcome('skip', reason);
+			},
+			warn: (detail) => {
+				outcome = toOutcome('warn', detail);
 			},
 		});
 
-		close(closingState);
+		if (outcome?.state === 'skip') {
+			recordStepOutcome({ state: 'skip', text });
+			close('skip', text, outcome.detail);
+			return result;
+		}
+
+		const finalText = describe?.(result);
+
+		if (outcome?.state === 'warn') {
+			recordStepOutcome({ state: 'warn', text });
+			close('warn', finalText, outcome.detail);
+			return result;
+		}
+
+		close('succeed', finalText);
 
 		return result;
 	} catch (error) {
-		close('fail');
+		close('fail', text);
 		throw error;
 	}
 }
 
-export async function withStep<Result>(text: string, task: (step: Step) => Promise<Result>) {
-	return runStep(text, task);
+export async function withStep<Result>(
+	text: string,
+	task: (step: Step) => Promise<Result>,
+	describe?: (result: Result) => string,
+) {
+	return runStep(text, task, { describe });
 }
 
 export async function withSpinner<Result>(

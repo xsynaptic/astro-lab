@@ -30,17 +30,18 @@ function stripEvent(event: OutputEvent): OutputEvent {
 			return event;
 		}
 		case 'end': {
-			const { detail, message, ...rest } = event;
+			const { detail, message, skipped, warned, ...rest } = event;
 
 			return {
 				...rest,
 				...(detail === undefined ? {} : { detail: strip(detail) }),
 				...(message === undefined ? {} : { message: strip(message) }),
+				...(skipped === undefined ? {} : { skipped: skipped.map((text) => strip(text)) }),
+				...(warned === undefined ? {} : { warned: warned.map((text) => strip(text)) }),
 			};
 		}
 		case 'message':
-		case 'output':
-		case 'status': {
+		case 'output': {
 			return { ...event, text: strip(event.text) };
 		}
 		case 'progress': {
@@ -50,6 +51,15 @@ function stripEvent(event: OutputEvent): OutputEvent {
 		}
 		case 'start': {
 			return { ...event, title: strip(event.title) };
+		}
+		case 'status': {
+			const { detail, ...rest } = event;
+
+			return {
+				...rest,
+				...(detail === undefined ? {} : { detail: strip(detail) }),
+				text: strip(event.text),
+			};
 		}
 		case 'summary': {
 			return {

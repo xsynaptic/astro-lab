@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
 
 import { formatDuration, formatProgressText } from '../src/output/format.js';
-import { captureOutput } from '../src/output/output.js';
-import { createProgress, createRateWindow, withStep } from '../src/output/progress.js';
+import { captureOutput, createStatus } from '../src/output/output.js';
+import { createProgress, createRateWindow, withSpinner, withStep } from '../src/output/progress.js';
 
 describe('createProgress', () => {
 	test('reports the last tick even when the throttle swallowed it', async () => {
@@ -39,6 +39,76 @@ describe('withStep', () => {
 			state: 'warn',
 			text: 'Pulling stats',
 		});
+	});
+});
+
+describe('withStep outcomes', () => {
+	test('closes with the text its describe makes of the result', async () => {
+		const { events, result } = await captureOutput(() =>
+			withStep(
+				'Uploading',
+				() => Promise.resolve({ changed: 7 }),
+				({ changed }) => `Uploaded · ${String(changed)} changed`,
+			),
+		);
+
+		expect(result).toEqual({ changed: 7 });
+		expect(events.at(-1)).toMatchObject({
+			durationMs: expect.any(Number),
+			state: 'succeed',
+			text: 'Uploaded · 7 changed',
+		});
+	});
+
+	test('carries the detail a warning names', async () => {
+		const { events } = await captureOutput(() =>
+			withStep('Pulling stats', (step) => {
+				step.warn('503 Service Unavailable');
+
+				return Promise.resolve();
+			}),
+		);
+
+		expect(events.at(-1)).toMatchObject({ detail: '503 Service Unavailable', state: 'warn' });
+	});
+
+	test('closes as skipped with its bare text and the reason', async () => {
+		const { events } = await captureOutput(() =>
+			withStep(
+				'Fetching webmentions',
+				(step) => {
+					step.skip('WEBMENTIONS_SHOW is off');
+
+					return Promise.resolve(3);
+				},
+				(count) => `Fetched ${String(count)}`,
+			),
+		);
+
+		expect(events.at(-1)).toMatchObject({
+			detail: 'WEBMENTIONS_SHOW is off',
+			state: 'skip',
+			text: 'Fetching webmentions',
+		});
+	});
+});
+
+describe('status closes', () => {
+	test('every close but a stop carries its duration', async () => {
+		const { events } = await captureOutput(async () => {
+			await withSpinner('Loading content', () => Promise.resolve());
+			createStatus('Listing').stop();
+			createProgress({ label: 'Rendering', total: 1 }).succeed();
+		});
+		const closes = events.flatMap((event) =>
+			event.type === 'status' && event.state !== 'start' ? [event] : [],
+		);
+
+		expect(closes.map((event) => [event.state, typeof event.durationMs])).toEqual([
+			['succeed', 'number'],
+			['stop', 'undefined'],
+			['succeed', 'number'],
+		]);
 	});
 });
 

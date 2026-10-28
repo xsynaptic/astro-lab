@@ -2,7 +2,7 @@ import type { ProgressSnapshot } from './format.js';
 
 export type MessageLevel = 'detail' | 'error' | 'info' | 'step' | 'success' | 'title' | 'warn';
 
-export type StatusState = 'fail' | 'start' | 'stop' | 'succeed' | 'update' | 'warn';
+export type StatusState = 'fail' | 'skip' | 'start' | 'stop' | 'succeed' | 'update' | 'warn';
 
 type EndStatus = 'failed' | 'interrupted' | 'ok';
 
@@ -23,6 +23,7 @@ interface MessageEvent {
 
 interface StatusEvent {
 	argv?: Array<string>;
+	detail?: string;
 	durationMs?: number;
 	id: number;
 	state: StatusState;
@@ -65,8 +66,10 @@ interface EndEvent {
 	exitCode: number;
 	forced?: true;
 	message?: string;
+	skipped?: Array<string>;
 	status: EndStatus;
 	type: 'end';
+	warned?: Array<string>;
 }
 
 export type OutputEvent =

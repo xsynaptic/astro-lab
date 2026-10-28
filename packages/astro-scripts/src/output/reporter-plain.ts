@@ -7,9 +7,10 @@ import {
 	formatData,
 	formatEnd,
 	formatMessage,
-	formatStatusText,
+	formatStatusClose,
 	formatSummaryRows,
 	getStateSymbol,
+	isClosingStatus,
 	plainPalette,
 } from './human-format.js';
 
@@ -20,10 +21,15 @@ interface PlainReporterOptions {
 
 interface OpenStatus {
 	lastPrint: number;
+	lastTenth: number;
 	text: string;
 }
 
 const progressIntervalMs = 10_000;
+
+function getTenth(done: number, total: number) {
+	return total > 0 ? Math.floor((done / total) * 10) : 0;
+}
 
 export function createPlainReporter(
 	{ stderr, stdout }: ReporterStreams,
@@ -47,7 +53,7 @@ export function createPlainReporter(
 		const { id, state, text } = event;
 
 		if (state === 'start') {
-			statuses.set(id, { lastPrint: now(), text });
+			statuses.set(id, { lastPrint: now(), lastTenth: 0, text });
 			openIds.push(id);
 			writeLine(text);
 			return;
@@ -62,8 +68,8 @@ export function createPlainReporter(
 			return;
 		}
 
-		if (state !== 'stop') {
-			writeLine(`${getStateSymbol(state, plainPalette)} ${formatStatusText(event)}`);
+		if (isClosingStatus(event)) {
+			for (const line of formatStatusClose(event, plainPalette)) writeLine(line);
 		}
 
 		closeStatus(id);
@@ -111,11 +117,16 @@ export function createPlainReporter(
 				}
 				case 'progress': {
 					const status = statuses.get(event.id);
-					const time = now();
 
-					if (!status || time - status.lastPrint < progressIntervalMs) break;
+					if (!status) break;
+
+					const time = now();
+					const tenth = getTenth(event.done, event.total);
+
+					if (time - status.lastPrint < progressIntervalMs && tenth <= status.lastTenth) break;
 
 					status.lastPrint = time;
+					status.lastTenth = tenth;
 					writeLine(formatProgressText(event));
 					break;
 				}

@@ -8,6 +8,7 @@ export type OutputMode = 'json' | 'plain' | 'pretty';
 
 const outputModes = new Set<unknown>(['json', 'plain', 'pretty'] satisfies Array<OutputMode>);
 
+let currentCommand: string | undefined;
 let currentMode: OutputMode | undefined;
 let currentReporter: Reporter | undefined;
 let capturingReporter: Reporter | undefined;
@@ -36,8 +37,13 @@ function createReporter(mode: OutputMode, command?: string) {
 }
 
 export function configureOutput(mode: OutputMode = detectOutputMode(), command?: string) {
+	currentCommand = command;
 	currentMode = mode;
 	currentReporter = createReporter(mode, command);
+}
+
+export function getCommandName() {
+	return currentCommand;
 }
 
 export function getOutputMode() {
@@ -119,12 +125,40 @@ export interface Status {
 	warn: (finalText?: string) => void;
 }
 
+export type ClosingState = 'fail' | 'skip' | 'succeed' | 'warn';
+
+export interface StepOutcome {
+	state: 'skip' | 'warn';
+	text: string;
+}
+
 interface StepOptions {
 	argv?: Array<string>;
 }
 
+let stepOutcomes: Array<StepOutcome> | undefined;
+
+export function trackStepOutcomes() {
+	const previous = stepOutcomes;
+	const outcomes: Array<StepOutcome> = [];
+
+	stepOutcomes = outcomes;
+
+	return {
+		outcomes,
+		restore: () => {
+			stepOutcomes = previous;
+		},
+	};
+}
+
+export function recordStepOutcome(outcome: StepOutcome) {
+	stepOutcomes?.push(outcome);
+}
+
 export function startStatus(initialText: string, step?: StepOptions) {
 	const id = nextStatusId;
+	const startTime = Date.now();
 	let text = initialText;
 
 	nextStatusId += 1;
@@ -137,31 +171,38 @@ export function startStatus(initialText: string, step?: StepOptions) {
 		type: 'status',
 	});
 
-	function finish(state: 'fail' | 'stop' | 'succeed' | 'warn', finalText?: string) {
+	function close(state: ClosingState, finalText?: string, detail?: string) {
 		text = finalText ?? text;
-		emit({ id, state, text, type: 'status' });
+		emit({
+			...(detail === undefined ? {} : { detail }),
+			durationMs: Date.now() - startTime,
+			id,
+			state,
+			text,
+			type: 'status',
+		});
 	}
 
 	const status: Status = {
 		fail: (finalText) => {
-			finish('fail', finalText);
+			close('fail', finalText);
 		},
 		stop: () => {
-			finish('stop');
+			emit({ id, state: 'stop', text, type: 'status' });
 		},
 		succeed: (finalText) => {
-			finish('succeed', finalText);
+			close('succeed', finalText);
 		},
 		update: (nextText) => {
 			text = nextText;
 			emit({ id, state: 'update', text, type: 'status' });
 		},
 		warn: (finalText) => {
-			finish('warn', finalText);
+			close('warn', finalText);
 		},
 	};
 
-	return { id, status };
+	return { close, id, status };
 }
 
 export function createStatus(text: string) {

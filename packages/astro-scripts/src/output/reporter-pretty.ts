@@ -3,16 +3,17 @@ import type { Ora } from 'ora';
 import chalk from 'chalk';
 import ora from 'ora';
 
-import type { OutputEvent, Reporter, ReporterStreams, StatusState } from './events.js';
+import type { OutputEvent, Reporter, ReporterStreams } from './events.js';
 
 import { formatProgressText } from './format.js';
 import {
 	formatData,
 	formatEnd,
 	formatMessage,
-	formatStatusText,
+	formatStatusClose,
 	formatSummaryRows,
 	getStateSymbol,
+	isClosingStatus,
 } from './human-format.js';
 
 interface PrettyReporterOptions {
@@ -67,27 +68,18 @@ export function createPrettyReporter(
 		if (wasActive && outer?.isEnabled) outer.start();
 	}
 
-	function endStep(id: number, state: Exclude<StatusState, 'start' | 'update'>, text: string) {
-		stepTexts.delete(id);
+	function endStatus(event: StatusEvent) {
+		if (!spinners.has(event.id) && !stepTexts.has(event.id)) return;
 
-		if (state !== 'stop') writeLine(`${getStateSymbol(state, chalk)} ${text}`);
+		spinners.get(event.id)?.stop();
+		spinners.delete(event.id);
+		stepTexts.delete(event.id);
 
-		closeStatus(id);
-	}
-
-	function endSpinner(id: number, state: Exclude<StatusState, 'start' | 'update'>, text: string) {
-		const spinner = spinners.get(id);
-
-		if (!spinner) return;
-
-		if (state === 'stop') {
-			spinner.stop();
-		} else {
-			spinner.stopAndPersist({ symbol: getStateSymbol(state, chalk), text });
+		if (isClosingStatus(event)) {
+			for (const line of formatStatusClose(event, chalk)) writeLine(line);
 		}
 
-		spinners.delete(id);
-		closeStatus(id);
+		closeStatus(event.id);
 	}
 
 	function onStatus(event: StatusEvent) {
@@ -116,12 +108,7 @@ export function createPrettyReporter(
 			return;
 		}
 
-		if (stepTexts.has(id)) {
-			endStep(id, state, formatStatusText(event));
-			return;
-		}
-
-		endSpinner(id, state, formatStatusText(event));
+		endStatus(event);
 	}
 
 	function onEnd(event: EndEvent) {

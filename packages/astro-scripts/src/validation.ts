@@ -35,6 +35,10 @@ interface ValidationSummaries {
 	pass: string;
 }
 
+interface ValidationResultOptions {
+	severity?: 'fail' | 'warn';
+}
+
 interface RunValidationsOptions<Name extends string> {
 	only?: Name | undefined;
 	signal?: AbortSignal;
@@ -66,10 +70,11 @@ function formatValidationResult({ issues, notes = [], status, summary }: Validat
 export function toValidationResult(
 	issues: Array<ValidationIssue>,
 	summaries: ValidationSummaries,
+	{ severity = 'fail' }: ValidationResultOptions = {},
 ): ValidationResult {
 	if (issues.length === 0) return { issues: [], status: 'pass', summary: summaries.pass };
 
-	return { issues, status: 'fail', summary: summaries.fail };
+	return { issues, status: severity, summary: summaries.fail };
 }
 
 export function toReferenceValidationResult(
