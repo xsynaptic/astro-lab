@@ -22,6 +22,7 @@ function isTerminal(stream: NodeJS.WritableStream) {
 
 export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Reporter {
 	const spinners = new Map<number, Ora>();
+	const childTexts = new Map<number, string>();
 	const openIds: Array<number> = [];
 
 	function getActiveSpinner() {
@@ -47,12 +48,28 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 		writeAround(stderr, line);
 	}
 
+	function closeStatus(id: number) {
+		const wasActive = openIds.at(-1) === id;
+
+		openIds.splice(openIds.indexOf(id), 1);
+
+		const outer = getActiveSpinner();
+
+		if (wasActive && outer?.isEnabled) outer.start();
+	}
+
+	function endChild(id: number, state: Exclude<StatusState, 'start' | 'update'>, text: string) {
+		childTexts.delete(id);
+
+		if (state !== 'stop') writeLine(`${getStateSymbol(state, chalk)} ${text}`);
+
+		closeStatus(id);
+	}
+
 	function endSpinner(id: number, state: Exclude<StatusState, 'start' | 'update'>, text: string) {
 		const spinner = spinners.get(id);
 
 		if (!spinner) return;
-
-		const wasActive = openIds.at(-1) === id;
 
 		if (state === 'stop') {
 			spinner.stop();
@@ -61,14 +78,18 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 		}
 
 		spinners.delete(id);
-		openIds.splice(openIds.indexOf(id), 1);
-
-		const outer = getActiveSpinner();
-
-		if (wasActive && outer?.isEnabled) outer.start();
+		closeStatus(id);
 	}
 
-	function onStatus({ id, state, text }: StatusEvent) {
+	function onStatus({ argv, id, state, text }: StatusEvent) {
+		if (state === 'start' && argv) {
+			getActiveSpinner()?.stop();
+			childTexts.set(id, text);
+			openIds.push(id);
+			writeLine(formatMessage('step', text, chalk));
+			return;
+		}
+
 		if (state === 'start') {
 			getActiveSpinner()?.stop();
 			// Stdin stays cooked so the terminal still signals the whole process group on Ctrl-C, child processes included
@@ -81,6 +102,11 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 			const spinner = spinners.get(id);
 
 			if (spinner) spinner.text = text;
+			return;
+		}
+
+		if (childTexts.has(id)) {
+			endChild(id, state, text);
 			return;
 		}
 
@@ -103,16 +129,22 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 				case 'end': {
 					const activeId = openIds.at(-1);
 					const active = getActiveSpinner();
+					const activeChild = activeId === undefined ? undefined : childTexts.get(activeId);
 
 					if (active && activeId !== undefined && event.status !== 'ok') {
 						spinners.delete(activeId);
 						active.stopAndPersist({ symbol: getStateSymbol('fail', chalk), text: active.text });
 					}
 
+					if (activeChild !== undefined && event.status !== 'ok') {
+						writeLine(`${getStateSymbol('fail', chalk)} ${activeChild}`);
+					}
+
 					// An open spinner's render interval keeps the process alive
 					for (const spinner of spinners.values()) spinner.stop();
 
 					spinners.clear();
+					childTexts.clear();
 					openIds.length = 0;
 
 					for (const line of formatEnd(event, chalk)) writeLine(line);
@@ -120,6 +152,14 @@ export function createPrettyReporter({ stderr, stdout }: ReporterStreams): Repor
 				}
 				case 'message': {
 					writeLine(formatMessage(event.level, event.text, chalk));
+					break;
+				}
+				case 'nested': {
+					writeLine(event.line);
+					break;
+				}
+				case 'output': {
+					writeLine(event.text);
 					break;
 				}
 				case 'progress': {

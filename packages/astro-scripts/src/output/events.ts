@@ -8,6 +8,8 @@ type EndStatus = 'failed' | 'interrupted' | 'ok';
 
 export type SummaryRow = [label: string, value: number | string];
 
+export type OutputStream = 'stderr' | 'stdout';
+
 interface StartEvent {
 	title: string;
 	type: 'start';
@@ -20,6 +22,7 @@ interface MessageEvent {
 }
 
 interface StatusEvent {
+	argv?: Array<string>;
 	id: number;
 	state: StatusState;
 	text: string;
@@ -42,6 +45,18 @@ interface DataEvent {
 	value: unknown;
 }
 
+interface ChildOutputEvent {
+	id: number;
+	stream: OutputStream;
+	text: string;
+	type: 'output';
+}
+
+interface NestedEvent {
+	line: string;
+	type: 'nested';
+}
+
 interface EndEvent {
 	detail?: string;
 	durationMs: number;
@@ -53,7 +68,15 @@ interface EndEvent {
 }
 
 export type OutputEvent =
-	DataEvent | EndEvent | MessageEvent | ProgressEvent | StartEvent | StatusEvent | SummaryEvent;
+	| ChildOutputEvent
+	| DataEvent
+	| EndEvent
+	| MessageEvent
+	| NestedEvent
+	| ProgressEvent
+	| StartEvent
+	| StatusEvent
+	| SummaryEvent;
 
 export interface Reporter {
 	emit: (event: OutputEvent) => void;

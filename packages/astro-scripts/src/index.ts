@@ -5,6 +5,7 @@ export {
 	withAstroContent,
 	withAstroModules,
 } from './astro.js';
+export { runChild } from './child.js';
 export { createCommandRunner, parseNumberOption } from './command.js';
 export type { Command, CommandContext } from './command.js';
 export type { OutputEvent } from './output/events.js';

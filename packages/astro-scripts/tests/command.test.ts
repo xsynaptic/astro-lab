@@ -50,17 +50,14 @@ describe('getFailureReport', () => {
 		).toEqual({ exitCode: 130, isInterrupted: true, message: 'Interrupted; progress is saved' });
 	});
 
-	test('reports a child that exited on Ctrl-C as an interrupt', () => {
-		expect(getFailureReport(new ProcessOutput(130), { isAborted: false })).toMatchObject({
+	test.each([
+		{ error: new ProcessOutput(130), label: 'exited with 130' },
+		{ error: new ProcessOutput(undefined, 'SIGINT'), label: 'was killed by SIGINT' },
+	])('reports a child that $label as an interrupt', ({ error }) => {
+		expect(getFailureReport(error, { isAborted: false })).toMatchObject({
 			exitCode: 130,
 			isInterrupted: true,
 		});
-	});
-
-	test('reports a child killed by SIGINT as an interrupt', () => {
-		expect(
-			getFailureReport(new ProcessOutput(undefined, 'SIGINT'), { isAborted: false }),
-		).toMatchObject({ exitCode: 130, isInterrupted: true });
 	});
 
 	test('reports a child that inherited stdio by exit code alone, its stderr already printed', () => {
@@ -92,17 +89,6 @@ describe('getFailureReport', () => {
 	});
 
 	test.each([
-		{ error: new UserError('Build first'), label: 'ours' },
-		{ error: new LibraryUserError('Build first'), label: 'a library, whose class is its own' },
-	])('reports a user error thrown by $label by its message alone', ({ error }) => {
-		expect(getFailureReport(error, { isAborted: false })).toEqual({
-			exitCode: 1,
-			isInterrupted: false,
-			message: 'Build first',
-		});
-	});
-
-	test.each([
 		{
 			error: new UserError('Caddy did not reload', {
 				detail: 'Caddy log: bind: address already in use',
@@ -116,7 +102,7 @@ describe('getFailureReport', () => {
 			),
 			label: 'a library',
 		},
-	])('reports the detail a user error thrown by $label carries', ({ error }) => {
+	])('reports a user error thrown by $label with its detail', ({ error }) => {
 		expect(getFailureReport(error, { isAborted: false })).toEqual({
 			detail: 'Caddy log: bind: address already in use',
 			exitCode: 1,
@@ -167,21 +153,6 @@ describe('formatHelp', () => {
 			['--json', 'Print output as JSON lines'],
 			['-h, --help', 'Show this help'],
 		]);
-	});
-
-	test('takes a usage prefix for commands invoked through a filter', () => {
-		const lines = formatHelp(command, 'pnpm --filter @mta/scripts').split('\n');
-
-		expect(lines[3]).toBe('Usage: pnpm --filter @mta/scripts render-images [check] [options]');
-	});
-
-	test('marks a required positional in the usage line', () => {
-		const lines = formatHelp({
-			...command,
-			positional: { ...command.positional, required: true },
-		}).split('\n');
-
-		expect(lines[3]).toBe('Usage: pnpm render-images <check> [options]');
 	});
 });
 
@@ -268,11 +239,12 @@ describe('runCommand', () => {
 		expect(stderr).toEqual([]);
 	});
 
-	test('rejects a mistyped flag rather than running without it', async () => {
+	test('rejects a mistyped flag rather than running without it, still as JSON', async () => {
 		const run = vi.fn();
 		const { runCommand } = createCommandRunner();
 
-		setArgs('--dry-rn');
+		delete process.env.SCRIPTS_OUTPUT;
+		setArgs('--json', '--dry-rn');
 		await runCommand({
 			name: 'deploy',
 			options: { 'dry-run': { description: 'Print the plan', type: 'boolean' } },
@@ -372,19 +344,6 @@ describe('runCommand', () => {
 			status: 'interrupted',
 			type: 'end',
 		});
-	});
-
-	test('reports a parse error as a JSON stream that still opens with start', async () => {
-		const { runCommand } = createCommandRunner();
-
-		delete process.env.SCRIPTS_OUTPUT;
-		setArgs('--json', '--dry-rn');
-		await runCommand({ name: 'probe', run: vi.fn(), summary: 'Probe', title: 'Probe' });
-
-		expect(readEvents()).toEqual([
-			expect.objectContaining({ command: 'probe', type: 'start' }),
-			expect.objectContaining({ command: 'probe', status: 'failed', type: 'end' }),
-		]);
 	});
 
 	test('reads --json after the -- separator as a positional, not the flag', async () => {

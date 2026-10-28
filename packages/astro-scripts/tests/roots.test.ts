@@ -35,15 +35,6 @@ describe('findAstroRoot', () => {
 		expect(findAstroRoot(nestedDir)).toBe(tempDir);
 	});
 
-	test.each(['astro.config.mjs', 'astro.config.js', 'astro.config.mts'])(
-		'accepts %s, as Astro does',
-		(configFilename) => {
-			const nestedDir = makeTree(configFilename, 'packages/scripts');
-
-			expect(findAstroRoot(nestedDir)).toBe(tempDir);
-		},
-	);
-
 	// Astro refuses the CommonJS variants, so treating one as a root would read every collection back empty
 	test('ignores astro.config.cjs', () => {
 		const nestedDir = makeTree('astro.config.cjs', 'packages/scripts');

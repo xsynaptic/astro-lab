@@ -1,6 +1,6 @@
 import { stripVTControlCharacters } from 'node:util';
 
-import type { Reporter, ReporterStreams } from './events.js';
+import type { OutputEvent, Reporter, ReporterStreams } from './events.js';
 
 import { formatProgressText } from './format.js';
 import {
@@ -11,6 +11,8 @@ import {
 	getStateSymbol,
 	plainPalette,
 } from './human-format.js';
+
+type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
 
 interface OpenStatus {
 	lastPrint: number;
@@ -33,6 +35,28 @@ export function createPlainReporter(
 	function closeStatus(id: number) {
 		statuses.delete(id);
 		openIds.splice(openIds.indexOf(id), 1);
+	}
+
+	function onStatus({ id, state, text }: StatusEvent) {
+		if (state === 'start') {
+			statuses.set(id, { lastPrint: now(), text });
+			openIds.push(id);
+			writeLine(text);
+			return;
+		}
+
+		const status = statuses.get(id);
+
+		if (!status) return;
+
+		if (state === 'update') {
+			status.text = text;
+			return;
+		}
+
+		if (state !== 'stop') writeLine(`${getStateSymbol(state, plainPalette)} ${text}`);
+
+		closeStatus(id);
 	}
 
 	return {
@@ -65,6 +89,14 @@ export function createPlainReporter(
 					writeLine(formatMessage(event.level, event.text, plainPalette));
 					break;
 				}
+				case 'nested': {
+					writeLine(event.line);
+					break;
+				}
+				case 'output': {
+					writeLine(event.text);
+					break;
+				}
 				case 'progress': {
 					const status = statuses.get(event.id);
 					const time = now();
@@ -80,27 +112,7 @@ export function createPlainReporter(
 					break;
 				}
 				case 'status': {
-					const { id, state, text } = event;
-
-					if (state === 'start') {
-						statuses.set(id, { lastPrint: now(), text });
-						openIds.push(id);
-						writeLine(text);
-						break;
-					}
-
-					const status = statuses.get(id);
-
-					if (!status) break;
-
-					if (state === 'update') {
-						status.text = text;
-						break;
-					}
-
-					if (state !== 'stop') writeLine(`${getStateSymbol(state, plainPalette)} ${text}`);
-
-					closeStatus(id);
+					onStatus(event);
 					break;
 				}
 				case 'summary': {

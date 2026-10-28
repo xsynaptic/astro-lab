@@ -24,7 +24,8 @@ function strip(text: string | undefined) {
 
 function stripEvent(event: OutputEvent): OutputEvent {
 	switch (event.type) {
-		case 'data': {
+		case 'data':
+		case 'nested': {
 			return event;
 		}
 		case 'end': {
@@ -37,6 +38,7 @@ function stripEvent(event: OutputEvent): OutputEvent {
 			};
 		}
 		case 'message':
+		case 'output':
 		case 'status': {
 			return { ...event, text: strip(event.text) };
 		}
@@ -89,6 +91,11 @@ export function createJsonReporter(
 		emit(event) {
 			if (event.type === 'data') {
 				stdout.write(`${JSON.stringify(event.value)}\n`);
+				return;
+			}
+
+			if (event.type === 'nested') {
+				stderr.write(`${event.line}\n`);
 				return;
 			}
 

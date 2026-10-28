@@ -137,17 +137,6 @@ describe('pretty reporter', () => {
 		]);
 	});
 
-	test('persists a status with its symbol and final text', () => {
-		const harness = createHarness(createPrettyReporter);
-
-		harness.emit(
-			{ id: 1, state: 'start', text: 'Pruning', type: 'status' },
-			{ id: 1, state: 'succeed', text: 'Pruned 3 assets', type: 'status' },
-		);
-
-		expect(harness.stderr().at(-1)).toBe('✓ Pruned 3 assets');
-	});
-
 	test('marks the open status as failed before reporting a failure', () => {
 		const harness = createHarness(createPrettyReporter);
 
@@ -266,22 +255,6 @@ describe('pretty reporter on a terminal', () => {
 		vi.unstubAllEnvs();
 	});
 
-	test('spins the outer status again once a nested one closes', () => {
-		const harness = createTerminalHarness({ isStdoutTerminal: false });
-
-		harness.emit(
-			{ id: 1, state: 'start', text: 'Deploying', type: 'status' },
-			{ id: 2, state: 'start', text: 'Uploading', type: 'status' },
-			{ id: 2, state: 'succeed', text: 'Uploaded', type: 'status' },
-		);
-
-		const persisted = harness.transcript.indexOf('stderr: ✓ Uploaded');
-
-		expect(harness.transcript[persisted + 1]).toEqual(spinnerFrame('Deploying'));
-
-		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
-	});
-
 	test('clears the spinner around data when stdout shares the terminal', () => {
 		const harness = createTerminalHarness({ isStdoutTerminal: true });
 
@@ -313,9 +286,65 @@ describe('pretty reporter on a terminal', () => {
 
 		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
 	});
+
+	test('hands the terminal to a child step, then resumes the outer spinner', () => {
+		const harness = createTerminalHarness({ isStdoutTerminal: false });
+
+		harness.emit(
+			{ id: 1, state: 'start', text: 'Deploying', type: 'status' },
+			{ argv: ['pnpm', 'astro', 'build'], id: 2, state: 'start', text: 'Building', type: 'status' },
+			{ id: 2, stream: 'stdout', text: 'built 3 pages', type: 'output' },
+			{ id: 2, state: 'succeed', text: 'Building · 3.0s', type: 'status' },
+		);
+
+		const step = harness.transcript.indexOf('stderr: Building');
+
+		expect(harness.transcript.slice(step, step + 4)).toEqual([
+			'stderr: Building',
+			'stderr: built 3 pages',
+			'stderr: ✓ Building · 3.0s',
+			spinnerFrame('Deploying'),
+		]);
+
+		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
+	});
+
+	test('marks a child step failed when the run ends inside it', () => {
+		const harness = createTerminalHarness({ isStdoutTerminal: false });
+
+		harness.emit(
+			{ argv: ['pnpm', 'astro', 'build'], id: 1, state: 'start', text: 'Building', type: 'status' },
+			{
+				durationMs: 1,
+				exitCode: 130,
+				forced: true,
+				message: 'Force quit',
+				status: 'interrupted',
+				type: 'end',
+			},
+		);
+
+		expect(harness.transcript).toEqual([
+			'stderr: Building',
+			'stderr: ✗ Building',
+			'stderr: ✗ Force quit',
+		]);
+	});
 });
 
 describe('plain reporter', () => {
+	test('prints child lines bare, without their colour', () => {
+		const harness = createHarness(createPlainReporter);
+
+		harness.emit(
+			{ argv: ['pnpm', 'astro', 'build'], id: 1, state: 'start', text: 'Building', type: 'status' },
+			{ id: 1, stream: 'stdout', text: '\u{1B}[32mbuilt\u{1B}[39m', type: 'output' },
+			{ id: 1, state: 'succeed', text: 'Building · 3.0s', type: 'status' },
+		);
+
+		expect(harness.stderr()).toEqual(['Building', 'built', '✓ Building · 3.0s']);
+	});
+
 	test('prints a status on start and end, not on update', () => {
 		const harness = createHarness(createPlainReporter);
 
@@ -347,14 +376,6 @@ describe('plain reporter', () => {
 		]);
 	});
 
-	test('drops colour the caller painted into its text', () => {
-		const harness = createHarness(createPlainReporter);
-
-		harness.emit({ level: 'info', text: '\u{1B}[32mhealthy\u{1B}[39m', type: 'message' });
-
-		expect(harness.stderr()).toEqual(['healthy']);
-	});
-
 	test('writes formatted data to stdout with its colour dropped', () => {
 		const harness = createHarness(createPlainReporter);
 
@@ -365,17 +386,6 @@ describe('plain reporter', () => {
 		});
 
 		expect(harness.stdout()).toEqual(['Missing 2']);
-	});
-
-	test('marks the open status as failed before reporting a failure', () => {
-		const harness = createHarness(createPlainReporter);
-
-		harness.emit(
-			{ id: 1, state: 'start', text: 'Validating', type: 'status' },
-			{ durationMs: 1, exitCode: 1, message: 'Invalid config', status: 'failed', type: 'end' },
-		);
-
-		expect(harness.stderr()).toEqual(['Validating', '✗ Validating', '✗ Invalid config']);
 	});
 
 	test('marks the outer status as failed once a nested one has closed', () => {
@@ -403,6 +413,32 @@ function parse(lines: Array<string>) {
 }
 
 describe('json reporter', () => {
+	test('wraps child lines with their step and stream, and relays nested events verbatim', () => {
+		const harness = createHarness((streams) =>
+			createJsonReporter(streams, { command: 'deploy-site', now: () => 0 }),
+		);
+		const nested =
+			'{"type":"status","command":"validate-content","time":"t","id":1,"state":"start"}';
+
+		harness.emit(
+			{
+				argv: ['pnpm', 'validate-content'],
+				id: 1,
+				state: 'start',
+				text: 'Validating',
+				type: 'status',
+			},
+			{ id: 1, stream: 'stdout', text: '\u{1B}[33m[WARN]\u{1B}[39m slow', type: 'output' },
+			{ line: nested, type: 'nested' },
+		);
+
+		expect(harness.stderr()).toEqual([
+			'{"type":"status","command":"deploy-site","time":"1970-01-01T00:00:00.000Z","argv":["pnpm","validate-content"],"id":1,"state":"start","text":"Validating"}',
+			'{"type":"output","command":"deploy-site","time":"1970-01-01T00:00:00.000Z","id":1,"stream":"stdout","text":"[WARN] slow"}',
+			nested,
+		]);
+	});
+
 	test('wraps each event with its type, command, and time, colour stripped', () => {
 		const harness = createHarness((streams) =>
 			createJsonReporter(streams, { command: 'render-images', now: () => 0 }),

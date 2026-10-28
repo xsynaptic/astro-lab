@@ -118,12 +118,12 @@ export interface Status {
 	warn: (finalText?: string) => void;
 }
 
-export function startStatus(initialText: string) {
+export function startStatus(initialText: string, argv?: Array<string>) {
 	const id = nextStatusId;
 	let text = initialText;
 
 	nextStatusId += 1;
-	emit({ id, state: 'start', text, type: 'status' });
+	emit({ ...(argv ? { argv } : {}), id, state: 'start', text, type: 'status' });
 
 	function finish(state: 'fail' | 'stop' | 'succeed' | 'warn', finalText?: string) {
 		text = finalText ?? text;

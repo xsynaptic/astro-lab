@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.6.0
+
+### Minor Changes
+
+- Add `runChild`, which runs a child process as a step and keeps its output off stdout; under `--json` its lines arrive as `output` events. It replaces `$({ stdio: 'inherit' })` for build, check and test steps, and a hand-piped filter such as resonance's `runWrangler`. A child step's status `start` event carries its `argv`.
+
 ## 0.5.0
 
 ### Minor Changes
