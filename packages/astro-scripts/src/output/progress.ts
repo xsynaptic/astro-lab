@@ -3,6 +3,13 @@ import type { ProgressSnapshot } from './format.js';
 import { formatProgressText } from './format.js';
 import { createStatus, emit, startStatus } from './output.js';
 
+export interface Progress {
+	fail: (text?: string) => void;
+	succeed: (text?: string) => void;
+	tick: (count?: number) => void;
+	warn: (text?: string) => void;
+}
+
 interface ProgressOptions {
 	label: string;
 	note?: () => string;
@@ -77,21 +84,23 @@ export function createProgress({ label, note, total }: ProgressOptions) {
 		status[state](text ?? formatProgressText(snapshot));
 	}
 
-	return {
-		fail(text?: string) {
+	const progress: Progress = {
+		fail: (text) => {
 			finish('fail', text);
 		},
-		succeed(text?: string) {
+		succeed: (text) => {
 			finish('succeed', text);
 		},
-		tick(count = 1) {
+		tick: (count = 1) => {
 			done += count;
 			render();
 		},
-		warn(text?: string) {
+		warn: (text) => {
 			finish('warn', text);
 		},
 	};
+
+	return progress;
 }
 
 // A failure leaves the status open for `runCommand` to mark as failed

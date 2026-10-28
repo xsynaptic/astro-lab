@@ -79,35 +79,44 @@ function emitMessage(level: MessageLevel, text: string) {
 	emit({ level, text, type: 'message' });
 }
 
+// Arrow properties, not methods, so consumers can pass members as values under `unbound-method`
 export const log = {
-	data<Value>(value: Value, format?: (value: Value) => string) {
+	data: <Value>(value: Value, format?: (value: Value) => string) => {
 		emit(format ? { render: () => format(value), type: 'data', value } : { type: 'data', value });
 	},
-	detail(text: string) {
+	detail: (text: string) => {
 		emitMessage('detail', text);
 	},
-	error(text: string) {
+	error: (text: string) => {
 		emitMessage('error', text);
 	},
-	info(text: string) {
+	info: (text: string) => {
 		emitMessage('info', text);
 	},
-	step(text: string) {
+	step: (text: string) => {
 		emitMessage('step', text);
 	},
-	success(text: string) {
+	success: (text: string) => {
 		emitMessage('success', text);
 	},
-	summary(rows: Array<SummaryRow>) {
+	summary: (rows: Array<SummaryRow>) => {
 		emit({ rows, type: 'summary' });
 	},
-	title(text: string) {
+	title: (text: string) => {
 		emitMessage('title', text);
 	},
-	warn(text: string) {
+	warn: (text: string) => {
 		emitMessage('warn', text);
 	},
 };
+
+export interface Status {
+	fail: (finalText?: string) => void;
+	stop: () => void;
+	succeed: (finalText?: string) => void;
+	update: (nextText: string) => void;
+	warn: (finalText?: string) => void;
+}
 
 export function startStatus(initialText: string) {
 	const id = nextStatusId;
@@ -121,21 +130,21 @@ export function startStatus(initialText: string) {
 		emit({ id, state, text, type: 'status' });
 	}
 
-	const status = {
-		fail(finalText?: string) {
+	const status: Status = {
+		fail: (finalText) => {
 			finish('fail', finalText);
 		},
-		stop() {
+		stop: () => {
 			finish('stop');
 		},
-		succeed(finalText?: string) {
+		succeed: (finalText) => {
 			finish('succeed', finalText);
 		},
-		update(nextText: string) {
+		update: (nextText) => {
 			text = nextText;
 			emit({ id, state: 'update', text, type: 'status' });
 		},
-		warn(finalText?: string) {
+		warn: (finalText) => {
 			finish('warn', finalText);
 		},
 	};
