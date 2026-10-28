@@ -174,6 +174,15 @@ describe('formatHelp', () => {
 
 		expect(lines[3]).toBe('Usage: pnpm --filter @mta/scripts render-images [check] [options]');
 	});
+
+	test('marks a required positional in the usage line', () => {
+		const lines = formatHelp({
+			...command,
+			positional: { ...command.positional, required: true },
+		}).split('\n');
+
+		expect(lines[3]).toBe('Usage: pnpm render-images <check> [options]');
+	});
 });
 
 describe('runCommand', () => {
@@ -278,6 +287,37 @@ describe('runCommand', () => {
 			expect.objectContaining({ title: 'Deploy', type: 'start' }),
 			expect.objectContaining({ detail: 'See --help', exitCode: 1, status: 'failed', type: 'end' }),
 		]);
+	});
+
+	test('refuses to run without a required positional, but still prints help', async () => {
+		const run = vi.fn();
+		const { runCommand } = createCommandRunner();
+		const command = {
+			name: 'comments-delete',
+			positional: { description: 'Comment id', name: 'id', required: true },
+			run,
+			summary: 'Delete a comment',
+			title: 'Comments',
+		};
+
+		setArgs();
+		await runCommand(command);
+
+		expect(run).not.toHaveBeenCalled();
+		expect(process.exitCode).toBe(1);
+		expect(readEvents().at(-1)).toMatchObject({
+			detail: 'See --help',
+			message: 'Missing <id>',
+			status: 'failed',
+			type: 'end',
+		});
+
+		setArgs('--help');
+		await runCommand(command);
+
+		expect(stripVTControlCharacters(stdout.join(''))).toContain(
+			'Usage: pnpm comments-delete <id> [options]',
+		);
 	});
 
 	test('refuses an unknown SCRIPTS_OUTPUT rather than guessing', async () => {

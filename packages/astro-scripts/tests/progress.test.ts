@@ -1,7 +1,28 @@
 import { describe, expect, test } from 'vitest';
 
 import { formatDuration, formatProgressText } from '../src/output/format.js';
-import { createRateWindow } from '../src/output/progress.js';
+import { captureOutput } from '../src/output/output.js';
+import { createProgress, createRateWindow } from '../src/output/progress.js';
+
+describe('createProgress', () => {
+	test('counts without a total until one arrives', async () => {
+		const { events } = await captureOutput(() => {
+			const progress = createProgress({ label: 'Rendering' });
+
+			progress.tick();
+			progress.setTotal(4);
+			progress.tick();
+			progress.succeed();
+
+			return Promise.resolve();
+		});
+
+		const statusTexts = events.flatMap((event) => (event.type === 'status' ? [event.text] : []));
+
+		expect(statusTexts[0]).toBe('Rendering 0');
+		expect(statusTexts.at(-1)).toMatch(/^Rendering 2 \/ 4 \(50%\)/);
+	});
+});
 
 describe('createRateWindow', () => {
 	test('has no rate until two samples are apart in time', () => {
@@ -34,6 +55,12 @@ describe('formatProgressText', () => {
 	test('leaves out rate and time left before a rate exists', () => {
 		expect(formatProgressText({ done: 0, label: 'Encoding', total: 10 })).toBe(
 			'Encoding 0 / 10 (0%)',
+		);
+	});
+
+	test('shows the count alone before the total is known', () => {
+		expect(formatProgressText({ done: 120, label: 'Rendering', perSecond: 40 })).toBe(
+			'Rendering 120 · 40/s',
 		);
 	});
 

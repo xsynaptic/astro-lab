@@ -5,6 +5,7 @@ import { createStatus, emit, startStatus } from './output.js';
 
 export interface Progress {
 	fail: (text?: string) => void;
+	setTotal: (total: number) => void;
 	succeed: (text?: string) => void;
 	tick: (count?: number) => void;
 	warn: (text?: string) => void;
@@ -13,7 +14,7 @@ export interface Progress {
 interface ProgressOptions {
 	label: string;
 	note?: () => string;
-	total: number;
+	total?: number;
 }
 
 interface RateSample {
@@ -44,10 +45,11 @@ export function createRateWindow(windowMs = rateWindowMs) {
 	};
 }
 
-export function createProgress({ label, note, total }: ProgressOptions) {
+export function createProgress({ label, note, total: initialTotal }: ProgressOptions) {
 	const rateWindow = createRateWindow();
 	const startTime = Date.now();
 	let done = 0;
+	let total = initialTotal;
 	let lastRender = 0;
 
 	rateWindow.add(0, startTime);
@@ -59,7 +61,7 @@ export function createProgress({ label, note, total }: ProgressOptions) {
 		return {
 			done,
 			label,
-			total,
+			...(total === undefined ? {} : { total }),
 			...(noteText ? { note: noteText } : {}),
 			...(perSecond === undefined ? {} : { perSecond }),
 		};
@@ -87,6 +89,12 @@ export function createProgress({ label, note, total }: ProgressOptions) {
 	const progress: Progress = {
 		fail: (text) => {
 			finish('fail', text);
+		},
+		setTotal: (nextTotal) => {
+			if (nextTotal === total) return;
+
+			total = nextTotal;
+			render();
 		},
 		succeed: (text) => {
 			finish('succeed', text);

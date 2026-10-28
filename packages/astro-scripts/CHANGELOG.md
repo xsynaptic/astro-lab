@@ -1,5 +1,17 @@
 # @xsynaptic/astro-scripts
 
+## 0.3.1
+
+### Patch Changes
+
+- `createProgress` takes its `total` later through `setTotal`, counting without one until then (a JSON `progress` event omits `total` until it is known). A positional marked `required: true` reads `<name>` in the usage line, and a run without it fails with "See --help".
+
+## 0.3.0
+
+### Minor Changes
+
+- `log`, `Status` and `Progress` members can be passed as values under `@typescript-eslint/unbound-method`; export the `Status` and `Progress` types.
+
 ## 0.2.1
 
 ### Patch Changes

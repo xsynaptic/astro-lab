@@ -45,18 +45,26 @@ export interface ProgressSnapshot {
 	label: string;
 	note?: string;
 	perSecond?: number;
-	total: number;
+	total?: number;
+}
+
+function formatCounts(done: number, total: number | undefined) {
+	if (total === undefined) return formatCount(done);
+
+	const percent = total === 0 ? 100 : Math.floor((done / total) * 100);
+
+	return `${formatCount(done)} / ${formatCount(total)} (${String(percent)}%)`;
 }
 
 export function formatProgressText({ done, label, note, perSecond, total }: ProgressSnapshot) {
-	const percent = total === 0 ? 100 : Math.floor((done / total) * 100);
-	const parts = [`${label} ${formatCount(done)} / ${formatCount(total)} (${String(percent)}%)`];
-	const remaining = total - done;
+	const parts = [`${label} ${formatCounts(done, total)}`];
 
 	if (perSecond !== undefined && perSecond > 0) {
 		parts.push(`${formatRate(perSecond)}/s`);
 
-		if (remaining > 0) parts.push(`~${formatDuration((remaining / perSecond) * 1000)} left`);
+		if (total !== undefined && total > done) {
+			parts.push(`~${formatDuration(((total - done) / perSecond) * 1000)} left`);
+		}
 	}
 
 	if (note) parts.push(note);

@@ -14,6 +14,7 @@ type CommandOptions = Record<string, CommandOption>;
 interface CommandPositional {
 	description: string;
 	name: string;
+	required?: boolean;
 }
 
 type ParsedValues<Options extends CommandOptions> = ReturnType<
@@ -89,9 +90,13 @@ export function parseNumberOption(value: string, name: string) {
 }
 
 function getUsage(command: CommandDescription, usagePrefix: string) {
-	const positional = command.positional ? ` [${command.positional.name}]` : '';
+	const { name, positional } = command;
 
-	return `${usagePrefix} ${command.name}${positional} [options]`;
+	if (!positional) return `${usagePrefix} ${name} [options]`;
+
+	const label = positional.required ? `<${positional.name}>` : `[${positional.name}]`;
+
+	return `${usagePrefix} ${name} ${label} [options]`;
 }
 
 function getOptionLabel(name: string, option: CommandOption) {
@@ -201,8 +206,7 @@ export function getFailureReport(
 
 function parseCommandArgs(command: CommandDescription) {
 	const options = [...Object.entries(command.options ?? {}), ...builtInOptions];
-
-	return parseArgs({
+	const parsed = parseArgs({
 		allowPositionals: command.positional !== undefined,
 		args: process.argv.slice(2),
 		options: Object.fromEntries(
@@ -210,6 +214,14 @@ function parseCommandArgs(command: CommandDescription) {
 		),
 		strict: true,
 	});
+
+	const { positional } = command;
+
+	if (positional?.required && parsed.positionals.length === 0 && !parsed.values.help) {
+		throw new UserError(`Missing <${positional.name}>`, { detail: 'See --help' });
+	}
+
+	return parsed;
 }
 
 function selectOutput(isJson: boolean) {

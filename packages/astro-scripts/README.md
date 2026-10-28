@@ -28,7 +28,7 @@ await runCommand({
 });
 ```
 
-Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`; `SCRIPTS_OUTPUT` overrides the choice. Run a `--json` command through `pnpm --silent`, or pnpm's own lines land in the stream.
+Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON with `--json`; `SCRIPTS_OUTPUT` overrides the choice. Run a `--json` command through `pnpm --silent`, or pnpm's own lines land in the stream. Address the scripts package with `-C` rather than `-F`: a filtered run is recursive, so a failure still appends pnpm's `ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL` box after the `end` event.
 
 Throw `UserError` for an expected failure: the run ends with its message and optional `detail`, and no stack. The runner matches it by `name === 'UserError'` and reads `detail` when it is a string, so a library can throw its own class of that name without depending on this package:
 
