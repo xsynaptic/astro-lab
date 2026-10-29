@@ -313,6 +313,15 @@ importers:
         specifier: ^8.8.5
         version: 8.8.5
 
+  packages/astro-sitemap-lastmod:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      astro:
+        specifier: ^7.4.2
+        version: 7.4.2(@astrojs/markdown-remark@7.3.4(supports-color@10.2.2))(@types/node@24.19.2)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.1)
+
   packages/eslint-config:
     dependencies:
       '@eslint-community/eslint-plugin-eslint-comments':

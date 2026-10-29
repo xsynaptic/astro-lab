@@ -1,0 +1,56 @@
+{
+	"name": "@xsynaptic/astro-sitemap-lastmod",
+	"version": "0.1.0",
+	"description": "Adds lastmod dates to the sitemap from @astrojs/sitemap, recorded by a script or your content loaders",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/astro-sitemap-lastmod"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/astro-sitemap-lastmod#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"astro",
+		"astro-integration",
+		"withastro",
+		"sitemap",
+		"lastmod",
+		"seo"
+	],
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./write": {
+			"types": "./dist/write.d.mts",
+			"import": "./dist/write.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"astro": "^7.4.2"
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"astro": "^7.4.2"
+	}
+}
