@@ -402,87 +402,6 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  packages/remark-auto-import:
-    dependencies:
-      '@types/mdast':
-        specifier: ^4.0.4
-        version: 4.0.4
-      acorn:
-        specifier: ^8.19.0
-        version: 8.19.0
-      zod:
-        specifier: ^4.6.7
-        version: 4.6.7
-    devDependencies:
-      '@types/node':
-        specifier: ^24.19.2
-        version: 24.19.2
-      mdast-util-mdx:
-        specifier: ^3.0.0
-        version: 3.0.0(supports-color@10.2.2)
-      unified:
-        specifier: ^11.0.5
-        version: 11.0.5
-
-  packages/remark-image-import:
-    dependencies:
-      '@types/mdast':
-        specifier: ^4.0.4
-        version: 4.0.4
-      acorn:
-        specifier: ^8.19.0
-        version: 8.19.0
-      unist-util-visit:
-        specifier: ^5.2.0
-        version: 5.2.0
-      zod:
-        specifier: ^4.6.7
-        version: 4.6.7
-    devDependencies:
-      '@types/node':
-        specifier: ^24.19.2
-        version: 24.19.2
-      '@types/unist':
-        specifier: ^3.0.3
-        version: 3.0.3
-      mdast-util-mdx:
-        specifier: ^3.0.0
-        version: 3.0.0(supports-color@10.2.2)
-      remark-mdx:
-        specifier: ^3.1.1
-        version: 3.1.1(supports-color@10.2.2)
-      remark-parse:
-        specifier: ^11.0.0
-        version: 11.0.0(supports-color@10.2.2)
-      remark-stringify:
-        specifier: ^11.0.0
-        version: 11.0.0
-      unified:
-        specifier: ^11.0.5
-        version: 11.0.5
-
-  packages/remark-img-group:
-    dependencies:
-      '@types/mdast':
-        specifier: ^4.0.4
-        version: 4.0.4
-      unist-util-visit:
-        specifier: ^5.2.0
-        version: 5.2.0
-      zod:
-        specifier: ^4.6.7
-        version: 4.6.7
-    devDependencies:
-      '@mdx-js/mdx':
-        specifier: ^3.1.1
-        version: 3.1.1(supports-color@10.2.2)
-      mdast-util-mdx:
-        specifier: ^3.0.0
-        version: 3.0.0(supports-color@10.2.2)
-      unified:
-        specifier: ^11.0.5
-        version: 11.0.5
-
   packages/remark-prose-rules:
     dependencies:
       '@types/mdast':
@@ -676,39 +595,6 @@ importers:
       exiftool-vendored:
         specifier: ^39.0.1
         version: 39.0.1
-      sharp:
-        specifier: ^0.35.5
-        version: 0.35.5(@types/node@24.19.2)
-
-  playground/remark-auto-import:
-    dependencies:
-      '@astrojs/markdown-remark':
-        specifier: ^7.3.4
-        version: 7.3.4(supports-color@10.2.2)
-      '@astrojs/mdx':
-        specifier: ^8.1.1
-        version: 8.1.1(@astrojs/markdown-remark@7.3.4(supports-color@10.2.2))(@astrojs/markdown-satteri@0.4.5)(astro@7.4.2(@astrojs/markdown-remark@7.3.4(supports-color@10.2.2))(@types/node@24.19.2)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.1))
-      '@xsynaptic/remark-auto-import':
-        specifier: '*'
-        version: link:../../packages/remark-auto-import
-      astro:
-        specifier: ^7.4.2
-        version: 7.4.2(@astrojs/markdown-remark@7.3.4(supports-color@10.2.2))(@types/node@24.19.2)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.1)
-
-  playground/remark-image-import:
-    dependencies:
-      '@astrojs/markdown-remark':
-        specifier: ^7.3.4
-        version: 7.3.4(supports-color@10.2.2)
-      '@astrojs/mdx':
-        specifier: ^8.1.1
-        version: 8.1.1(@astrojs/markdown-remark@7.3.4(supports-color@10.2.2))(@astrojs/markdown-satteri@0.4.5)(astro@7.4.2(@astrojs/markdown-remark@7.3.4(supports-color@10.2.2))(@types/node@24.19.2)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.1))
-      '@xsynaptic/remark-image-import':
-        specifier: '*'
-        version: link:../../packages/remark-image-import
-      astro:
-        specifier: ^7.4.2
-        version: 7.4.2(@astrojs/markdown-remark@7.3.4(supports-color@10.2.2))(@types/node@24.19.2)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.1)
       sharp:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@24.19.2)
@@ -5411,6 +5297,7 @@ snapshots:
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   '@astrojs/markdown-satteri@0.4.5':
     dependencies:
@@ -6069,6 +5956,7 @@ snapshots:
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   '@napi-rs/wasm-runtime@1.2.3(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
@@ -6499,7 +6387,8 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
-  '@types/mdx@2.0.13': {}
+  '@types/mdx@2.0.13':
+    optional: true
 
   '@types/ms@2.1.0': {}
 
@@ -6781,7 +6670,8 @@ snapshots:
 
   astral-regex@2.0.0: {}
 
-  astring@1.9.0: {}
+  astring@1.9.0:
+    optional: true
 
   astro-eslint-parser@3.0.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(supports-color@10.2.2):
     dependencies:
@@ -7157,6 +7047,7 @@ snapshots:
       devlop: 1.1.0
       estree-util-visit: 2.0.0
       unist-util-position-from-estree: 2.0.0
+    optional: true
 
   esast-util-from-js@2.0.1:
     dependencies:
@@ -7164,6 +7055,7 @@ snapshots:
       acorn: 8.19.0
       esast-util-from-estree: 2.0.0
       vfile-message: 4.0.3
+    optional: true
 
   esbuild@0.28.0:
     optionalDependencies:
@@ -7335,6 +7227,7 @@ snapshots:
   estree-util-attach-comments@3.0.0:
     dependencies:
       '@types/estree': 1.0.9
+    optional: true
 
   estree-util-build-jsx@3.0.1:
     dependencies:
@@ -7342,6 +7235,7 @@ snapshots:
       devlop: 1.1.0
       estree-util-is-identifier-name: 3.0.0
       estree-walker: 3.0.3
+    optional: true
 
   estree-util-is-identifier-name@3.0.0: {}
 
@@ -7349,12 +7243,14 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       devlop: 1.1.0
+    optional: true
 
   estree-util-to-js@2.0.0:
     dependencies:
       '@types/estree-jsx': 1.0.5
       astring: 1.9.0
       source-map: 0.7.6
+    optional: true
 
   estree-util-visit@2.0.0:
     dependencies:
@@ -7577,6 +7473,7 @@ snapshots:
   hast-util-is-element@3.0.0:
     dependencies:
       '@types/hast': 3.0.5
+    optional: true
 
   hast-util-parse-selector@4.0.0:
     dependencies:
@@ -7597,6 +7494,7 @@ snapshots:
       vfile: 6.0.3
       web-namespaces: 2.0.1
       zwitch: 2.0.4
+    optional: true
 
   hast-util-sanitize@5.0.2:
     dependencies:
@@ -7624,6 +7522,7 @@ snapshots:
       zwitch: 2.0.4
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   hast-util-to-html@9.0.5:
     dependencies:
@@ -7658,6 +7557,7 @@ snapshots:
       vfile-message: 4.0.3
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   hast-util-to-parse5@8.0.1:
     dependencies:
@@ -7668,6 +7568,7 @@ snapshots:
       space-separated-tokens: 2.0.2
       web-namespaces: 2.0.1
       zwitch: 2.0.4
+    optional: true
 
   hast-util-to-text@4.0.2:
     dependencies:
@@ -7675,6 +7576,7 @@ snapshots:
       '@types/unist': 3.0.3
       hast-util-is-element: 3.0.0
       unist-util-find-after: 5.0.0
+    optional: true
 
   hast-util-whitespace@3.0.0:
     dependencies:
@@ -7746,7 +7648,8 @@ snapshots:
 
   ini@4.1.3: {}
 
-  inline-style-parser@0.2.7: {}
+  inline-style-parser@0.2.7:
+    optional: true
 
   iron-webcrypto@1.2.1: {}
 
@@ -8006,7 +7909,8 @@ snapshots:
       '@babel/types': 7.29.7
       source-map-js: 1.2.2
 
-  markdown-extensions@2.0.0: {}
+  markdown-extensions@2.0.0:
+    optional: true
 
   markdown-table@3.0.4: {}
 
@@ -8024,6 +7928,7 @@ snapshots:
       '@types/mdast': 4.0.4
       '@types/unist': 3.0.3
       unist-util-visit: 5.2.0
+    optional: true
 
   mdast-util-directive@3.1.0(supports-color@10.2.2):
     dependencies:
@@ -8922,6 +8827,7 @@ snapshots:
       '@types/estree': 1.0.9
       estree-util-build-jsx: 3.0.1
       vfile: 6.0.3
+    optional: true
 
   recma-jsx@1.0.1(acorn@8.19.0):
     dependencies:
@@ -8931,6 +8837,7 @@ snapshots:
       recma-parse: 1.0.0
       recma-stringify: 1.0.0
       unified: 11.0.5
+    optional: true
 
   recma-parse@1.0.0:
     dependencies:
@@ -8938,6 +8845,7 @@ snapshots:
       esast-util-from-js: 2.0.1
       unified: 11.0.5
       vfile: 6.0.3
+    optional: true
 
   recma-stringify@1.0.0:
     dependencies:
@@ -8945,6 +8853,7 @@ snapshots:
       estree-util-to-js: 2.0.0
       unified: 11.0.5
       vfile: 6.0.3
+    optional: true
 
   regex-recursion@6.0.2:
     dependencies:
@@ -8971,6 +8880,7 @@ snapshots:
       '@types/hast': 3.0.5
       hast-util-raw: 9.1.0
       vfile: 6.0.3
+    optional: true
 
   rehype-recma@1.0.0(supports-color@10.2.2):
     dependencies:
@@ -8979,6 +8889,7 @@ snapshots:
       hast-util-to-estree: 3.1.3(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   rehype-sanitize@6.0.0:
     dependencies:
@@ -9552,9 +9463,11 @@ snapshots:
 
   source-map-js@1.2.2: {}
 
-  source-map@0.7.6: {}
+  source-map@0.7.6:
+    optional: true
 
-  source-map@0.8.0: {}
+  source-map@0.8.0:
+    optional: true
 
   space-separated-tokens@2.0.2: {}
 
@@ -9625,10 +9538,12 @@ snapshots:
   style-to-js@1.1.21:
     dependencies:
       style-to-object: 1.0.14
+    optional: true
 
   style-to-object@1.0.14:
     dependencies:
       inline-style-parser: 0.2.7
+    optional: true
 
   stylelint-config-recess-order@7.9.0(stylelint-order@8.1.1(stylelint@17.12.0(supports-color@10.2.2)(typescript@6.0.3)))(stylelint@17.12.0(supports-color@10.2.2)(typescript@6.0.3)):
     dependencies:
@@ -9917,6 +9832,7 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
       unist-util-is: 6.0.1
+    optional: true
 
   unist-util-inspect@8.1.0:
     dependencies:
@@ -9943,6 +9859,7 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
       unist-util-visit: 5.2.0
+    optional: true
 
   unist-util-stringify-position@4.0.0:
     dependencies:

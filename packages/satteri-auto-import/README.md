@@ -51,5 +51,5 @@ Relative paths are resolved against the working directory; bare specifiers (npm 
 
 [Sätteri]: https://github.com/bruits/satteri
 [Zod]: https://github.com/colinhacks/zod
-[remark-auto-import]: https://github.com/xsynaptic/astro-lab/tree/main/packages/remark-auto-import
+[remark-auto-import]: https://www.npmjs.com/package/@xsynaptic/remark-auto-import
 [mit-license]: https://opensource.org/licenses/MIT

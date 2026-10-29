@@ -24,9 +24,6 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 [unified](https://unifiedjs.com/) has long been the standard for AST processing in the JavaScript ecosystem. It remains an option for Astro but these tools and plugins are deprecated in favor of Sätteri.
 
 - [`@xsynaptic/rehype-wrap-cjk`](packages/rehype-wrap-cjk): rehype plugin to wrap CJK character runs for styling
-- [`@xsynaptic/remark-auto-import`](packages/remark-auto-import): remark plugin that auto-imports components into MDX
-- [`@xsynaptic/remark-image-import`](packages/remark-image-import): remark plugin that auto-imports a component's image sources in MDX
-- [`@xsynaptic/remark-img-group`](packages/remark-img-group): remark plugin that validates and stamps custom MDX components for magazine-style image layout
 - [`@xsynaptic/unified-tools`](packages/unified-tools): remark/rehype/retext pipelines for markup and text
 
 ## Configs
