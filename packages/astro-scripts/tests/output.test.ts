@@ -37,7 +37,7 @@ describe('captureOutput', () => {
 });
 
 describe('output mode detection', () => {
-	const originalOutput = process.env.SCRIPTS_OUTPUT;
+	const originalOutput = process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 	const { columns, isTTY } = process.stderr;
 
 	function setTerminal(width: number) {
@@ -48,16 +48,16 @@ describe('output mode detection', () => {
 		Object.assign(process.stderr, { columns, isTTY });
 
 		if (originalOutput === undefined) {
-			delete process.env.SCRIPTS_OUTPUT;
+			delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 		} else {
-			process.env.SCRIPTS_OUTPUT = originalOutput;
+			process.env.XSYNAPTIC_SCRIPTS_OUTPUT = originalOutput;
 		}
 
 		configureOutput();
 	});
 
 	test('falls back to plain on a terminal that reports no width', () => {
-		delete process.env.SCRIPTS_OUTPUT;
+		delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 
 		setTerminal(0);
 		configureOutput();

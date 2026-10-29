@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.12.0
+
+### Minor Changes
+
+- Breaking: prefixed environment variables, `withAstroModules` unexported, Vite resolved from Astro instead of a peer; `findWorkspaceRoot` works without pnpm
+
 ## 0.11.0
 
 ### Minor Changes

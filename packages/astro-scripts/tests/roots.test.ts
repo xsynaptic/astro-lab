@@ -27,7 +27,12 @@ function makeTree(markerFilename: string | undefined, nested: string) {
 	return nestedDir;
 }
 
-// `withAstroContent` has no direct test; vitest runs from a root of its own, which masks the unrooted-config failure
+function writePackageJson(directory: string, packageJson: object = {}) {
+	mkdirSync(directory, { recursive: true });
+	writeFileSync(path.join(directory, 'package.json'), JSON.stringify(packageJson));
+}
+
+// vitest runs from a root of its own, which masks the unrooted-config failure
 describe('findAstroRoot', () => {
 	test('walks up from a nested package to the directory holding the config', () => {
 		const nestedDir = makeTree('astro.config.ts', 'packages/scripts');
@@ -54,13 +59,49 @@ describe('findWorkspaceRoot', () => {
 	test('walks up from a nested package to the directory holding pnpm-workspace.yaml', () => {
 		const nestedDir = makeTree('pnpm-workspace.yaml', 'web/scripts');
 
+		writePackageJson(path.join(tempDir, 'web'));
+
 		expect(findWorkspaceRoot(nestedDir)).toBe(tempDir);
 	});
 
-	test('throws rather than returning a root with no workspace file', () => {
+	test('stops at a settings-only pnpm-workspace.yaml instead of climbing into an outer workspace', () => {
+		const projectDir = path.join(tempDir, 'sites/blog');
+
+		writePackageJson(tempDir, { workspaces: ['sites/*'] });
+		writePackageJson(projectDir);
+		writeFileSync(
+			path.join(projectDir, 'pnpm-workspace.yaml'),
+			'onlyBuiltDependencies:\n  - sharp\n',
+		);
+		mkdirSync(path.join(projectDir, 'scripts'));
+
+		expect(findWorkspaceRoot(path.join(projectDir, 'scripts'))).toBe(projectDir);
+	});
+
+	test.each([
+		['npm and Bun', ['packages/*']],
+		['Yarn classic', { packages: ['packages/*'] }],
+	])('finds a %s workspaces root', (_manager, workspaces) => {
+		const packageDir = path.join(tempDir, 'packages/scripts');
+
+		writePackageJson(tempDir, { workspaces });
+		writePackageJson(packageDir);
+
+		expect(findWorkspaceRoot(packageDir)).toBe(tempDir);
+	});
+
+	test('with no workspace above, returns the nearest package.json directory', () => {
+		const nestedDir = makeTree(undefined, 'scripts/lib');
+
+		writePackageJson(tempDir);
+
+		expect(findWorkspaceRoot(nestedDir)).toBe(tempDir);
+	});
+
+	test('throws rather than returning a root with no package.json', () => {
 		const nestedDir = makeTree(undefined, 'web/scripts');
 
-		expect(() => findWorkspaceRoot(nestedDir)).toThrow('Could not locate pnpm-workspace.yaml');
+		expect(() => findWorkspaceRoot(nestedDir)).toThrow('Could not locate a workspace root');
 		expect(() => findWorkspaceRoot(nestedDir)).toThrow(UserError);
 	});
 });

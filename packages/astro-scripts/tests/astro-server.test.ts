@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { withAstroModules } from '../src/astro.js';
+import { withAstroContent } from '../src/astro.js';
 import { createCommandRunner } from '../src/command.js';
 
 const vite = vi.hoisted(() => {
@@ -20,7 +20,7 @@ const vite = vi.hoisted(() => {
 			return Promise.resolve(server);
 		}),
 		createServerModuleRunner: vi.fn(() => {
-			const runner = { close: vi.fn() };
+			const runner = { close: vi.fn(), import: vi.fn(() => Promise.resolve({})) };
 
 			runners.push(runner);
 
@@ -31,12 +31,12 @@ const vite = vi.hoisted(() => {
 	};
 });
 
-vi.mock('vite', () => vite);
+vi.mock('../src/vite.js', () => ({ importVite: () => Promise.resolve(vite) }));
 vi.mock('astro/config', () => ({ getViteConfig: () => () => Promise.resolve({}) }));
 
 const originalArgv = process.argv;
 const resolveNothing = () => Promise.resolve();
-const originalOutput = process.env.SCRIPTS_OUTPUT;
+const originalOutput = process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 let astroRoot: string;
 
 beforeEach(() => {
@@ -46,7 +46,7 @@ beforeEach(() => {
 	vi.spyOn(process, 'cwd').mockReturnValue(astroRoot);
 	vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 	process.argv = ['node', 'script.ts'];
-	process.env.SCRIPTS_OUTPUT = 'json';
+	process.env.XSYNAPTIC_SCRIPTS_OUTPUT = 'json';
 	vite.servers.length = 0;
 	vite.runners.length = 0;
 	vite.createServer.mockClear();
@@ -59,13 +59,13 @@ afterEach(() => {
 	process.exitCode = undefined;
 
 	if (originalOutput === undefined) {
-		delete process.env.SCRIPTS_OUTPUT;
+		delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 	} else {
-		process.env.SCRIPTS_OUTPUT = originalOutput;
+		process.env.XSYNAPTIC_SCRIPTS_OUTPUT = originalOutput;
 	}
 });
 
-describe('withAstroModules', () => {
+describe('withAstroContent', () => {
 	test('shares one server across a command and closes it when the command ends', async () => {
 		const { runCommand } = createCommandRunner();
 		let isOpenAfterCalls = false;
@@ -73,8 +73,8 @@ describe('withAstroModules', () => {
 		await runCommand({
 			name: 'probe',
 			async run() {
-				await withAstroModules(resolveNothing);
-				await withAstroModules(resolveNothing);
+				await withAstroContent(resolveNothing);
+				await withAstroContent(resolveNothing);
 				isOpenAfterCalls = vite.servers.every((server) => server.close.mock.calls.length === 0);
 			},
 			summary: 'Probe',
@@ -95,7 +95,7 @@ describe('withAstroModules', () => {
 		await runCommand({
 			name: 'probe',
 			async run() {
-				await Promise.all([withAstroModules(resolveNothing), withAstroModules(resolveNothing)]);
+				await Promise.all([withAstroContent(resolveNothing), withAstroContent(resolveNothing)]);
 			},
 			summary: 'Probe',
 			title: 'Probe',
@@ -110,7 +110,7 @@ describe('withAstroModules', () => {
 		await runCommand({
 			name: 'probe',
 			async run() {
-				await withAstroModules(() => Promise.reject(new Error('bad entry')));
+				await withAstroContent(() => Promise.reject(new Error('bad entry')));
 			},
 			summary: 'Probe',
 			title: 'Probe',
@@ -121,8 +121,8 @@ describe('withAstroModules', () => {
 	});
 
 	test('outside a command, starts and closes a server per call', async () => {
-		await withAstroModules(resolveNothing);
-		await withAstroModules(resolveNothing);
+		await withAstroContent(resolveNothing);
+		await withAstroContent(resolveNothing);
 
 		expect(vite.createServer).toHaveBeenCalledTimes(2);
 		expect(vite.servers.every((server) => server.close.mock.calls.length === 1)).toBe(true);

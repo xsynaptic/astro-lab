@@ -6,22 +6,14 @@ import { createPrettyReporter } from './reporter-pretty.js';
 
 export type OutputMode = 'json' | 'plain' | 'pretty';
 
-const outputModes = new Set<unknown>(['json', 'plain', 'pretty'] satisfies Array<OutputMode>);
-
 let currentCommand: string | undefined;
 let currentMode: OutputMode | undefined;
 let currentReporter: Reporter | undefined;
 let capturingReporter: Reporter | undefined;
 let nextStatusId = 1;
 
-export function isOutputMode(value: unknown): value is OutputMode {
-	return outputModes.has(value);
-}
-
 function detectOutputMode(): OutputMode {
-	const requested = process.env.SCRIPTS_OUTPUT;
-
-	if (isOutputMode(requested)) return requested;
+	if (process.env.XSYNAPTIC_SCRIPTS_OUTPUT === 'json') return 'json';
 
 	return process.stderr.isTTY && process.stderr.columns > 0 ? 'pretty' : 'plain';
 }
@@ -31,7 +23,7 @@ function createReporter(mode: OutputMode, command?: string) {
 
 	if (mode === 'json') return createJsonReporter(streams, { command });
 
-	const isNested = process.env.SCRIPTS_NESTED === '1';
+	const isNested = process.env.XSYNAPTIC_SCRIPTS_NESTED === '1';
 
 	if (mode === 'plain') return createPlainReporter(streams, { isNested });
 

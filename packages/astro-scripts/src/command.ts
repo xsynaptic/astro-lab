@@ -5,14 +5,7 @@ import { parseArgs } from 'node:util';
 
 import type { StepOutcome } from './output/output.js';
 
-import {
-	configureOutput,
-	emit,
-	getOutputMode,
-	isOutputMode,
-	log,
-	trackStepOutcomes,
-} from './output/output.js';
+import { configureOutput, emit, getOutputMode, log, trackStepOutcomes } from './output/output.js';
 import { isUserError, UserError } from './user-error.js';
 import { findWorkspaceRoot } from './workspace.js';
 
@@ -329,20 +322,6 @@ function parseCommandArgs(command: CommandDescription) {
 	return parsed;
 }
 
-function selectOutput(isJson: boolean) {
-	if (isJson) {
-		// Nested commands inherit this and join one stream
-		process.env.SCRIPTS_OUTPUT = 'json';
-		return;
-	}
-
-	const requested = process.env.SCRIPTS_OUTPUT;
-
-	if (requested && !isOutputMode(requested)) {
-		throw new UserError(`SCRIPTS_OUTPUT must be pretty, plain or json, got "${requested}"`);
-	}
-}
-
 export function createCommandRunner<Context extends object = object>(
 	runnerOptions: CommandRunnerOptions<Context> = {},
 ) {
@@ -410,7 +389,9 @@ export function createCommandRunner<Context extends object = object>(
 				return;
 			}
 
-			selectOutput(isJson);
+			// Nested commands inherit this and join one stream
+			if (isJson) process.env.XSYNAPTIC_SCRIPTS_OUTPUT = 'json';
+
 			emit({ title: command.title, type: 'start' });
 			hasStarted = true;
 

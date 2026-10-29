@@ -156,7 +156,7 @@ describe('formatHelp', () => {
 
 describe('runCommand', () => {
 	const originalArgv = process.argv;
-	const originalOutput = process.env.SCRIPTS_OUTPUT;
+	const originalOutput = process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 	let stderr: Array<string>;
 	let stdout: Array<string>;
 
@@ -175,7 +175,7 @@ describe('runCommand', () => {
 	beforeEach(() => {
 		stderr = [];
 		stdout = [];
-		process.env.SCRIPTS_OUTPUT = 'json';
+		process.env.XSYNAPTIC_SCRIPTS_OUTPUT = 'json';
 		vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
 			stderr.push(...String(chunk).split('\n').filter(Boolean));
 			return true;
@@ -192,9 +192,9 @@ describe('runCommand', () => {
 		process.exitCode = undefined;
 
 		if (originalOutput === undefined) {
-			delete process.env.SCRIPTS_OUTPUT;
+			delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 		} else {
-			process.env.SCRIPTS_OUTPUT = originalOutput;
+			process.env.XSYNAPTIC_SCRIPTS_OUTPUT = originalOutput;
 		}
 	});
 
@@ -245,7 +245,7 @@ describe('runCommand', () => {
 		const run = vi.fn();
 		const { runCommand } = createCommandRunner();
 
-		delete process.env.SCRIPTS_OUTPUT;
+		delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 		setArgs('--json', '--dry-rn');
 		await runCommand({
 			name: 'deploy',
@@ -463,21 +463,6 @@ describe('runCommand', () => {
 		});
 	});
 
-	test('refuses an unknown SCRIPTS_OUTPUT rather than guessing', async () => {
-		const run = vi.fn();
-		const { runCommand } = createCommandRunner();
-
-		process.env.SCRIPTS_OUTPUT = 'jsno';
-		setArgs();
-		await runCommand({ name: 'probe', run, summary: 'Probe', title: 'Probe' });
-
-		expect(run).not.toHaveBeenCalled();
-		expect(process.exitCode).toBe(1);
-		expect(stripVTControlCharacters(stderr.join('\n'))).toContain(
-			'SCRIPTS_OUTPUT must be pretty, plain or json, got "jsno"',
-		);
-	});
-
 	test('reports an interrupted command as interrupted even when it returns normally', async () => {
 		const { runCommand } = createCommandRunner();
 
@@ -503,7 +488,7 @@ describe('runCommand', () => {
 		const run = vi.fn();
 		const { runCommand } = createCommandRunner();
 
-		delete process.env.SCRIPTS_OUTPUT;
+		delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 		setArgs('--', '--', '--json');
 		await runCommand({
 			name: 'improve-content',
@@ -516,17 +501,17 @@ describe('runCommand', () => {
 		const [[context]] = run.mock.calls as [[{ positionals: Array<string> }]];
 
 		expect(context.positionals).toEqual(['--json']);
-		expect(process.env.SCRIPTS_OUTPUT).toBeUndefined();
+		expect(process.env.XSYNAPTIC_SCRIPTS_OUTPUT).toBeUndefined();
 	});
 
 	test('passes json mode on to child processes', async () => {
 		const { runCommand } = createCommandRunner();
 
-		delete process.env.SCRIPTS_OUTPUT;
+		delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 		setArgs('--json');
 		await runCommand({ name: 'probe', run: vi.fn(), summary: 'Probe', title: 'Probe' });
 
-		expect(process.env.SCRIPTS_OUTPUT).toBe('json');
+		expect(process.env.XSYNAPTIC_SCRIPTS_OUTPUT).toBe('json');
 		expect(readEvents()[0]).toMatchObject({ command: 'probe', title: 'Probe', type: 'start' });
 	});
 });

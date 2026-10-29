@@ -1,10 +1,5 @@
 export type { ContentEntry } from './astro.js';
-export {
-	findAstroRoot,
-	getCollectionEntries,
-	withAstroContent,
-	withAstroModules,
-} from './astro.js';
+export { findAstroRoot, getCollectionEntries, withAstroContent } from './astro.js';
 export { readChild, runChild } from './child.js';
 export type { ChildResult } from './child.js';
 export { createCommandRunner, parseNumberOption } from './command.js';

@@ -10,6 +10,7 @@ import type { CommandScope } from './command.js';
 
 import { getCommandScope } from './command.js';
 import { UserError } from './user-error.js';
+import { importVite } from './vite.js';
 
 type AstroContent = typeof AstroContentModule;
 
@@ -71,7 +72,7 @@ async function startAstroServer() {
 	const root = findAstroRoot();
 	const [{ getViteConfig }, { createLogger, createServer }] = await Promise.all([
 		import('astro/config'),
-		import('vite'),
+		importVite(),
 	]);
 
 	const config = await getViteConfig(
@@ -120,7 +121,7 @@ async function runInServer<T>(
 	server: ViteDevServer,
 	callback: (runner: ModuleRunner) => Promise<T>,
 ) {
-	const { createServerModuleRunner } = await import('vite');
+	const { createServerModuleRunner } = await importVite();
 	// Astro's store invalidation reaches only the environment's own runner, so a shared one would read stale content
 	const runner = createServerModuleRunner(server.environments.ssr);
 
@@ -131,7 +132,7 @@ async function runInServer<T>(
 	}
 }
 
-export async function withAstroModules<T>(callback: (runner: ModuleRunner) => Promise<T>) {
+async function withAstroModules<T>(callback: (runner: ModuleRunner) => Promise<T>) {
 	const scope = getCommandScope();
 
 	if (scope) return runInServer(await getCommandServer(scope), callback);

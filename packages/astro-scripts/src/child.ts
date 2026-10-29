@@ -174,7 +174,7 @@ async function spawnChild(
 		cwd,
 		env: getChildEnv(env, {
 			...(isPiped && mode === 'pretty' ? { FORCE_COLOR: '1' } : {}),
-			SCRIPTS_NESTED: '1',
+			XSYNAPTIC_SCRIPTS_NESTED: '1',
 		}),
 		stdio: [input === undefined ? 'inherit' : 'pipe', isPiped ? 'pipe' : 2, isPiped ? 'pipe' : 2],
 	});

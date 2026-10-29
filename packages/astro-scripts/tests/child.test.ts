@@ -12,7 +12,7 @@ type ChildOutputEvent = Extract<OutputEvent, { type: 'output' }>;
 
 const fixturePath = fileURLToPath(new URL('fixtures/run-child.ts', import.meta.url));
 const nestedCommandPath = fileURLToPath(new URL('fixtures/nested-command.ts', import.meta.url));
-const originalOutput = process.env.SCRIPTS_OUTPUT;
+const originalOutput = process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 
 function node(script: string): [string, ...Array<string>] {
 	return [process.execPath, '-e', script];
@@ -46,9 +46,9 @@ async function captureFailure(task: () => Promise<void>) {
 
 afterEach(() => {
 	if (originalOutput === undefined) {
-		delete process.env.SCRIPTS_OUTPUT;
+		delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 	} else {
-		process.env.SCRIPTS_OUTPUT = originalOutput;
+		process.env.XSYNAPTIC_SCRIPTS_OUTPUT = originalOutput;
 	}
 
 	configureOutput();
@@ -111,7 +111,7 @@ describe('runChild running a nested command', () => {
 	];
 
 	test('relays its data as a typed event under json', async () => {
-		process.env.SCRIPTS_OUTPUT = 'json';
+		process.env.XSYNAPTIC_SCRIPTS_OUTPUT = 'json';
 		configureOutput('json');
 
 		const { events } = await captureOutput(() => runChild('Generating placeholders', argv));
@@ -125,7 +125,6 @@ describe('runChild running a nested command', () => {
 	});
 
 	test("prints neither its title nor its footer under the parent's step", async () => {
-		process.env.SCRIPTS_OUTPUT = 'plain';
 		configureOutput('plain');
 
 		const { events } = await captureOutput(() =>
@@ -378,7 +377,7 @@ describe('runChild without onLine', () => {
 	test('hands the child our stderr for both streams, keeping stdout for data', () => {
 		const result = spawnSync(process.execPath, ['--import', 'jiti/register', fixturePath], {
 			encoding: 'utf8',
-			env: { ...process.env, SCRIPTS_OUTPUT: 'plain' },
+			env: { ...process.env, XSYNAPTIC_SCRIPTS_OUTPUT: undefined },
 		});
 
 		expect(result.stdout).toBe('');
