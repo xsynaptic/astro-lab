@@ -14,6 +14,7 @@ import type { ImageManifest } from './image-state.js';
 
 import { createDevImageResolver } from './dev-resolver.js';
 import { resolveImageEncoding } from './image-encoding.js';
+import { imageFormatTraits, isImageFormat } from './image-formats.js';
 import { imagePlaceholdersVariable, validatePlaceholderOptions } from './image-placeholders.js';
 import { imageRecordsVariable } from './image-recorder.js';
 import { readImageRecords, resetImageRecords } from './image-records.js';
@@ -35,6 +36,7 @@ export { createDirectorySources } from './image-sources.js';
 export interface ImagePipelineOptions {
 	baseUrl?: string;
 	encoding?: ImageEncoding;
+	keepIccProfile?: boolean;
 	limitInputPixels?: number;
 	mediaPath: string;
 	placeholders?: ImagePlaceholderOptions;
@@ -50,6 +52,14 @@ function decodeImageName(pathname: string) {
 	} catch {
 		return;
 	}
+}
+
+function getContentType(filePath: string) {
+	const format = path.extname(filePath).slice(1);
+
+	if (!isImageFormat(format)) throw new Error(`${filePath} has no image format extension`);
+
+	return imageFormatTraits[format].contentType;
 }
 
 async function readPreviousManifest(storePath: string) {
@@ -109,7 +119,7 @@ async function writeBuildManifest({
 }: {
 	distPath: string;
 	logger: AstroIntegrationLogger;
-	manifest: Pick<ImageManifest, 'encoding' | 'limitInputPixels' | 'mediaPath'>;
+	manifest: Pick<ImageManifest, 'encoding' | 'keepIccProfile' | 'limitInputPixels' | 'mediaPath'>;
 	recorded: {
 		cards: ReadonlyMap<string, Card>;
 		renditions: ReadonlyMap<string, string>;
@@ -156,7 +166,7 @@ function createDevImageHandler(
 			}
 
 			response.setHeader('Cache-Control', 'no-cache');
-			response.setHeader('Content-Type', filePath.endsWith('.webp') ? 'image/webp' : 'image/jpeg');
+			response.setHeader('Content-Type', getContentType(filePath));
 			response.end(await fs.readFile(filePath));
 		} catch (error) {
 			logger.error(`${pathname}: ${error instanceof Error ? error.message : String(error)}`);
@@ -179,6 +189,7 @@ async function isBuiltFrom(storePath: string, mediaPath: string) {
 export default function imagePipeline({
 	baseUrl,
 	encoding,
+	keepIccProfile = false,
 	limitInputPixels = sharpDefaultInputPixelLimit,
 	mediaPath,
 	placeholders,
@@ -226,6 +237,7 @@ export default function imagePipeline({
 						logger,
 						manifest: {
 							encoding: resolvedEncoding,
+							keepIccProfile,
 							limitInputPixels,
 							mediaPath: absoluteMediaPath,
 						},
@@ -263,6 +275,7 @@ export default function imagePipeline({
 						: undefined,
 					devPath: path.resolve(devPath, mediaPathKey),
 					encoding: resolvedEncoding,
+					keepIccProfile,
 					limitInputPixels,
 					mediaPath: absoluteMediaPath,
 					sources: sources ?? createDirectorySources(absoluteMediaPath),

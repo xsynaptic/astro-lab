@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.11.0
+
+### Minor Changes
+
+- Breaking: adds `png` and `avif` renditions, TIFF sources, animated WebP from animated sources, and a `keepIccProfile` option. The manifest version is now 8, so rebuild once; existing render keys are unchanged.
+
 ## 0.10.0
 
 ### Minor Changes

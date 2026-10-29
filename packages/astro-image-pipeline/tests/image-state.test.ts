@@ -34,6 +34,7 @@ describe('findDistManifest', () => {
 			buildId: 'live',
 			cards: {},
 			encoding: resolveImageEncoding(),
+			keepIccProfile: false,
 			limitInputPixels: 268_402_689,
 			mediaPath: path.join(root, 'media'),
 			renditions: { 'a-450.jpg': 'a.jpg' },
@@ -65,7 +66,7 @@ describe('findDistManifest', () => {
 		await writeBuildId(distPath, 'live');
 
 		await expect(findDistManifest({ distPath, storePath: root })).rejects.toThrow(
-			/version 1, not 7/,
+			/version 1, not 8/,
 		);
 	});
 });

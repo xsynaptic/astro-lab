@@ -10,8 +10,15 @@ let mediaPath: string;
 beforeEach(async () => {
 	mediaPath = await fs.mkdtemp(path.join(tmpdir(), 'image-sources-'));
 	await fs.mkdir(path.join(mediaPath, 'posts', '_drafts'), { recursive: true });
+	await fs.mkdir(path.join(mediaPath, 'scans'));
 
-	for (const file of ['cover.JPG', 'posts/a.webp', 'posts/_drafts/b.png', 'posts/notes.txt']) {
+	for (const file of [
+		'cover.JPG',
+		'posts/a.webp',
+		'posts/_drafts/b.png',
+		'posts/notes.txt',
+		'scans/c.tif',
+	]) {
 		await fs.writeFile(path.join(mediaPath, file), '');
 	}
 });
@@ -29,6 +36,7 @@ describe('listImageSources', () => {
 			'cover.JPG',
 			'posts/_drafts/b.png',
 			'posts/a.webp',
+			'scans/c.tif',
 		]);
 
 		for (const source of sources) {

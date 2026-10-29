@@ -11,6 +11,8 @@ describe('parseRenditionName', () => {
 	test.each([
 		{ format: 'jpg', stem: 'taiwan/taipei/some-image-1', width: 1200 },
 		{ format: 'webp', height: 800, stem: 'taiwan/taipei/some-image-1', width: 1200 },
+		{ format: 'png', stem: 'diagrams/flow', width: 600 },
+		{ format: 'avif', height: 400, stem: 'diagrams/flow', width: 600 },
 	] as const)('round-trips $stem at $width', (name) => {
 		expect(parseRenditionName(formatRenditionName(name))).toStrictEqual(name);
 	});
@@ -27,7 +29,8 @@ describe('parseRenditionName', () => {
 		['a missing size', 'a/b.jpg'],
 		['a zero width', 'a/b-0.jpg'],
 		['a zero height', 'a/b-450x0.webp'],
-		['an unknown format', 'a/b-450.png'],
+		['an unknown format', 'a/b-450.gif'],
+		['a second spelling of a format', 'a/b-450.jpeg'],
 		['a `..` segment', '../media/a/b-450.jpg'],
 		['an empty segment', '/a/b-450.jpg'],
 	])('rejects %s', (_label, name) => {

@@ -34,6 +34,7 @@ async function writeBuild() {
 		buildId: 'build',
 		cards,
 		encoding: resolveImageEncoding(),
+		keepIccProfile: false,
 		limitInputPixels: 268_402_689,
 		mediaPath,
 		renditions: {},

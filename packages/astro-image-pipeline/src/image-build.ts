@@ -5,7 +5,8 @@ import path from 'node:path';
 import pLimit from 'p-limit';
 import sharp from 'sharp';
 
-import type { ImageFormat, RenditionName } from './image-name.js';
+import type { ImageFormat } from './image-formats.js';
+import type { RenditionName } from './image-name.js';
 import type { ImageManifest, ImageRenderTarget } from './image-state.js';
 import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
@@ -35,12 +36,19 @@ function sortNames(names: ReadonlyArray<string>) {
 	return names.toSorted((first, second) => first.localeCompare(second));
 }
 
+interface SourceState {
+	digest: string;
+	pages: number;
+}
+
 export function getRenditionKey({
 	digest,
 	encoding,
 	engine,
 	format,
 	height,
+	keepIccProfile = false,
+	pages = 1,
 	width,
 }: {
 	digest: string;
@@ -48,9 +56,11 @@ export function getRenditionKey({
 	engine: string;
 	format: ImageFormat;
 	height?: number | undefined;
+	keepIccProfile?: boolean;
+	pages?: number;
 	width: number;
 }) {
-	return hashRenderKey([
+	const parts = [
 		digest,
 		format,
 		serializeEncoding(encoding),
@@ -58,7 +68,13 @@ export function getRenditionKey({
 		height ?? '',
 		imageRenderRevision,
 		engine,
-	]);
+	];
+
+	if (pages > 1) parts.push(`pages=${String(pages)}`);
+
+	if (keepIccProfile) parts.push('icc');
+
+	return hashRenderKey(parts);
 }
 
 function getManifestRenditions(manifest: ImageManifest) {
@@ -84,13 +100,13 @@ function getManifestRenditions(manifest: ImageManifest) {
 	return renditions;
 }
 
-async function readSourceDigests(
+async function readSourceStates(
 	fingerprints: SourceFingerprints,
 	{ mediaPath }: ImageManifest,
 	{ concurrency, renditions }: { concurrency: number; renditions: ReadonlyArray<ImageRendition> },
 ) {
 	const limit = pLimit(concurrency);
-	const digests = new Map<string, string>();
+	const states = new Map<string, SourceState>();
 	const vanished: Array<string> = [];
 	const upscaled: Array<string> = [];
 	const renditionsBySource = Map.groupBy(renditions, (rendition) => rendition.sourcePath);
@@ -113,7 +129,7 @@ async function readSourceDigests(
 					}
 				}
 
-				digests.set(sourcePath, fingerprint.sha256);
+				states.set(sourcePath, { digest: fingerprint.sha256, pages: fingerprint.pages });
 			}),
 		),
 	);
@@ -130,47 +146,53 @@ async function readSourceDigests(
 		);
 	}
 
-	return digests;
+	return states;
 }
 
 function assertEncodedSize(rendition: ImageRendition, info: OutputInfo) {
-	if (info.width === rendition.width && (rendition.height ?? info.height) === info.height) return;
+	const height = info.pageHeight ?? info.height;
 
-	throw new Error(`encoded ${String(info.width)}x${String(info.height)}`);
+	if (info.width === rendition.width && (rendition.height ?? height) === height) return;
+
+	throw new Error(`encoded ${String(info.width)}x${String(height)}`);
 }
 
 function createRenditionJob(
 	rendition: ImageRendition,
 	manifest: ImageManifest,
-	digests: ReadonlyMap<string, string>,
+	states: ReadonlyMap<string, SourceState>,
 ): RenderJob {
-	const digest = digests.get(rendition.sourcePath);
+	const state = states.get(rendition.sourcePath);
 
-	if (!digest) throw new Error(`no digest was read for source ${rendition.sourcePath}`);
+	if (!state) throw new Error(`no digest was read for source ${rendition.sourcePath}`);
 
 	const key = getRenditionKey({
-		digest,
+		digest: state.digest,
 		encoding: manifest.encoding[rendition.format],
 		engine: engineId,
 		format: rendition.format,
 		height: rendition.height,
+		keepIccProfile: manifest.keepIccProfile,
+		pages: state.pages,
 		width: rendition.width,
 	});
 
 	return {
 		key,
 		name: rendition.name,
-		render: () => encodeRendition(rendition, manifest),
-		source: { digest, path: rendition.sourcePath },
+		render: () => encodeRendition(rendition, manifest, state.pages),
+		source: { digest: state.digest, path: rendition.sourcePath },
 	};
 }
 
-async function encodeRendition(rendition: ImageRendition, manifest: ImageManifest) {
+async function encodeRendition(rendition: ImageRendition, manifest: ImageManifest, pages: number) {
 	const { data, info } = await renderImage(path.resolve(manifest.mediaPath, rendition.sourcePath), {
 		encoding: manifest.encoding,
 		format: rendition.format,
 		height: rendition.height,
+		keepIccProfile: manifest.keepIccProfile,
 		limitInputPixels: manifest.limitInputPixels,
+		pages,
 		width: rendition.width,
 	});
 
@@ -186,8 +208,8 @@ async function readImageJobs({ distPath, storePath }: ImageRenderTarget, concurr
 	const fingerprints = createSourceFingerprints(storePath);
 
 	try {
-		const digests = await readSourceDigests(fingerprints, manifest, { concurrency, renditions });
-		const jobs = renditions.map((rendition) => createRenditionJob(rendition, manifest, digests));
+		const states = await readSourceStates(fingerprints, manifest, { concurrency, renditions });
+		const jobs = renditions.map((rendition) => createRenditionJob(rendition, manifest, states));
 
 		return { directory: renditionsPath, jobs };
 	} finally {

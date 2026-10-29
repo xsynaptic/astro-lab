@@ -1,6 +1,6 @@
-export const imageFormats = ['jpg', 'webp'] as const;
+import type { ImageFormat } from './image-formats.js';
 
-export type ImageFormat = (typeof imageFormats)[number];
+import { imageFormats, isImageFormat } from './image-formats.js';
 
 export interface ImageSize {
 	height?: number;
@@ -25,11 +25,7 @@ const imageStemPattern = new RegExp(`^[^${imageNameTerminators}]+$`);
 
 const unsafeSegments = new Set(['', '.', '..']);
 
-const sourcePattern = /\.(?:avif|gif|jpe?g|png|webp)$/i;
-
-function isFormat(value: string | undefined): value is ImageFormat {
-	return (imageFormats as ReadonlyArray<string | undefined>).includes(value);
-}
+const sourcePattern = /\.(?:avif|gif|jpe?g|png|tiff?|webp)$/i;
 
 function isSafeStem(stem: string) {
 	return stem.split('/').every((segment) => !unsafeSegments.has(segment));
@@ -65,7 +61,8 @@ export function formatRenditionName({ format, height, stem, width }: RenditionNa
 export function parseRenditionName(name: string): RenditionName | undefined {
 	const { format, height, stem, width } = imageNamePattern.exec(name)?.groups ?? {};
 
-	if (stem === undefined || width === undefined || !isFormat(format) || !isSafeStem(stem)) return;
+	if (stem === undefined || width === undefined || !isImageFormat(format) || !isSafeStem(stem))
+		return;
 
 	const parsed: RenditionName = { format, stem, width: Number(width) };
 

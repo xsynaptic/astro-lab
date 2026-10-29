@@ -6,9 +6,10 @@ import { pipeline } from 'node:stream/promises';
 
 import type { ImageDimensions } from './image-sizes.js';
 
-import { readSourceSize } from './image-render.js';
+import { readSourceInfo } from './image-render.js';
 
 interface SourceFingerprint extends ImageDimensions {
+	pages: number;
 	sha256: string;
 }
 
@@ -34,7 +35,7 @@ function openDatabase(storePath: string) {
 		'PRAGMA busy_timeout = 10000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL',
 	);
 	database.exec(
-		'CREATE TABLE IF NOT EXISTS fingerprints (path TEXT PRIMARY KEY, version TEXT NOT NULL, sha256 TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL)',
+		'DROP TABLE IF EXISTS fingerprints; CREATE TABLE IF NOT EXISTS source_fingerprints (path TEXT PRIMARY KEY, version TEXT NOT NULL, sha256 TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, pages INTEGER NOT NULL)',
 	);
 
 	return database;
@@ -43,10 +44,10 @@ function openDatabase(storePath: string) {
 export function createSourceFingerprints(storePath: string): SourceFingerprints {
 	const database = openDatabase(storePath);
 	const selectStatement = database.prepare(
-		'SELECT sha256, width, height FROM fingerprints WHERE path = ? AND version = ?',
+		'SELECT sha256, width, height, pages FROM source_fingerprints WHERE path = ? AND version = ?',
 	);
 	const upsertStatement = database.prepare(
-		'INSERT INTO fingerprints (path, version, sha256, width, height) VALUES (?, ?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET version = excluded.version, sha256 = excluded.sha256, width = excluded.width, height = excluded.height',
+		'INSERT INTO source_fingerprints (path, version, sha256, width, height, pages) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET version = excluded.version, sha256 = excluded.sha256, width = excluded.width, height = excluded.height, pages = excluded.pages',
 	);
 
 	return {
@@ -63,16 +64,23 @@ export function createSourceFingerprints(storePath: string): SourceFingerprints 
 			const version = `${String(stats.mtimeMs)}:${String(stats.size)}`;
 			const cached = selectStatement.get(absolutePath, version) as SourceFingerprint | undefined;
 
-			if (cached) return { height: cached.height, sha256: cached.sha256, width: cached.width };
+			if (cached) {
+				return {
+					height: cached.height,
+					pages: cached.pages,
+					sha256: cached.sha256,
+					width: cached.width,
+				};
+			}
 
 			const digest = createHash('sha256');
 
 			await pipeline(createReadStream(absolutePath), digest);
 
-			const { height, width } = await readSourceSize(absolutePath);
-			const fingerprint = { height, sha256: digest.digest('hex'), width };
+			const { height, pages, width } = await readSourceInfo(absolutePath);
+			const fingerprint = { height, pages, sha256: digest.digest('hex'), width };
 
-			upsertStatement.run(absolutePath, version, fingerprint.sha256, width, height);
+			upsertStatement.run(absolutePath, version, fingerprint.sha256, width, height, pages);
 
 			return fingerprint;
 		},

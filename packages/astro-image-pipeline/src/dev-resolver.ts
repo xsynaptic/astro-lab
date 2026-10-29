@@ -6,13 +6,14 @@ import type { ResolvedImageEncoding } from './image-encoding.js';
 import type { ImageSourceResolver } from './image-sources.js';
 
 import { parseRenditionName } from './image-name.js';
-import { readSourceSize, renderImage } from './image-render.js';
+import { readSourceInfo, renderImage } from './image-render.js';
 import { isWithinSource } from './image-sizes.js';
 
 interface DevImageOptions {
 	builtPath: string | undefined;
 	devPath: string;
 	encoding: ResolvedImageEncoding;
+	keepIccProfile: boolean;
 	limitInputPixels: number;
 	mediaPath: string;
 	render?: typeof renderImage;
@@ -60,6 +61,7 @@ export function createDevImageResolver({
 	builtPath,
 	devPath,
 	encoding,
+	keepIccProfile,
 	limitInputPixels,
 	mediaPath,
 	render = renderImage,
@@ -90,13 +92,17 @@ export function createDevImageResolver({
 
 		if (await isNewerThanSource(target, sourceFilePath)) return target;
 
-		if (!isWithinSource(parsed, await readSourceSize(sourceFilePath))) return;
+		const source = await readSourceInfo(sourceFilePath);
+
+		if (!isWithinSource(parsed, source)) return;
 
 		const { data } = await render(sourceFilePath, {
 			encoding,
 			format: parsed.format,
 			height: parsed.height,
+			keepIccProfile,
 			limitInputPixels,
+			pages: source.pages,
 			width: parsed.width,
 		});
 

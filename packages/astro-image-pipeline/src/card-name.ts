@@ -1,4 +1,4 @@
-import type { ImageFormat } from './image-name.js';
+import type { ImageFormat } from './image-formats.js';
 import type { ImageSourceReference } from './image-sizes.js';
 
 import { isImageStem } from './image-name.js';

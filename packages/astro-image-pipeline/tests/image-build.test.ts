@@ -59,6 +59,7 @@ async function writeBuild(
 		buildId: `build-${String(++buildCount)}`,
 		cards: {},
 		encoding: resolveImageEncoding({ jpg: { quality: 85 }, webp: { quality: 70 } }),
+		keepIccProfile: false,
 		limitInputPixels,
 		mediaPath,
 		renditions: Object.fromEntries(names.map((name) => [name, sourcePath])),
@@ -308,7 +309,7 @@ describe('prepareRenditionRender guards', () => {
 			gzipSync(JSON.stringify({ buildId: 'old', files: {} })),
 		);
 
-		await expect(render()).rejects.toThrow(/version 1, not 7; rebuild first/);
+		await expect(render()).rejects.toThrow(/version 1, not 8; rebuild first/);
 	});
 
 	test('refuses a dist whose build left no manifest', async () => {

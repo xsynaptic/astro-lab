@@ -1,9 +1,11 @@
 import type { AstroIntegration, AstroIntegrationLogger } from 'astro';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { existsSync, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { RenditionSize } from '../src/image-name.js';
@@ -54,6 +56,34 @@ async function finishBuild(hooks: Hooks, pageCount = 1) {
 	} as unknown as Parameters<NonNullable<Hooks['astro:build:done']>>[0]);
 }
 
+async function startDevServer() {
+	const use = vi.fn();
+
+	await createIntegration().hooks['astro:server:setup']?.({
+		logger: createLogger(),
+		server: { middlewares: { use } },
+	} as unknown as Parameters<NonNullable<Hooks['astro:server:setup']>>[0]);
+
+	const [[, handle]] = use.mock.calls as [[string, (request: unknown, response: unknown) => void]];
+
+	return function request(url: string) {
+		return new Promise<{ headers: Map<string, string>; statusCode: number }>((resolve) => {
+			const headers = new Map<string, string>();
+			const response = {
+				end() {
+					resolve({ headers, statusCode: response.statusCode });
+				},
+				setHeader(name: string, value: string) {
+					headers.set(name, value);
+				},
+				statusCode: 200,
+			};
+
+			handle({ url } as IncomingMessage, response as unknown as ServerResponse);
+		});
+	};
+}
+
 beforeEach(async () => {
 	root = await fs.mkdtemp(path.join(tmpdir(), 'image-integration-'));
 	await fs.mkdir(path.join(root, 'dist'));
@@ -94,6 +124,26 @@ describe('imagePipeline', () => {
 	});
 });
 
+describe('imagePipeline dev server', () => {
+	test.each([
+		['jpg', 'image/jpeg'],
+		['webp', 'image/webp'],
+		['png', 'image/png'],
+		['avif', 'image/avif'],
+	])('serves a %s rendition as %s', async (format, contentType) => {
+		await fs.mkdir(path.join(root, 'media'));
+		await sharp({ create: { background: '#336699', channels: 3, height: 40, width: 60 } })
+			.png()
+			.toFile(path.join(root, 'media', 'source.png'));
+
+		const request = await startDevServer();
+		const { headers, statusCode } = await request(`/source-30.${format}`);
+
+		expect(statusCode).toBe(200);
+		expect(headers.get('Content-Type')).toBe(contentType);
+	});
+});
+
 describe('imagePipeline recording', () => {
 	test('names built during the build become the manifest, mapped to their sources', async () => {
 		const { hooks } = createIntegration();
@@ -113,6 +163,32 @@ describe('imagePipeline recording', () => {
 		expect(existsSync(path.join(root, 'records'))).toBe(false);
 		expect(process.env[imageRecordsVariable]).toBeUndefined();
 	});
+
+	test.each([
+		{ expected: false, options: {} },
+		{ expected: true, options: { keepIccProfile: true } },
+	])(
+		'the manifest records keepIccProfile as $expected from $options',
+		async ({ expected, options }) => {
+			const { hooks } = imagePipeline({
+				baseUrl: '/img',
+				mediaPath: path.join(root, 'media'),
+				storePath: root,
+				...options,
+			});
+
+			await startBuild(hooks);
+			getRenditionName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+			await finishBuild(hooks);
+
+			const manifest = await readDistManifest({
+				distPath: path.join(root, 'dist'),
+				storePath: root,
+			});
+
+			expect(manifest.keepIccProfile).toBe(expected);
+		},
+	);
 
 	test('width-only names enter the manifest beside cropped ones', async () => {
 		const { hooks } = createIntegration();

@@ -15,12 +15,13 @@ export const imageBuildIdFile = 'image-build-id.txt';
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
 
-export const imageManifestVersion = 7;
+export const imageManifestVersion = 8;
 
 export interface ImageManifest {
 	buildId: string;
 	cards: Record<string, Card>;
 	encoding: ResolvedImageEncoding;
+	keepIccProfile: boolean;
 	limitInputPixels: number;
 	mediaPath: string;
 	renditions: Record<string, string>;

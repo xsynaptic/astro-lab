@@ -20,6 +20,7 @@ function createResolver(builtPath?: string, sources = createDirectorySources(med
 		builtPath,
 		devPath: path.join(rootPath, 'cache'),
 		encoding: resolveImageEncoding(),
+		keepIccProfile: false,
 		limitInputPixels: 268_402_689,
 		mediaPath,
 		render,
@@ -60,7 +61,7 @@ describe('createDevImageResolver', () => {
 	test('a name outside the grammar or larger than its source is not rendered', async () => {
 		const { getDevImage, render } = createResolver();
 
-		expect(await getDevImage('a/b-1-450.png')).toBeUndefined();
+		expect(await getDevImage('a/b-1-450.gif')).toBeUndefined();
 		expect(await getDevImage('a/b-1-1800.jpg')).toBeUndefined();
 		expect(await getDevImage('a/b-1-1200x900.webp')).toBeUndefined();
 		expect(await getDevImage('a/missing-450.jpg')).toBeUndefined();

@@ -41,6 +41,7 @@ async function writeBuild(
 		buildId,
 		cards: Object.fromEntries(cards.map((name) => [name, { input: { title: name } }])),
 		encoding: resolveImageEncoding(),
+		keepIccProfile: false,
 		limitInputPixels: 268_402_689,
 		mediaPath,
 		renditions: Array.isArray(renditions)
