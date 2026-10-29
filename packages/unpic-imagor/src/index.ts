@@ -76,9 +76,10 @@ export const generate: TransformerFunction<ImagorOperations, ImagorOptions> = (
 };
 
 export const extract: ImagorExtractor = (url, options) => {
-	const baseURL = options?.baseURL;
+	const mount = options?.baseURL === undefined ? splitAbsoluteMount(url) : undefined;
+	const baseURL = options?.baseURL ?? mount?.baseURL;
 
-	const path = normaliseSource(url, baseURL);
+	const path = mount?.path ?? normaliseSource(url, baseURL);
 	// eslint-disable-next-line unicorn/no-null -- null signals no match
 	if (path === '') return null;
 
@@ -180,22 +181,14 @@ export const transform: TransformerFunction<ImagorOperations, ImagorOptions> = (
 	operations,
 	options,
 ) => {
-	const baseURL = options?.baseURL;
-	const rawSource = typeof src === 'string' ? src : src.href;
+	const extracted = extract(src, options);
+	if (extracted === null) return generate(src, operations, options);
 
-	// no path marker, so only re-extract when src carries the known baseURL prefix
-	if (baseURL !== undefined && rawSource.startsWith(baseURL)) {
-		const extracted = extract(src, options);
-		if (extracted) {
-			return generate(
-				extracted.src,
-				{ ...extracted.operations, ...removeUndefined(operations) },
-				options,
-			);
-		}
-	}
-
-	return generate(src, operations, options);
+	return generate(
+		extracted.src,
+		{ ...extracted.operations, ...removeUndefined(operations) },
+		{ ...extracted.options, ...options },
+	);
 };
 
 // Explicit undefined in new operations must not clobber extracted ones
@@ -398,6 +391,20 @@ function toNumber(value: string | number | undefined): number | undefined {
 	if (typeof value === 'number') return value;
 	const parsed = Number(value);
 	return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function splitAbsoluteMount(url: string | URL): { baseURL: string; path: string } | undefined {
+	const parsedUrl = URL.parse(url);
+	if (parsedUrl === null) return undefined;
+
+	const segments = parsedUrl.pathname.split('/');
+	const unsafeIndex = segments.indexOf('unsafe');
+	if (unsafeIndex === -1) return undefined;
+
+	return {
+		baseURL: `${parsedUrl.origin}${segments.slice(0, unsafeIndex).join('/')}`,
+		path: `${segments.slice(unsafeIndex).join('/')}${parsedUrl.search}`,
+	};
 }
 
 function normaliseSource(src: string | URL, baseURL?: string): string {

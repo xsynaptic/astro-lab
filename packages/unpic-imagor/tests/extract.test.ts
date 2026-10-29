@@ -154,6 +154,31 @@ describe('extract: source and edge cases', () => {
 		expect(result?.options).toEqual({ baseURL: '/_imagor' });
 	});
 
+	test('an absolute URL yields its origin and mount as baseURL', () => {
+		expect(extract('https://img.example.com/unsafe/450x0/https://unpic.pics/tree.png')).toEqual({
+			src: 'https://unpic.pics/tree.png',
+			operations: { width: 450 },
+			options: { baseURL: 'https://img.example.com' },
+		});
+		expect(extract('https://img.example.com/images/unsafe/fit-in/800x600/photo.jpg')).toEqual({
+			src: 'photo.jpg',
+			operations: { width: 800, height: 600, fit: 'contain' },
+			options: { baseURL: 'https://img.example.com/images' },
+		});
+	});
+
+	test('an absolute URL splits at its first unsafe segment', () => {
+		expect(
+			extract('https://img.example.com/unsafe/800x0/https://cdn.example.com/unsafe/photo.jpg')?.src,
+		).toBe('https://cdn.example.com/unsafe/photo.jpg');
+	});
+
+	test('an unescaped query on an absolute URL stays with the source', () => {
+		expect(
+			extract('https://img.example.com/unsafe/800x0/https://cdn.example.com/photo.jpg?v=2')?.src,
+		).toBe('https://cdn.example.com/photo.jpg?v=2');
+	});
+
 	test('a path-escaped source is decoded back to its original form', () => {
 		expect(extract('800x0/top%2Fsecret.jpg')?.src).toBe('top/secret.jpg');
 		expect(extract('800x0/https:%2F%2Fcdn.example.com%2Fimg.jpg%3Fv=2')?.src).toBe(
@@ -206,8 +231,39 @@ describe('extract: round-trips generate output', () => {
 });
 
 describe('transform', () => {
-	test('regenerates fresh when the src does not match baseURL', () => {
+	test('regenerates fresh from a plain source', () => {
 		expect(transform('photo.jpg', { width: 800 })).toBe('unsafe/800x0/photo.jpg');
+	});
+
+	test('keeps the origin and mount of an absolute URL', () => {
+		expect(
+			transform(
+				'https://img.example.com/images/unsafe/450x0/filters:quality(80)/https://unpic.pics/tree.png',
+				{ width: 96 },
+			),
+		).toBe(
+			'https://img.example.com/images/unsafe/96x0/filters:quality(80)/https://unpic.pics/tree.png',
+		);
+	});
+
+	test('treats an absolute URL without unsafe as a source', () => {
+		expect(transform('https://cdn.example.com/photo.jpg', { width: 800 })).toBe(
+			'unsafe/800x0/https://cdn.example.com/photo.jpg',
+		);
+	});
+
+	test('merges operations onto a relative imagor path without baseURL', () => {
+		expect(transform('unsafe/800x600/photo.jpg', { width: 400 })).toBe('unsafe/400x600/photo.jpg');
+	});
+
+	test('unsafe: false carries through an absolute URL', () => {
+		expect(
+			transform(
+				'https://img.example.com/unsafe/450x0/https://unpic.pics/tree.png',
+				{ width: 100, height: 50 },
+				{ unsafe: false },
+			),
+		).toBe('https://img.example.com/100x50/https://unpic.pics/tree.png');
 	});
 
 	test('merges operations onto an existing baseURL-prefixed path', () => {

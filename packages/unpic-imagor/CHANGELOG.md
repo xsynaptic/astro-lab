@@ -1,5 +1,11 @@
 # @xsynaptic/unpic-imagor
 
+## 1.0.1
+
+### Patch Changes
+
+- Match the upstream unpic provider: `extract` takes `baseURL` from an absolute imagor URL (everything before its first `unsafe` segment), and `transform` always re-extracts its input, so a full URL keeps its origin and mount and a relative imagor path without `baseURL` merges operations instead of nesting.
+
 ## 1.0.0
 
 ### Major Changes
