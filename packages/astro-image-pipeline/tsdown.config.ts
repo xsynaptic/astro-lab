@@ -8,5 +8,6 @@ export default defineConfig({
 		node: 'src/node.ts',
 	},
 	format: 'esm',
+	publint: true,
 	sourcemap: true,
 });

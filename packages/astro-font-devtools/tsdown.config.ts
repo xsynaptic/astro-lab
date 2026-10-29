@@ -5,5 +5,6 @@ export default defineConfig({
 	entry: ['src/integration.ts', 'src/toolbar.ts'],
 	format: 'esm',
 	minify: false,
+	publint: true,
 	sourcemap: true,
 });

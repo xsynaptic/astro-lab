@@ -32,7 +32,6 @@
 		"lint": "eslint --max-warnings 0",
 		"fix": "lefthook run fix",
 		"check": "lefthook run check",
-		"check:pkg": "pnpm --filter './packages/*' --no-bail exec publint",
 		"version-packages": "changeset version && pnpm install --ignore-scripts",
 		"release": "node scripts/release.ts"
 	},
