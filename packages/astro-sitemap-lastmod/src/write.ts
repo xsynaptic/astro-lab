@@ -42,7 +42,10 @@ export function createSitemapLastmodWriter({ filePath }: SitemapLastmodWriterOpt
 			if (existing === undefined || existing < isoDate) dates.set(key, isoDate);
 		}
 
-		const file = { urls: Object.fromEntries(dates) } satisfies SitemapLastmodFile;
+		const file = {
+			generatedAt: new Date().toISOString(),
+			urls: Object.fromEntries(dates),
+		} satisfies SitemapLastmodFile;
 
 		mkdirSync(path.dirname(resolvedPath), { recursive: true });
 		writeFileSync(resolvedPath, JSON.stringify(file, undefined, '\t'));

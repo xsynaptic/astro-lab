@@ -1,4 +1,5 @@
 export interface SitemapLastmodFile {
+	generatedAt: string;
 	urls: Record<string, string>;
 }
 

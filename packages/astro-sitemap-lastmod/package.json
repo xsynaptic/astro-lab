@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-sitemap-lastmod",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Adds lastmod dates to the sitemap from @astrojs/sitemap, recorded by a script or your content loaders",
 	"type": "module",
 	"license": "MIT",

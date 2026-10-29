@@ -10,11 +10,6 @@ import type { SitemapLastmodPair } from '../src/write.js';
 import { sitemapLastmod } from '../src/index.js';
 import { createSitemapLastmodWriter } from '../src/write.js';
 
-interface SitemapItem {
-	lastmod?: string;
-	url: string;
-}
-
 interface TestEntry {
 	data: Record<string, unknown>;
 	id: string;
@@ -52,9 +47,7 @@ function createLoaderContext() {
 }
 
 function serializeUrls(lastmod: ReturnType<typeof sitemapLastmod>, pathnames: Array<string>) {
-	return pathnames.map(
-		(pathname) => lastmod.serialize<SitemapItem>({ url: `${siteUrl}${pathname}` }).lastmod,
-	);
+	return pathnames.map((pathname) => lastmod.serialize({ url: `${siteUrl}${pathname}` }).lastmod);
 }
 
 beforeEach(async () => {
@@ -64,6 +57,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+	vi.useRealTimers();
 	vi.restoreAllMocks();
 });
 
@@ -82,15 +76,14 @@ describe('writer to serialize', () => {
 		]);
 	});
 
-	test('a URL missing from the file keeps the lastmod it came with, or none', () => {
+	test('a URL missing from the file gets the time the dates were recorded', () => {
+		vi.useFakeTimers({ now: new Date('2026-05-01T00:00:00Z'), toFake: ['Date'] });
 		createSitemapLastmodWriter({ filePath }).record([['/posts/first', '2026-01-01T00:00:00Z']]);
+		vi.setSystemTime(new Date('2026-06-01T00:00:00Z'));
 
-		const lastmod = sitemapLastmod({ filePath });
-
-		expect(serializeUrls(lastmod, ['/about'])).toEqual([undefined]);
-		expect(
-			lastmod.serialize({ lastmod: '2025-01-01T00:00:00.000Z', url: `${siteUrl}/about` }).lastmod,
-		).toBe('2025-01-01T00:00:00.000Z');
+		expect(serializeUrls(sitemapLastmod({ filePath }), ['/about'])).toEqual([
+			'2026-05-01T00:00:00.000Z',
+		]);
 	});
 
 	test('an unparseable date throws, naming the path', () => {
@@ -163,23 +156,25 @@ describe('trailing slashes', () => {
 
 		const url = new URL('/places/台北/', siteUrl).href;
 
-		expect(sitemapLastmod({ filePath }).serialize<SitemapItem>({ url }).lastmod).toBe(
+		expect(sitemapLastmod({ filePath }).serialize({ url }).lastmod).toBe(
 			'2026-01-01T00:00:00.000Z',
 		);
 	});
 });
 
 describe('missing or unreadable file', () => {
-	test('no URL gets a lastmod and the report says why', () => {
+	test('every URL gets the build time and the report says why', () => {
+		vi.useFakeTimers({ now: new Date('2026-05-01T00:00:00Z'), toFake: ['Date'] });
+
 		const lastmod = sitemapLastmod({ filePath });
 		const logger = createLogger();
 
-		expect(serializeUrls(lastmod, ['/posts/first'])).toEqual([undefined]);
+		expect(serializeUrls(lastmod, ['/posts/first'])).toEqual(['2026-05-01T00:00:00.000Z']);
 
 		lastmod.integration.hooks['astro:build:done']({ logger });
 
 		expect(logger.info).toHaveBeenCalledWith(
-			expect.stringMatching(/^No lastmod file at .* yet, so no sitemap URL has a lastmod$/),
+			expect.stringMatching(/^No lastmod file at .* yet, so every sitemap URL got the build time$/),
 		);
 	});
 
@@ -194,7 +189,8 @@ describe('missing or unreadable file', () => {
 		const lastmod = sitemapLastmod({ filePath });
 		const logger = createLogger();
 
-		expect(serializeUrls(lastmod, ['/posts/first', '/about'])).toEqual([undefined, undefined]);
+		serializeUrls(lastmod, ['/posts/first', '/about']);
+
 		expect(consoleWarn).toHaveBeenCalledOnce();
 		expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('not a sitemap lastmod file'));
 
@@ -214,7 +210,9 @@ describe('match report', () => {
 		serializeUrls(lastmod, ['/posts/first', '/about', '/']);
 		lastmod.integration.hooks['astro:build:done']({ logger });
 
-		expect(logger.info).toHaveBeenCalledWith('1 of 3 sitemap URLs have a lastmod');
+		expect(logger.info).toHaveBeenCalledWith(
+			expect.stringMatching(/^1 of 3 sitemap URLs have a recorded lastmod; the rest get /),
+		);
 		expect(logger.warn).not.toHaveBeenCalled();
 	});
 

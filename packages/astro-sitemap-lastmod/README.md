@@ -21,7 +21,7 @@ export default defineConfig({
 });
 ```
 
-Put `lastmod.integration` after `sitemap()`. Once the sitemap is written, it logs how many URLs got a date, and warns you if none did, which usually means the recorded paths don't line up with the site's. A URL with no recorded date gets no `lastmod`.
+Put `lastmod.integration` after `sitemap()`. Once the sitemap is written, it logs how many URLs got a date, and warns you if none did, which usually means the recorded paths don't line up with the site's. A URL with no recorded date gets the time the dates were last recorded, or the build time if nothing has been recorded yet.
 
 ## Recording dates
 
@@ -49,7 +49,7 @@ const posts = defineCollection({
 
 The callback may be async. To date entries by their last git commit, `await createCommitDateReader({ rootPath: process.cwd() })(entries)` returns a map from each entry's `filePath` to its date; create one reader and share it across collections.
 
-Paths should include the site's `base`, if it has one; trailing slashes don't matter. A date can be a `Date` or a date string, and entries with an `undefined` date are skipped. When two entries share a path, the newer date wins, so an entry can also date the list pages it appears on.
+Paths should include the site's `base`, if it has one; trailing slashes don't matter. A date can be a `Date` or a date string, and entries with an `undefined` date are skipped. When two entries share a path, the newer date wins.
 
 ## License
 

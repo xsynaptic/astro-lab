@@ -1,5 +1,11 @@
 # @xsynaptic/astro-sitemap-lastmod
 
+## 0.3.0
+
+### Minor Changes
+
+- Breaking: a URL with no recorded date gets the file's `generatedAt` again (the time the dates were last recorded), or the build time when there is no file.
+
 ## 0.2.0
 
 ### Minor Changes
