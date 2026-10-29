@@ -6,11 +6,11 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { Card } from './card-name.js';
 import type { ImageEncoding } from './image-encoding.js';
 import type { ImagePlaceholderOptions, PlaceholderConfig } from './image-placeholders.js';
 import type { ImageSourceResolver } from './image-sources.js';
 import type { ImageManifest } from './image-state.js';
-import type { OpenGraphCard } from './open-graph-cards.js';
 
 import { createDevImageResolver } from './dev-resolver.js';
 import { resolveImageEncoding } from './image-encoding.js';
@@ -19,7 +19,7 @@ import { imageRecordsVariable } from './image-recorder.js';
 import { readImageRecords, resetImageRecords } from './image-records.js';
 import { createDirectorySources } from './image-sources.js';
 import {
-	getImageCachePaths,
+	getCacheLayout,
 	imageManifestVersion,
 	readLatestManifest,
 	writeBuildId,
@@ -28,7 +28,7 @@ import {
 import { UserError } from './user-error.js';
 
 export type { ImageEncoding } from './image-encoding.js';
-export type { ImagePlaceholderOptions, ImagePlaceholderRecipe } from './image-placeholders.js';
+export type { ImagePlaceholderOptions } from './image-placeholders.js';
 export type { ImageSourceResolver } from './image-sources.js';
 export { createDirectorySources } from './image-sources.js';
 
@@ -86,14 +86,14 @@ async function readRecorded({
 		const previous = await readPreviousManifest(cachePath);
 
 		return {
-			cards: new Map([...Object.entries(previous?.openGraphCards ?? {}), ...recorded.cards]),
+			cards: new Map([...Object.entries(previous?.cards ?? {}), ...recorded.cards]),
 			renditions: new Map([...Object.entries(previous?.renditions ?? {}), ...recorded.renditions]),
 		};
 	}
 
 	if (recorded.renditions.size === 0 && recorded.cards.size === 0 && pageCount > 0) {
 		throw new Error(
-			`No image names were recorded while building ${String(pageCount)} pages; build image URLs with getSizedName at render time, in a runtime that has node:fs`,
+			`No image names were recorded while building ${String(pageCount)} pages; build image URLs with getRenditionName at render time, in a runtime that has node:fs`,
 		);
 	}
 
@@ -112,7 +112,7 @@ async function writeBuildManifest({
 	logger: AstroIntegrationLogger;
 	manifest: Pick<ImageManifest, 'encoding' | 'limitInputPixels' | 'mediaPath'>;
 	recorded: {
-		cards: ReadonlyMap<string, OpenGraphCard>;
+		cards: ReadonlyMap<string, Card>;
 		renditions: ReadonlyMap<string, string>;
 	};
 }) {
@@ -121,14 +121,14 @@ async function writeBuildManifest({
 	await writeImageManifest(cachePath, {
 		...manifest,
 		buildId,
-		openGraphCards: Object.fromEntries(cards),
+		cards: Object.fromEntries(cards),
 		renditions: Object.fromEntries(renditions),
 		version: imageManifestVersion,
 	});
 	await writeBuildId(distPath, buildId);
 
 	logger.info(
-		`${String(renditions.size)} renditions from ${String(new Set(renditions.values()).size)} sources, ${String(cards.size)} OpenGraph cards`,
+		`${String(renditions.size)} renditions from ${String(new Set(renditions.values()).size)} sources, ${String(cards.size)} cards`,
 	);
 }
 
@@ -204,7 +204,7 @@ export default function imagePipeline({
 			limitInputPixels,
 			mediaPath: absoluteMediaPath,
 		} satisfies PlaceholderConfig);
-	const { devPath, recordsPath, renditionsPath } = getImageCachePaths(absoluteCachePath);
+	const { devPath, recordsPath, renditionsPath } = getCacheLayout(absoluteCachePath);
 	let isIncremental = false;
 	let buildRecordsPath = recordsPath;
 

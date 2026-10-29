@@ -3,26 +3,26 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { gunzip, gzip } from 'node:zlib';
 
+import type { Card } from './card-name.js';
 import type { ResolvedImageEncoding } from './image-encoding.js';
-import type { OpenGraphCard } from './open-graph-cards.js';
 
 import { readDirectoryIfExists, readFileIfExists, writeFileAtomic } from './files.js';
 import { UserError } from './user-error.js';
 
 const imageManifestExtension = '.json.gz';
-const imageBuildIdFile = 'image-build-id.txt';
+export const imageBuildIdFile = 'image-build-id.txt';
 
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
 
-export const imageManifestVersion = 6;
+export const imageManifestVersion = 7;
 
 export interface ImageManifest {
 	buildId: string;
+	cards: Record<string, Card>;
 	encoding: ResolvedImageEncoding;
 	limitInputPixels: number;
 	mediaPath: string;
-	openGraphCards: Record<string, OpenGraphCard>;
 	renditions: Record<string, string>;
 	version: typeof imageManifestVersion;
 }
@@ -37,22 +37,25 @@ export interface ImageBuild {
 	writtenAt: Date;
 }
 
-export function getImageCachePaths(cachePath: string) {
+export function getCacheLayout(cachePath: string) {
 	return {
+		cardsPath: path.join(cachePath, 'cards'),
 		devPath: path.join(cachePath, 'dev'),
 		manifestsPath: path.join(cachePath, 'manifests'),
-		openGraphCardsPath: path.join(cachePath, 'cards'),
 		placeholdersPath: path.join(cachePath, 'placeholders.sqlite'),
 		recordsPath: path.join(cachePath, 'records'),
 		renditionsPath: path.join(cachePath, 'renditions'),
 	};
 }
 
+export function getImageCachePaths(cachePath: string) {
+	const { cardsPath, renditionsPath } = getCacheLayout(cachePath);
+
+	return { cardsPath, renditionsPath };
+}
+
 function getManifestPath(cachePath: string, buildId: string) {
-	return path.join(
-		getImageCachePaths(cachePath).manifestsPath,
-		`${buildId}${imageManifestExtension}`,
-	);
+	return path.join(getCacheLayout(cachePath).manifestsPath, `${buildId}${imageManifestExtension}`);
 }
 
 function isCurrentManifest(manifest: { version?: number }): manifest is ImageManifest {
@@ -85,7 +88,7 @@ export async function writeImageManifest(cachePath: string, manifest: ImageManif
 }
 
 export async function listImageBuilds(cachePath: string) {
-	const { manifestsPath } = getImageCachePaths(path.resolve(cachePath));
+	const { manifestsPath } = getCacheLayout(path.resolve(cachePath));
 	const entries = await readDirectoryIfExists(manifestsPath);
 	const builds = await Promise.all(
 		entries

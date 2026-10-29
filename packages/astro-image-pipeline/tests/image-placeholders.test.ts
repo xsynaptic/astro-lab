@@ -24,7 +24,7 @@ const mtime = new Date('2024-01-01T00:00:00Z');
 let root: string;
 let mediaPath: string;
 
-const mosaic = { pixels: 250, recipe: 'mosaic' } satisfies ImagePlaceholderOptions;
+const mosaic = { pixels: 250, quality: 10, saturation: 1.2 } satisfies ImagePlaceholderOptions;
 
 async function startDev(
 	placeholders: ImagePlaceholderOptions | undefined,
@@ -103,14 +103,21 @@ describe('getPlaceholder', () => {
 		await expect(getPlaceholder({ height: 1, id: 'a.jpg', width: 1 })).rejects.toThrow(UserError);
 	});
 
-	test('refuses a recipe the package does not own', () => {
+	test.each([
+		[{ quality: 0 }, 'a whole quality from 1 to 100, not 0'],
+		[{ quality: 2.5 }, 'a whole quality from 1 to 100, not 2.5'],
+		[{ blur: 0.2 }, 'a blur sigma from 0.3 to 1000, not 0.2'],
+		[{ blur: NaN }, 'a blur sigma from 0.3 to 1000, not NaN'],
+		[{ saturation: -1 }, 'a saturation of 0 or more, not -1'],
+		[{ saturation: Infinity }, 'a saturation of 0 or more, not Infinity'],
+	])('refuses %j at setup', (override, message) => {
 		expect(() =>
 			imagePipeline({
 				cachePath: 'cache',
 				mediaPath: 'media',
-				placeholders: { pixels: 250, recipe: 'sharp' as 'mosaic' },
+				placeholders: { ...mosaic, ...override },
 			}),
-		).toThrow('blur or mosaic');
+		).toThrow(message);
 	});
 
 	test('mosaic reproduces known bytes', async () => {
@@ -124,7 +131,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('blur reproduces known bytes', async () => {
-		await startDev({ pixels: 250, recipe: 'blur' });
+		await startDev({ blur: 3, pixels: 250, quality: 25, saturation: 1.2 });
 
 		const source = await writeSource('blocks.png', await createBlockImage());
 
@@ -134,7 +141,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('a size with a height sets the grid ratio, and pixels override the configured count', async () => {
-		await startDev({ pixels: 1024, recipe: 'blur' });
+		await startDev({ blur: 3, pixels: 1024, quality: 25, saturation: 1.2 });
 
 		const source = await writeSource('blocks.png', await createBlockImage());
 		const cropped = await decodeDataUrl(
@@ -249,13 +256,19 @@ describe('getPlaceholder', () => {
 });
 
 describe('getPlaceholderKey', () => {
-	test('stays pinned for a fixed input', () => {
-		const key = getPlaceholderKey({
-			digest: 'a'.repeat(64),
-			grid: { height: 13, width: 19 },
-			recipe: 'mosaic',
-		});
+	const fixed = { digest: 'a'.repeat(64), grid: { height: 13, width: 19 }, quality: 10 };
 
-		expect(key).toMatchInlineSnapshot(`"d63b52203acde82f"`);
+	test('stays pinned for a fixed input', () => {
+		expect(getPlaceholderKey({ ...fixed, saturation: 1.2 })).toMatchInlineSnapshot(
+			`"1458a0d6f6bea4a5"`,
+		);
+	});
+
+	test('an absent saturation keys the same as 1, which sharp skips', () => {
+		expect(getPlaceholderKey(fixed)).toBe(getPlaceholderKey({ ...fixed, saturation: 1 }));
+	});
+
+	test('a blur keys apart from none', () => {
+		expect(getPlaceholderKey({ ...fixed, blur: 3 })).not.toBe(getPlaceholderKey(fixed));
 	});
 });

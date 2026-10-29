@@ -1,6 +1,6 @@
 import type { ImageSize, RenditionSize } from './image-name.js';
 
-import { formatImageName, getImageStem, isImageStem } from './image-name.js';
+import { formatRenditionName, getImageStem, isImageStem } from './image-name.js';
 import { recordRendition } from './image-recorder.js';
 
 export interface ImageDimensions {
@@ -49,7 +49,7 @@ export function fitWithinSource(size: ImageSize, source: ImageDimensions) {
 	return { height: Math.min(Math.max(1, height), source.height), width };
 }
 
-export function getSizedName(source: ImageSource, { format, ...size }: RenditionSize) {
+export function getRenditionName(source: ImageSource, { format, ...size }: RenditionSize) {
 	if (!isWholeSize(size)) {
 		throw new Error(
 			`Image ${source.id} can't be named ${formatSize(size)}: sizes are whole pixels`,
@@ -70,7 +70,7 @@ export function getSizedName(source: ImageSource, { format, ...size }: Rendition
 		);
 	}
 
-	const name = formatImageName({ format, stem, ...size });
+	const name = formatRenditionName({ format, stem, ...size });
 
 	recordRendition(name, getSourcePath(source));
 

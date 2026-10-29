@@ -1,45 +1,45 @@
 import path from 'node:path';
 
+import type { Card, CardImage, CardInput } from './card-name.js';
 import type { ImageRenderTarget } from './image-state.js';
-import type { OpenGraphCard, OpenGraphCardImage, OpenGraphCardInput } from './open-graph-cards.js';
 import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { engineId } from './image-render.js';
-import { getImageCachePaths, readDistManifest } from './image-state.js';
+import { getCacheLayout, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { runRenderJobs } from './run-render-jobs.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
 
-export interface OpenGraphCardSource extends OpenGraphCardImage {
+export interface CardSource extends CardImage {
 	filePath: string;
 }
 
-export type OpenGraphCardRenderRunOptions = Pick<
+export type CardRenderRunOptions = Pick<
 	RenderJobOptions,
 	'concurrency' | 'onFailure' | 'onProgress' | 'onReplace' | 'signal'
 >;
 
 type MissingImagePolicy = 'fail' | 'omit';
 
-export interface OpenGraphCardRenderOptions<Decoded> extends ImageRenderTarget {
-	decode: (source: OpenGraphCardSource) => Promise<Decoded>;
+export interface CardRenderOptions<Decoded> extends ImageRenderTarget {
+	decode: (source: CardSource) => Promise<Decoded>;
 	missingImage?: MissingImagePolicy;
-	render: (input: OpenGraphCardInput, decoded?: Decoded) => Promise<Uint8Array>;
+	render: (input: CardInput, decoded?: Decoded) => Promise<Uint8Array>;
 	templateVersion: string;
 }
 
-interface OpenGraphCardGroup {
-	cards: Array<[name: string, input: OpenGraphCardInput]>;
-	image?: OpenGraphCardImage;
+interface CardGroup {
+	cards: Array<[name: string, input: CardInput]>;
+	image?: CardImage;
 }
 
-interface OpenGraphCardSourceState {
+interface CardSourceState {
 	digest?: string;
-	source: OpenGraphCardSource;
+	source: CardSource;
 }
 
-export function getOpenGraphCardKey({
+export function getCardKey({
 	digest = '',
 	engine,
 	image,
@@ -48,8 +48,8 @@ export function getOpenGraphCardKey({
 }: {
 	digest?: string | undefined;
 	engine: string;
-	image?: OpenGraphCardImage | undefined;
-	input: OpenGraphCardInput;
+	image?: CardImage | undefined;
+	input: CardInput;
 	templateVersion: string;
 }) {
 	return hashRenderKey([
@@ -61,8 +61,8 @@ export function getOpenGraphCardKey({
 	]);
 }
 
-function groupByImage(cards: Record<string, OpenGraphCard>) {
-	const groups = new Map<string, OpenGraphCardGroup>();
+function groupByImage(cards: Record<string, Card>) {
+	const groups = new Map<string, CardGroup>();
 
 	for (const [name, { image, input }] of Object.entries(cards)) {
 		const groupKey = image ? JSON.stringify(image) : '';
@@ -78,8 +78,8 @@ function groupByImage(cards: Record<string, OpenGraphCard>) {
 async function readSourceState(
 	fingerprints: SourceFingerprints,
 	mediaPath: string,
-	image: OpenGraphCardImage,
-): Promise<OpenGraphCardSourceState> {
+	image: CardImage,
+): Promise<CardSourceState> {
 	const source = { ...image, filePath: path.resolve(mediaPath, image.path) };
 	const fingerprint = await fingerprints.get(source.filePath);
 
@@ -89,11 +89,10 @@ async function readSourceState(
 function createGroupDecoder<Decoded>({
 	decode,
 	missingImage,
-}: Pick<OpenGraphCardRenderOptions<Decoded>, 'decode'> & { missingImage: MissingImagePolicy }) {
-	let current:
-		undefined | { decoded: Promise<Decoded | undefined>; state: OpenGraphCardSourceState };
+}: Pick<CardRenderOptions<Decoded>, 'decode'> & { missingImage: MissingImagePolicy }) {
+	let current: undefined | { decoded: Promise<Decoded | undefined>; state: CardSourceState };
 
-	function startDecode(state: OpenGraphCardSourceState) {
+	function startDecode(state: CardSourceState) {
 		if (state.digest) return decode(state.source);
 
 		if (missingImage === 'omit') return Promise.resolve(undefined);
@@ -101,7 +100,7 @@ function createGroupDecoder<Decoded>({
 		return Promise.reject(new Error(`Missing image: ${state.source.path}`));
 	}
 
-	return function getDecoded(state: OpenGraphCardSourceState) {
+	return function getDecoded(state: CardSourceState) {
 		if (current?.state !== state) current = { decoded: startDecode(state), state };
 
 		return current.decoded;
@@ -116,9 +115,9 @@ async function createCardJobs<Decoded>({
 	missingImage,
 	render,
 	templateVersion,
-}: Pick<OpenGraphCardRenderOptions<Decoded>, 'decode' | 'render' | 'templateVersion'> & {
+}: Pick<CardRenderOptions<Decoded>, 'decode' | 'render' | 'templateVersion'> & {
 	cachePath: string;
-	groups: ReadonlyArray<OpenGraphCardGroup>;
+	groups: ReadonlyArray<CardGroup>;
 	mediaPath: string;
 	missingImage: MissingImagePolicy;
 }) {
@@ -140,7 +139,7 @@ async function createCardJobs<Decoded>({
 
 			for (const [name, input] of cards) {
 				jobs.push({
-					key: getOpenGraphCardKey({
+					key: getCardKey({
 						digest: state?.digest,
 						engine: engineId,
 						image,
@@ -167,18 +166,18 @@ async function createCardJobs<Decoded>({
 	};
 }
 
-export async function prepareOpenGraphCardRender<Decoded>({
+export async function prepareCardRender<Decoded>({
 	cachePath,
 	decode,
 	distPath,
 	missingImage = 'fail',
 	render,
 	templateVersion,
-}: OpenGraphCardRenderOptions<Decoded>) {
+}: CardRenderOptions<Decoded>) {
 	const resolvedCachePath = path.resolve(cachePath);
-	const { openGraphCardsPath } = getImageCachePaths(resolvedCachePath);
+	const { cardsPath } = getCacheLayout(resolvedCachePath);
 	const manifest = await readDistManifest({ cachePath: resolvedCachePath, distPath });
-	const groups = groupByImage(manifest.openGraphCards);
+	const groups = groupByImage(manifest.cards);
 	const { jobs, missingImages } = await createCardJobs({
 		cachePath: resolvedCachePath,
 		decode,
@@ -189,13 +188,13 @@ export async function prepareOpenGraphCardRender<Decoded>({
 		templateVersion,
 	});
 
-	function run(options: OpenGraphCardRenderRunOptions = {}) {
-		return runRenderJobs({ ...options, directory: openGraphCardsPath, jobs });
+	function run(options: CardRenderRunOptions = {}) {
+		return runRenderJobs({ ...options, directory: cardsPath, jobs });
 	}
 
 	return {
 		cards: jobs.map(({ name }) => name).toSorted((first, second) => first.localeCompare(second)),
-		directory: openGraphCardsPath,
+		directory: cardsPath,
 		missingImages,
 		run,
 		sources: groups.filter((group) => group.image).length,
@@ -203,4 +202,4 @@ export async function prepareOpenGraphCardRender<Decoded>({
 	};
 }
 
-export type PreparedOpenGraphCardRender = Awaited<ReturnType<typeof prepareOpenGraphCardRender>>;
+export type PreparedCardRender = Awaited<ReturnType<typeof prepareCardRender>>;

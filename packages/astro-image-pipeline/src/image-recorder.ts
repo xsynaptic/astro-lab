@@ -1,6 +1,6 @@
 import type * as NodeFs from 'node:fs';
 
-import type { OpenGraphCard } from './open-graph-cards.js';
+import type { Card } from './card-name.js';
 
 export const imageRecordsVariable = 'XSYNAPTIC_IMAGE_RECORDS';
 
@@ -50,6 +50,6 @@ export function recordRendition(name: string, sourcePath: string) {
 	writeRecord({ kind: 'rendition', name, sourcePath });
 }
 
-export function recordOpenGraphCard(name: string, card: OpenGraphCard) {
-	writeRecord({ card, kind: 'open-graph-card', name });
+export function recordCard(name: string, card: Card) {
+	writeRecord({ card, kind: 'card', name });
 }

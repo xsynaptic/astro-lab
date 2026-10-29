@@ -11,7 +11,7 @@ export interface RenditionSize extends ImageSize {
 	format: ImageFormat;
 }
 
-export interface ImageName extends RenditionSize {
+export interface RenditionName extends RenditionSize {
 	stem: string;
 }
 
@@ -56,18 +56,18 @@ export function findStemCollisions(ids: Iterable<string>) {
 		.map((stemIds) => stemIds.toSorted((first, second) => first.localeCompare(second)));
 }
 
-export function formatImageName({ format, height, stem, width }: ImageName) {
+export function formatRenditionName({ format, height, stem, width }: RenditionName) {
 	const size = height === undefined ? String(width) : `${String(width)}x${String(height)}`;
 
 	return `${stem}-${size}.${format}`;
 }
 
-export function parseImageName(name: string): ImageName | undefined {
+export function parseRenditionName(name: string): RenditionName | undefined {
 	const { format, height, stem, width } = imageNamePattern.exec(name)?.groups ?? {};
 
 	if (stem === undefined || width === undefined || !isFormat(format) || !isSafeStem(stem)) return;
 
-	const parsed: ImageName = { format, stem, width: Number(width) };
+	const parsed: RenditionName = { format, stem, width: Number(width) };
 
 	if (height !== undefined) parsed.height = Number(height);
 

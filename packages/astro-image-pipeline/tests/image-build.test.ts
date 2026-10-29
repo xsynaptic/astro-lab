@@ -6,11 +6,11 @@ import { gzipSync } from 'node:zlib';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import type { ImageRenderRunOptions } from '../src/image-build.js';
+import type { RenditionRenderRunOptions } from '../src/image-build.js';
 import type { ImageManifest } from '../src/image-state.js';
 
 import { readFileIfExists } from '../src/files.js';
-import { getRenditionKey, prepareImageRender } from '../src/image-build.js';
+import { getRenditionKey, prepareRenditionRender } from '../src/image-build.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
 import { imageManifestVersion, writeBuildId, writeImageManifest } from '../src/image-state.js';
 import { UserError } from '../src/user-error.js';
@@ -55,10 +55,10 @@ async function writeBuild(
 	const names = getNames(sizes);
 	const manifest = {
 		buildId: `build-${String(++buildCount)}`,
+		cards: {},
 		encoding: resolveImageEncoding({ jpg: { quality: 85 }, webp: { quality: 70 } }),
 		limitInputPixels,
 		mediaPath,
-		openGraphCards: {},
 		renditions: Object.fromEntries(names.map((name) => [name, sourcePath])),
 		version: imageManifestVersion,
 	} satisfies ImageManifest;
@@ -85,8 +85,8 @@ async function writeSource(width: number, height: number) {
 		.toFile(path.join(mediaPath, sourcePath));
 }
 
-async function render(options: ImageRenderRunOptions = {}) {
-	const prepared = await prepareImageRender({ cachePath: root, distPath });
+async function render(options: RenditionRenderRunOptions = {}) {
+	const prepared = await prepareRenditionRender({ cachePath: root, distPath });
 
 	return prepared.run(options);
 }
@@ -123,10 +123,10 @@ afterEach(async () => {
 	await fs.rm(root, { force: true, recursive: true });
 });
 
-describe('prepareImageRender', () => {
+describe('prepareRenditionRender', () => {
 	test('knows the total before anything renders', async () => {
 		const names = await writeBuild();
-		const prepared = await prepareImageRender({ cachePath: root, distPath });
+		const prepared = await prepareRenditionRender({ cachePath: root, distPath });
 
 		expect(prepared.total).toBe(names.length);
 		expect(await listFiles()).toEqual([]);
@@ -264,7 +264,7 @@ describe('getRenditionKey', () => {
 	});
 });
 
-describe('prepareImageRender failure policy', () => {
+describe('prepareRenditionRender failure policy', () => {
 	test('a source over the pixel limit fails the run without writing a file', async () => {
 		await writeBuild(allSizes, { limitInputPixels: 1_000_000 });
 
@@ -273,7 +273,7 @@ describe('prepareImageRender failure policy', () => {
 	});
 });
 
-describe('prepareImageRender guards', () => {
+describe('prepareRenditionRender guards', () => {
 	test('refuses a manifest from before the current version', async () => {
 		await writeBuild();
 		await fs.writeFile(
@@ -281,7 +281,7 @@ describe('prepareImageRender guards', () => {
 			gzipSync(JSON.stringify({ buildId: 'old', files: {} })),
 		);
 
-		await expect(render()).rejects.toThrow(/version 1, not 6; rebuild first/);
+		await expect(render()).rejects.toThrow(/version 1, not 7; rebuild first/);
 	});
 
 	test('refuses a dist whose build left no manifest', async () => {

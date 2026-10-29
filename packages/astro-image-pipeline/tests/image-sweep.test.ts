@@ -19,10 +19,10 @@ let writtenAt: number;
 async function writeBuild(buildId: string, names: ReadonlyArray<string>) {
 	await writeImageManifest(root, {
 		buildId,
+		cards: {},
 		encoding: resolveImageEncoding(),
 		limitInputPixels: 268_402_689,
 		mediaPath: path.join(root, 'media'),
-		openGraphCards: {},
 		renditions: Object.fromEntries(names.map((name) => [name, 'source.jpg'])),
 		version: imageManifestVersion,
 	} satisfies ImageManifest);

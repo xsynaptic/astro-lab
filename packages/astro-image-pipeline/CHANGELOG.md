@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.9.0
+
+### Minor Changes
+
+- Breaking: one name each for cards and renditions, a pruned public surface, and placeholder recipes replaced by parameters; manifest version 7
+
 ## 0.8.0
 
 ### Minor Changes

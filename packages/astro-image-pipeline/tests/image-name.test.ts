@@ -2,21 +2,21 @@ import { describe, expect, test } from 'vitest';
 
 import {
 	findStemCollisions,
-	formatImageName,
+	formatRenditionName,
 	getImageStem,
-	parseImageName,
+	parseRenditionName,
 } from '../src/image-name.js';
 
-describe('parseImageName', () => {
+describe('parseRenditionName', () => {
 	test.each([
 		{ format: 'jpg', stem: 'taiwan/taipei/some-image-1', width: 1200 },
 		{ format: 'webp', height: 800, stem: 'taiwan/taipei/some-image-1', width: 1200 },
 	] as const)('round-trips $stem at $width', (name) => {
-		expect(parseImageName(formatImageName(name))).toStrictEqual(name);
+		expect(parseRenditionName(formatRenditionName(name))).toStrictEqual(name);
 	});
 
 	test('a stem ending in digits keeps them, since only the last segment is the size', () => {
-		expect(parseImageName('a/b-1-450.jpg')).toStrictEqual({
+		expect(parseRenditionName('a/b-1-450.jpg')).toStrictEqual({
 			format: 'jpg',
 			stem: 'a/b-1',
 			width: 450,
@@ -31,7 +31,7 @@ describe('parseImageName', () => {
 		['a `..` segment', '../media/a/b-450.jpg'],
 		['an empty segment', '/a/b-450.jpg'],
 	])('rejects %s', (_label, name) => {
-		expect(parseImageName(name)).toBeUndefined();
+		expect(parseRenditionName(name)).toBeUndefined();
 	});
 });
 

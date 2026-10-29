@@ -5,28 +5,28 @@ import path from 'node:path';
 import pLimit from 'p-limit';
 import sharp from 'sharp';
 
-import type { ImageFormat, ImageName } from './image-name.js';
+import type { ImageFormat, RenditionName } from './image-name.js';
 import type { ImageManifest, ImageRenderTarget } from './image-state.js';
 import type { RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { formatList } from './format.js';
 import { imageRenderRevision, serializeEncoding } from './image-encoding.js';
-import { parseImageName } from './image-name.js';
+import { parseRenditionName } from './image-name.js';
 import { engineId, renderImage } from './image-render.js';
 import { isWithinSource } from './image-sizes.js';
-import { getImageCachePaths, readDistManifest } from './image-state.js';
+import { getCacheLayout, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { getDefaultConcurrency, runRenderJobs } from './run-render-jobs.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
 import { UserError } from './user-error.js';
 
-export type ImageRenderRunOptions = Pick<
+export type RenditionRenderRunOptions = Pick<
 	RenderJobOptions,
 	'concurrency' | 'onFailure' | 'onProgress' | 'onReplace' | 'signal'
 >;
 
-interface ImageRendition extends ImageName {
+interface ImageRendition extends RenditionName {
 	name: string;
 	sourcePath: string;
 }
@@ -66,7 +66,7 @@ function getManifestRenditions(manifest: ImageManifest) {
 	const invalid: Array<string> = [];
 
 	for (const [name, sourcePath] of Object.entries(manifest.renditions)) {
-		const parsed = parseImageName(name);
+		const parsed = parseRenditionName(name);
 
 		if (parsed) {
 			renditions.push({ ...parsed, name, sourcePath });
@@ -173,7 +173,7 @@ async function encodeRendition(rendition: ImageRendition, manifest: ImageManifes
 }
 
 async function readImageJobs({ cachePath, distPath }: ImageRenderTarget, concurrency: number) {
-	const { renditionsPath } = getImageCachePaths(cachePath);
+	const { renditionsPath } = getCacheLayout(cachePath);
 	const manifest = await readDistManifest({ cachePath, distPath });
 	const renditions = getManifestRenditions(manifest);
 	const fingerprints = createSourceFingerprints(cachePath);
@@ -192,7 +192,7 @@ async function readImageJobs({ cachePath, distPath }: ImageRenderTarget, concurr
 	}
 }
 
-export async function prepareImageRender({ cachePath, distPath }: ImageRenderTarget) {
+export async function prepareRenditionRender({ cachePath, distPath }: ImageRenderTarget) {
 	const resolvedCachePath = path.resolve(cachePath);
 	const concurrency = getDefaultConcurrency();
 	const { directory, jobs } = await readImageJobs(
@@ -203,7 +203,7 @@ export async function prepareImageRender({ cachePath, distPath }: ImageRenderTar
 	async function run({
 		concurrency: runConcurrency = concurrency,
 		...options
-	}: ImageRenderRunOptions = {}) {
+	}: RenditionRenderRunOptions = {}) {
 		// Process-wide; the job pool supplies the parallelism instead of libvips threads
 		sharp.concurrency(1);
 		sharp.cache(false);
@@ -216,7 +216,7 @@ export async function prepareImageRender({ cachePath, distPath }: ImageRenderTar
 		});
 
 		// Dev serves built renditions first, so its own renders are redundant now
-		await fs.rm(getImageCachePaths(resolvedCachePath).devPath, { force: true, recursive: true });
+		await fs.rm(getCacheLayout(resolvedCachePath).devPath, { force: true, recursive: true });
 
 		return counts;
 	}
@@ -224,4 +224,4 @@ export async function prepareImageRender({ cachePath, distPath }: ImageRenderTar
 	return { directory, run, total: jobs.length };
 }
 
-export type PreparedImageRender = Awaited<ReturnType<typeof prepareImageRender>>;
+export type PreparedRenditionRender = Awaited<ReturnType<typeof prepareRenditionRender>>;

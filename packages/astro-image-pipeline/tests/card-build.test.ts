@@ -4,9 +4,10 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import type { OpenGraphCardRenderOptions, OpenGraphCardSource } from '../src/open-graph-build.js';
-import type { OpenGraphCard } from '../src/open-graph-cards.js';
+import type { CardRenderOptions, CardSource } from '../src/card-build.js';
+import type { Card } from '../src/card-name.js';
 
+import { getCardKey, prepareCardRender } from '../src/card-build.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
 import {
 	getImageCachePaths,
@@ -14,14 +15,13 @@ import {
 	writeBuildId,
 	writeImageManifest,
 } from '../src/image-state.js';
-import { getOpenGraphCardKey, prepareOpenGraphCardRender } from '../src/open-graph-build.js';
 
 let root: string;
 let mediaPath: string;
 let distPath: string;
 let directory: string;
 
-const cards: Record<string, OpenGraphCard> = {
+const cards: Record<string, Card> = {
 	'atlas.jpg': { input: { title: 'Atlas' } },
 	'gone.jpg': { image: { path: 'gone.jpg' }, input: { title: 'Gone' } },
 	'posts-a.jpg': { image: { path: 'photo.jpg' }, input: { title: 'A' } },
@@ -32,10 +32,10 @@ const cards: Record<string, OpenGraphCard> = {
 async function writeBuild() {
 	await writeImageManifest(root, {
 		buildId: 'build',
+		cards,
 		encoding: resolveImageEncoding(),
 		limitInputPixels: 268_402_689,
 		mediaPath,
-		openGraphCards: cards,
 		renditions: {},
 		version: imageManifestVersion,
 	});
@@ -43,13 +43,13 @@ async function writeBuild() {
 }
 
 function createDecode() {
-	return vi.fn((source: OpenGraphCardSource) =>
+	return vi.fn((source: CardSource) =>
 		Promise.resolve(`${source.path}:${source.treatment ?? 'plain'}`),
 	);
 }
 
-function prepare(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
-	return prepareOpenGraphCardRender<string>({
+function prepare(options: Partial<CardRenderOptions<string>> = {}) {
+	return prepareCardRender<string>({
 		cachePath: root,
 		decode: createDecode(),
 		distPath,
@@ -60,17 +60,17 @@ function prepare(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
 	});
 }
 
-async function render(options: Partial<OpenGraphCardRenderOptions<string>> = {}) {
+async function render(options: Partial<CardRenderOptions<string>> = {}) {
 	const prepared = await prepare(options);
 
 	return prepared.run({ onFailure: 'report' });
 }
 
 beforeEach(async () => {
-	root = await fs.mkdtemp(path.join(tmpdir(), 'open-graph-build-'));
+	root = await fs.mkdtemp(path.join(tmpdir(), 'card-build-'));
 	mediaPath = path.join(root, 'media');
 	distPath = path.join(root, 'dist');
-	directory = getImageCachePaths(root).openGraphCardsPath;
+	directory = getImageCachePaths(root).cardsPath;
 	await fs.mkdir(mediaPath);
 	await fs.mkdir(distPath);
 	await sharp({ create: { background: '#336699', channels: 3, height: 40, width: 60 } })
@@ -83,7 +83,7 @@ afterEach(async () => {
 	await fs.rm(root, { force: true, recursive: true });
 });
 
-describe('prepareOpenGraphCardRender', () => {
+describe('prepareCardRender', () => {
 	test('knows the total and the source count before anything renders', async () => {
 		const decode = createDecode();
 		const prepared = await prepare({ decode });
@@ -184,9 +184,9 @@ describe('prepareOpenGraphCardRender', () => {
 	});
 });
 
-describe('getOpenGraphCardKey', () => {
+describe('getCardKey', () => {
 	test('stays pinned for a fixed input', () => {
-		const key = getOpenGraphCardKey({
+		const key = getCardKey({
 			digest: 'a'.repeat(64),
 			engine: 'engine',
 			image: { path: 'photo.jpg', treatment: 'blur' },

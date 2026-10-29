@@ -5,7 +5,7 @@ import path from 'node:path';
 import type { ResolvedImageEncoding } from './image-encoding.js';
 import type { ImageSourceResolver } from './image-sources.js';
 
-import { parseImageName } from './image-name.js';
+import { parseRenditionName } from './image-name.js';
 import { readSourceSize, renderImage } from './image-render.js';
 import { isWithinSource } from './image-sizes.js';
 
@@ -68,7 +68,7 @@ export function createDevImageResolver({
 	const inFlight = new Map<string, Promise<string | undefined>>();
 
 	async function resolveImage(name: string) {
-		const parsed = parseImageName(name);
+		const parsed = parseRenditionName(name);
 
 		if (!parsed) return;
 

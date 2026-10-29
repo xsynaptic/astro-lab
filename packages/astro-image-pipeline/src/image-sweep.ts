@@ -5,7 +5,7 @@ import { pruneFileCache } from './file-cache.js';
 import { readDirectoryTreeIfExists, statIfExists } from './files.js';
 import {
 	dropImageManifests,
-	getImageCachePaths,
+	getCacheLayout,
 	listImageBuilds,
 	readBuildManifest,
 } from './image-state.js';
@@ -69,7 +69,7 @@ async function removeEmptyDirectories(directory: string) {
 
 export async function prepareImageSweep({ cachePath, keep }: ImageSweepOptions) {
 	const resolvedCachePath = path.resolve(cachePath);
-	const { renditionsPath } = getImageCachePaths(resolvedCachePath);
+	const { renditionsPath } = getCacheLayout(resolvedCachePath);
 	const kept = await resolveKeep(resolvedCachePath, keep);
 	const names = await listFiles(renditionsPath);
 	const sizes = await Promise.all(

@@ -32,10 +32,10 @@ describe('findDistManifest', () => {
 	test('reads the manifest of the build dist names', async () => {
 		const manifest = {
 			buildId: 'live',
+			cards: {},
 			encoding: resolveImageEncoding(),
 			limitInputPixels: 268_402_689,
 			mediaPath: path.join(root, 'media'),
-			openGraphCards: {},
 			renditions: { 'a-450.jpg': 'a.jpg' },
 			version: imageManifestVersion,
 		} satisfies ImageManifest;
@@ -65,7 +65,7 @@ describe('findDistManifest', () => {
 		await writeBuildId(distPath, 'live');
 
 		await expect(findDistManifest({ cachePath: root, distPath })).rejects.toThrow(
-			/version 1, not 6/,
+			/version 1, not 7/,
 		);
 	});
 });

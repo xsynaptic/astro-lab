@@ -2,13 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import type { OpenGraphCard } from './open-graph-cards.js';
+import type { Card } from './card-name.js';
 
 import { formatList } from './format.js';
 
-interface OpenGraphCardRecord {
-	card: OpenGraphCard;
-	kind: 'open-graph-card';
+interface CardRecord {
+	card: Card;
+	kind: 'card';
 	name: string;
 }
 
@@ -73,7 +73,7 @@ function describeConflicts(renditions: RecordedValues, cards: RecordedValues) {
 
 	if (cards.conflicts.size > 0) {
 		messages.push(
-			`${String(cards.conflicts.size)} OpenGraph cards were recorded with different input:\n${formatList([...cards.conflicts.keys()].toSorted((first, second) => first.localeCompare(second)))}`,
+			`${String(cards.conflicts.size)} cards were recorded with different input:\n${formatList([...cards.conflicts.keys()].toSorted((first, second) => first.localeCompare(second)))}`,
 		);
 	}
 
@@ -99,7 +99,7 @@ export async function readImageRecords(recordsPath: string) {
 		const text = await fs.readFile(path.join(recordsPath, recordFile), 'utf8');
 
 		for (const line of text.split('\n')) {
-			type ImageRecord = OpenGraphCardRecord | RenditionRecord;
+			type ImageRecord = CardRecord | RenditionRecord;
 
 			if (line === '') continue;
 
@@ -119,10 +119,7 @@ export async function readImageRecords(recordsPath: string) {
 
 	return {
 		cards: sortByName(
-			[...cards.values].map(([name, value]): [string, OpenGraphCard] => [
-				name,
-				JSON.parse(value) as OpenGraphCard,
-			]),
+			[...cards.values].map(([name, value]): [string, Card] => [name, JSON.parse(value) as Card]),
 		),
 		renditions: sortByName(renditions.values),
 	};

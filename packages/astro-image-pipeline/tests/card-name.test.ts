@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
-import type { OpenGraphCardInput, OpenGraphCardValue } from '../src/open-graph-cards.js';
+import type { CardInput, CardValue } from '../src/card-name.js';
 
-import { canonicalizeOpenGraphCard, getCardName } from '../src/open-graph-cards.js';
+import { canonicalizeCard, getCardName } from '../src/card-name.js';
 
 const cardFormat = { format: 'jpg' } as const;
 
-function unsorted(entries: Array<[string, OpenGraphCardValue | undefined]>): OpenGraphCardInput {
+function unsorted(entries: Array<[string, CardValue | undefined]>): CardInput {
 	return Object.fromEntries(entries);
 }
 
@@ -22,9 +22,9 @@ describe('getCardName', () => {
 	});
 });
 
-describe('canonicalizeOpenGraphCard', () => {
+describe('canonicalizeCard', () => {
 	test('sorts nested keys and drops undefined at every depth', () => {
-		const card = canonicalizeOpenGraphCard({
+		const card = canonicalizeCard({
 			input: unsorted([
 				[
 					'b',
@@ -50,7 +50,7 @@ describe('canonicalizeOpenGraphCard', () => {
 	});
 
 	test('keeps a stable canonical form, resolving the image to its path', () => {
-		const card = canonicalizeOpenGraphCard({
+		const card = canonicalizeCard({
 			image: { id: 'media/photo', path: 'uploads/photo.jpg', treatment: 'blur' },
 			input: { title: 'Atlas' },
 		});
@@ -61,15 +61,13 @@ describe('canonicalizeOpenGraphCard', () => {
 	});
 
 	test('locates an image by its id when it has no path', () => {
-		expect(canonicalizeOpenGraphCard({ image: { id: 'photo.jpg' }, input: {} })).toStrictEqual({
+		expect(canonicalizeCard({ image: { id: 'photo.jpg' }, input: {} })).toStrictEqual({
 			image: { path: 'photo.jpg' },
 			input: {},
 		});
 	});
 
 	test.each([NaN, Infinity])('refuses %s, which JSON would turn into null', (value) => {
-		expect(() => canonicalizeOpenGraphCard({ input: { value } })).toThrow(
-			'JSON has no such number',
-		);
+		expect(() => canonicalizeCard({ input: { value } })).toThrow('JSON has no such number');
 	});
 });

@@ -11,7 +11,7 @@ import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { openImageSource } from './image-render.js';
 import { formatSize, getSourcePath, isPixelCount, isWholeSize } from './image-sizes.js';
-import { getImageCachePaths } from './image-state.js';
+import { getCacheLayout } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
 import { UserError } from './user-error.js';
@@ -20,17 +20,14 @@ export const imagePlaceholdersVariable = 'XSYNAPTIC_IMAGE_PLACEHOLDERS';
 
 const placeholderRevision = 1;
 
-const placeholderRecipes = {
-	blur: (image: Sharp) => image.blur(3).modulate({ saturation: 1.2 }).webp({ quality: 25 }),
-	mosaic: (image: Sharp) => image.modulate({ saturation: 1.2 }).webp({ quality: 10 }),
-} as const satisfies Record<string, (image: Sharp) => Sharp>;
-
-export type ImagePlaceholderRecipe = keyof typeof placeholderRecipes;
-
 export interface ImagePlaceholderOptions {
+	blur?: number;
 	pixels: number;
-	recipe: ImagePlaceholderRecipe;
+	quality: number;
+	saturation?: number;
 }
+
+type PlaceholderLook = Omit<ImagePlaceholderOptions, 'pixels'>;
 
 export interface PlaceholderConfig extends ImagePlaceholderOptions {
 	cachePath: string;
@@ -56,16 +53,37 @@ interface PlaceholderStore {
 
 let store: PlaceholderStore | undefined;
 
-export function validatePlaceholderOptions({ pixels, recipe }: ImagePlaceholderOptions) {
-	if (!Object.hasOwn(placeholderRecipes, recipe)) {
-		throw new Error(
-			`imagePipeline placeholders take a recipe of ${Object.keys(placeholderRecipes).join(' or ')}, not ${JSON.stringify(recipe)}`,
-		);
-	}
+function isInRange(value: number, minimum: number, maximum = Infinity) {
+	return value >= minimum && value <= maximum;
+}
 
+export function validatePlaceholderOptions({
+	blur,
+	pixels,
+	quality,
+	saturation,
+}: ImagePlaceholderOptions) {
 	if (!isPixelCount(pixels)) {
 		throw new Error(
 			`imagePipeline placeholders take a whole, positive pixel count, not ${String(pixels)}`,
+		);
+	}
+
+	if (!Number.isSafeInteger(quality) || !isInRange(quality, 1, 100)) {
+		throw new Error(
+			`imagePipeline placeholders take a whole quality from 1 to 100, not ${String(quality)}`,
+		);
+	}
+
+	if (blur !== undefined && (!Number.isFinite(blur) || !isInRange(blur, 0.3, 1000))) {
+		throw new Error(
+			`imagePipeline placeholders take a blur sigma from 0.3 to 1000, not ${String(blur)}`,
+		);
+	}
+
+	if (saturation !== undefined && (!Number.isFinite(saturation) || !isInRange(saturation, 0))) {
+		throw new Error(
+			`imagePipeline placeholders take a saturation of 0 or more, not ${String(saturation)}`,
 		);
 	}
 }
@@ -80,15 +98,21 @@ function getPlaceholderGrid(aspectRatio: number, pixels: number): ImageDimension
 }
 
 export function getPlaceholderKey({
+	blur,
 	digest,
 	grid,
-	recipe,
-}: {
-	digest: string;
-	grid: ImageDimensions;
-	recipe: ImagePlaceholderRecipe;
-}) {
-	return hashRenderKey([digest, grid.width, grid.height, recipe, placeholderRevision]);
+	quality,
+	saturation = 1,
+}: PlaceholderLook & { digest: string; grid: ImageDimensions }) {
+	return hashRenderKey([
+		digest,
+		grid.width,
+		grid.height,
+		quality,
+		blur ?? '',
+		saturation,
+		placeholderRevision,
+	]);
 }
 
 function openPlaceholderStore(variable: string): PlaceholderStore {
@@ -96,7 +120,7 @@ function openPlaceholderStore(variable: string): PlaceholderStore {
 
 	mkdirSync(config.cachePath, { recursive: true });
 
-	const database = new DatabaseSync(getImageCachePaths(config.cachePath).placeholdersPath);
+	const database = new DatabaseSync(getCacheLayout(config.cachePath).placeholdersPath);
 
 	database.exec(
 		'PRAGMA busy_timeout = 10000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL',
@@ -157,13 +181,19 @@ function getPlaceholderStore() {
 	return store;
 }
 
+function encodePlaceholder(image: Sharp, { blur, quality, saturation = 1 }: PlaceholderLook) {
+	const blurred = blur === undefined ? image : image.blur(blur);
+
+	return blurred.modulate({ saturation }).webp({ quality });
+}
+
 async function renderPlaceholder(
 	filePath: string,
 	{
 		grid,
 		limitInputPixels,
-		recipe,
-	}: { grid: ImageDimensions; limitInputPixels: number; recipe: ImagePlaceholderRecipe },
+		look,
+	}: { grid: ImageDimensions; limitInputPixels: number; look: PlaceholderLook },
 ) {
 	const { data, info } = await openImageSource(filePath, { failOn: 'error', limitInputPixels })
 		.resize(grid.width, grid.height, { fit: 'cover' })
@@ -174,7 +204,7 @@ async function renderPlaceholder(
 
 	if (!isOpaque) return;
 
-	const encoded = await placeholderRecipes[recipe](sharp(data, raw)).toBuffer();
+	const encoded = await encodePlaceholder(sharp(data, raw), look).toBuffer();
 
 	return `data:image/webp;base64,${encoded.toString('base64')}`;
 }
@@ -190,7 +220,7 @@ async function resolvePlaceholder(
 	if (!fingerprint)
 		throw new Error(`Image source ${filePath} is missing, so it has no placeholder`);
 
-	const key = getPlaceholderKey({ digest: fingerprint.sha256, grid, recipe: config.recipe });
+	const key = getPlaceholderKey({ ...config, digest: fingerprint.sha256, grid });
 	const cached = placeholderStore.read(key);
 
 	if (cached !== undefined) return cached ?? undefined;
@@ -198,7 +228,7 @@ async function resolvePlaceholder(
 	const dataUrl = await renderPlaceholder(filePath, {
 		grid,
 		limitInputPixels: config.limitInputPixels,
-		recipe: config.recipe,
+		look: config,
 	});
 
 	placeholderStore.write(key, dataUrl);
