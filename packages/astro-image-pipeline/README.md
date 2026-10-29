@@ -32,7 +32,7 @@ export default defineConfig({
 
 Leave out `baseUrl` on a site that only renders OpenGraph cards; dev then serves no renditions.
 
-The pipeline owns everything in `cachePath`, so keep other files out of it. Each build keeps its own manifest in `manifests/<buildId>.json.gz` and writes its id to `image-build-id.txt` in the build output; `listImageBuilds` lists builds with their write times. `prepareImageSweep({ cachePath, keep })` finds renditions that neither the builds in `keep` nor the newest build reference, and its `run()` deletes them; OpenGraph cards are never swept.
+The pipeline owns everything in `cachePath`, so keep other files out of it. The render, sweep and OpenGraph functions take the same `cachePath` as the integration; nothing in the build output records it, since that output gets deployed. Each build keeps its own manifest in `manifests/<buildId>.json.gz` and writes its id to `image-build-id.txt` in the build output; `listImageBuilds` lists builds with their write times. `prepareImageSweep({ cachePath, keep })` finds renditions that neither the builds in `keep` nor the newest build reference, and its `run()` deletes them; OpenGraph cards are never swept.
 
 ## Rules
 
