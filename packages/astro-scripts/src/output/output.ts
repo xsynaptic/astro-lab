@@ -28,9 +28,11 @@ function detectOutputMode(): OutputMode {
 
 function createReporter(mode: OutputMode, command?: string) {
 	const streams = { stderr: process.stderr, stdout: process.stdout };
+
+	if (mode === 'json') return createJsonReporter(streams, { command });
+
 	const isNested = process.env.SCRIPTS_NESTED === '1';
 
-	if (mode === 'json') return createJsonReporter(streams, { command, isNested });
 	if (mode === 'plain') return createPlainReporter(streams, { isNested });
 
 	return createPrettyReporter(streams, { isNested });

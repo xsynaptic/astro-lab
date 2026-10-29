@@ -566,7 +566,7 @@ describe('json reporter', () => {
 			{ line: nested, type: 'nested' },
 		);
 
-		expect(harness.stderr()).toEqual([
+		expect(harness.stdout()).toEqual([
 			'{"type":"status","command":"deploy-site","time":"1970-01-01T00:00:00.000Z","argv":["pnpm","validate-content"],"id":1,"state":"start","text":"Validating"}',
 			'{"type":"output","command":"deploy-site","time":"1970-01-01T00:00:00.000Z","id":1,"stream":"stdout","text":"[WARN] slow"}',
 			nested,
@@ -580,7 +580,7 @@ describe('json reporter', () => {
 
 		harness.emit({ level: 'warn', text: '\u{1B}[33mslow\u{1B}[39m', type: 'message' });
 
-		expect(harness.stderr()).toEqual([
+		expect(harness.stdout()).toEqual([
 			'{"type":"message","command":"render-images","time":"1970-01-01T00:00:00.000Z","level":"warn","text":"slow"}',
 		]);
 	});
@@ -596,7 +596,7 @@ describe('json reporter', () => {
 			type: 'summary',
 		});
 
-		expect(parse(harness.stderr())[0]?.rows).toEqual([
+		expect(parse(harness.stdout())[0]?.rows).toEqual([
 			['Renditions', 4000],
 			['Rendered', 120],
 		]);
@@ -615,7 +615,7 @@ describe('json reporter', () => {
 
 		harness.emit({ id: 1, state: 'succeed', text: 'Rendered 4', type: 'status' });
 
-		expect(parse(harness.stderr()).map((event) => event.done ?? event.state)).toEqual([
+		expect(parse(harness.stdout()).map((event) => event.done ?? event.state)).toEqual([
 			'start',
 			1,
 			4,
@@ -634,34 +634,25 @@ describe('json reporter', () => {
 			{ id: 1, state: 'stop', text: 'b', type: 'status' },
 		);
 
-		expect(parse(harness.stderr()).map((event) => event.state)).toEqual([
+		expect(parse(harness.stdout()).map((event) => event.state)).toEqual([
 			'start',
 			'update',
 			'stop',
 		]);
 	});
 
-	test('writes the value without rendering its human formatting', () => {
-		const harness = createHarness(createJsonReporter);
-		const render = vi.fn(() => 'Missing 2');
-
-		harness.emit({ render, type: 'data', value: { missing: 2 } });
-
-		expect(harness.stdout()).toEqual(['{"missing":2}']);
-		expect(harness.stderr()).toEqual([]);
-		expect(render).not.toHaveBeenCalled();
-	});
-
-	test("puts a nested command's data on the event stream, leaving stdout to the parent", () => {
+	test('writes data as an event without rendering its human formatting', () => {
 		const harness = createHarness((streams) =>
-			createJsonReporter(streams, { command: 'lqip', isNested: true, now: () => 0 }),
+			createJsonReporter(streams, { command: 'lqip', now: () => 0 }),
 		);
+		const render = vi.fn(() => 'Generated 0');
 
-		harness.emit({ render: () => 'Generated 0', type: 'data', value: { generated: 0 } });
+		harness.emit({ render, type: 'data', value: { generated: 0 } });
 
-		expect(harness.stdout()).toEqual([]);
-		expect(harness.stderr()).toEqual([
+		expect(harness.stdout()).toEqual([
 			'{"type":"data","command":"lqip","time":"1970-01-01T00:00:00.000Z","value":{"generated":0}}',
 		]);
+		expect(harness.stderr()).toEqual([]);
+		expect(render).not.toHaveBeenCalled();
 	});
 });

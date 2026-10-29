@@ -123,7 +123,7 @@ describe('fetchWithRetry', () => {
 		const { runCommand } = createCommandRunner();
 		const originalArgv = process.argv;
 
-		vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+		vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 		process.argv = ['node', 'script.ts', '--json'];
 
 		try {

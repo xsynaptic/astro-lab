@@ -165,7 +165,11 @@ describe('runCommand', () => {
 	}
 
 	function readEvents() {
-		return stderr.map((line) => JSON.parse(line) as Record<string, unknown>);
+		return stdout
+			.join('')
+			.split('\n')
+			.filter(Boolean)
+			.map((line) => JSON.parse(line) as Record<string, unknown>);
 	}
 
 	beforeEach(() => {

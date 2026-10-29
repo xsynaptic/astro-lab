@@ -9,7 +9,7 @@ describe('captureOutput', () => {
 	});
 
 	test('records what a task logged in place of writing it, whatever the output mode', async () => {
-		const write = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+		const write = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
 
 		configureOutput('json');
 

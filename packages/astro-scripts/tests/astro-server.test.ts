@@ -44,7 +44,7 @@ beforeEach(() => {
 	writeFileSync(path.join(astroRoot, 'astro.config.mjs'), '');
 	writeFileSync(path.join(astroRoot, 'pnpm-workspace.yaml'), '');
 	vi.spyOn(process, 'cwd').mockReturnValue(astroRoot);
-	vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+	vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 	process.argv = ['node', 'script.ts'];
 	process.env.SCRIPTS_OUTPUT = 'json';
 	vite.servers.length = 0;

@@ -6,7 +6,6 @@ type ProgressEvent = Extract<OutputEvent, { type: 'progress' }>;
 
 interface JsonReporterOptions {
 	command?: string | undefined;
-	isNested?: boolean;
 	now?: () => number;
 }
 
@@ -74,8 +73,8 @@ function stripEvent(event: OutputEvent): OutputEvent {
 }
 
 export function createJsonReporter(
-	{ stderr, stdout }: ReporterStreams,
-	{ command, isNested = false, now = Date.now }: JsonReporterOptions = {},
+	{ stdout }: ReporterStreams,
+	{ command, now = Date.now }: JsonReporterOptions = {},
 ): Reporter {
 	const progressThrottles = new Map<number, Throttle>();
 	const updateThrottles = new Map<number, Throttle>();
@@ -84,7 +83,7 @@ export function createJsonReporter(
 		const { type, ...payload } = stripEvent(event);
 		const envelope = { command, time: new Date(now()).toISOString() };
 
-		stderr.write(`${JSON.stringify({ type, ...envelope, ...payload })}\n`);
+		stdout.write(`${JSON.stringify({ type, ...envelope, ...payload })}\n`);
 	}
 
 	function isDue(throttles: Map<number, Throttle>, id: number) {
@@ -100,18 +99,8 @@ export function createJsonReporter(
 
 	return {
 		emit(event) {
-			if (isNested && event.type === 'data') {
-				write(event);
-				return;
-			}
-
-			if (event.type === 'data') {
-				stdout.write(`${JSON.stringify(event.value)}\n`);
-				return;
-			}
-
 			if (event.type === 'nested') {
-				stderr.write(`${event.line}\n`);
+				stdout.write(`${event.line}\n`);
 				return;
 			}
 

@@ -180,7 +180,7 @@ async function spawnChild(
 	});
 
 	function relayLine(line: string, stream: OutputStream) {
-		const event = mode === 'json' && stream === 'stderr' ? parseEventLine(line) : undefined;
+		const event = mode === 'json' && stream === 'stdout' ? parseEventLine(line) : undefined;
 
 		if (event) {
 			emit({ line: withParent(line, event, id), type: 'nested' });

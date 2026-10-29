@@ -1,5 +1,15 @@
 # @xsynaptic/astro-scripts
 
+## 0.11.0
+
+### Minor Changes
+
+- `--json` writes its events to stdout, with `log.data` as a `data` event, so `--json | jq` reads the stream without `2>&1`.
+
+### Patch Changes
+
+- `formatDuration` reads hours and minutes from an hour up (`9h 26m`, not `566m 17s`).
+
 ## 0.10.1
 
 ### Patch Changes

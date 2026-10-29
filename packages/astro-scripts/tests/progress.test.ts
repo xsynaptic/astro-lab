@@ -235,6 +235,12 @@ describe('formatDuration', () => {
 		expect(formatDuration(119_600)).toBe('2m 00s');
 	});
 
+	test('switches to hours and minutes from an hour up', () => {
+		expect(formatDuration(3_599_000)).toBe('59m 59s');
+		expect(formatDuration(3_599_600)).toBe('1h 00m');
+		expect(formatDuration(33_977_000)).toBe('9h 26m');
+	});
+
 	test('counts milliseconds below a second', () => {
 		expect(formatDuration(12.4)).toBe('12ms');
 		expect(formatDuration(999.6)).toBe('1.0s');

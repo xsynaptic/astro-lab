@@ -34,10 +34,19 @@ export function formatDuration(milliseconds: number) {
 	if (seconds < 60) return `${seconds.toFixed(1)}s`;
 
 	const totalSeconds = Math.round(seconds);
-	const minutes = Math.floor(totalSeconds / 60);
-	const remainder = totalSeconds % 60;
 
-	return `${String(minutes)}m ${String(remainder).padStart(2, '0')}s`;
+	if (totalSeconds < 3600) {
+		const minutes = Math.floor(totalSeconds / 60);
+		const remainder = totalSeconds % 60;
+
+		return `${String(minutes)}m ${String(remainder).padStart(2, '0')}s`;
+	}
+
+	const totalMinutes = Math.round(totalSeconds / 60);
+	const hours = Math.floor(totalMinutes / 60);
+	const remainder = totalMinutes % 60;
+
+	return `${String(hours)}h ${String(remainder).padStart(2, '0')}m`;
 }
 
 function formatRate(perSecond: number) {

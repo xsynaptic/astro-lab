@@ -71,7 +71,7 @@ describe('runChild in json mode', () => {
 		expect(end).toMatchObject({ id: start?.id, state: 'succeed' });
 	});
 
-	test("passes a nested command's events through under its parent step, but wraps its data and anything event-like", async () => {
+	test("passes a nested command's stdout events through under its parent step, and wraps anything else", async () => {
 		configureOutput('json', 'deploy-site');
 
 		const event =
@@ -80,7 +80,7 @@ describe('runChild in json mode', () => {
 			runChild(
 				'Validating',
 				node(
-					`console.error(${JSON.stringify(event)}); console.error('{"type":"bogus","command":"x","time":"t"}'); console.log('{"name":"entry-ids","status":"pass"}')`,
+					`console.log(${JSON.stringify(event)}); console.log('{"type":"bogus","command":"x","time":"t"}'); console.error(${JSON.stringify(event)})`,
 				),
 			),
 		);
@@ -97,10 +97,7 @@ describe('runChild in json mode', () => {
 			},
 		]);
 		expect(outputs(events).map((item) => item.text)).toEqual(
-			expect.arrayContaining([
-				'{"type":"bogus","command":"x","time":"t"}',
-				'{"name":"entry-ids","status":"pass"}',
-			]),
+			expect.arrayContaining(['{"type":"bogus","command":"x","time":"t"}', event]),
 		);
 	});
 });
@@ -171,7 +168,7 @@ describe('runChild relaying a nested step', () => {
 		const event =
 			'{"type":"status","command":"lqip","time":"t","id":1,"state":"start","parent":{"command":"build","id":4}}';
 		const { events } = await captureOutput(() =>
-			runChild('Building', node(`console.error(${JSON.stringify(event)})`)),
+			runChild('Building', node(`console.log(${JSON.stringify(event)})`)),
 		);
 
 		expect(events.filter((item) => item.type === 'nested')).toEqual([
