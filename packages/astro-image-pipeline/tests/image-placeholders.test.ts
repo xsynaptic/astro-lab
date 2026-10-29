@@ -28,12 +28,12 @@ const mosaic = { pixels: 250, quality: 10, saturation: 1.2 } satisfies ImagePlac
 
 async function startDev(
 	placeholders: ImagePlaceholderOptions | undefined,
-	cachePath = path.join(root, 'cache'),
+	storePath = path.join(root, 'cache'),
 ) {
 	type Hooks = AstroIntegration['hooks'];
 	const { hooks }: { hooks: Hooks } = imagePipeline({
-		cachePath,
 		mediaPath,
+		storePath,
 		...(placeholders ? { placeholders } : {}),
 	});
 
@@ -113,9 +113,9 @@ describe('getPlaceholder', () => {
 	])('refuses %j at setup', (override, message) => {
 		expect(() =>
 			imagePipeline({
-				cachePath: 'cache',
 				mediaPath: 'media',
 				placeholders: { ...mosaic, ...override },
+				storePath: 'cache',
 			}),
 		).toThrow(message);
 	});

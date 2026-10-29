@@ -14,11 +14,16 @@ export { listImageSources } from './image-sources.js';
 export type { ImageBuild, ImageManifest, ImageRenderTarget } from './image-state.js';
 export {
 	findDistManifest,
-	getImageCachePaths,
+	getImageStorePaths,
 	imageBuildIdFile,
 	listImageBuilds,
 } from './image-state.js';
-export type { ImageSweepFile, ImageSweepOptions, PreparedImageSweep } from './image-sweep.js';
+export type {
+	ImageSweepFile,
+	ImageSweepOptions,
+	ImageSweepPlan,
+	PreparedImageSweep,
+} from './image-sweep.js';
 export { prepareImageSweep } from './image-sweep.js';
 export type { RenderCounts, RenderFailure } from './run-render-jobs.js';
 export { hashTemplateVersion } from './template-version.js';

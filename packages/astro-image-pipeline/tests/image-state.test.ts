@@ -43,17 +43,17 @@ describe('findDistManifest', () => {
 		await writeImageManifest(root, manifest);
 		await writeBuildId(distPath, 'live');
 
-		expect(await findDistManifest({ cachePath: root, distPath })).toStrictEqual(manifest);
+		expect(await findDistManifest({ distPath, storePath: root })).toStrictEqual(manifest);
 	});
 
 	test('is undefined when dist has no build id', async () => {
-		expect(await findDistManifest({ cachePath: root, distPath })).toBeUndefined();
+		expect(await findDistManifest({ distPath, storePath: root })).toBeUndefined();
 	});
 
 	test('is undefined when the build has no manifest', async () => {
 		await writeBuildId(distPath, 'missing');
 
-		expect(await findDistManifest({ cachePath: root, distPath })).toBeUndefined();
+		expect(await findDistManifest({ distPath, storePath: root })).toBeUndefined();
 	});
 
 	test('still refuses a manifest at another version', async () => {
@@ -64,7 +64,7 @@ describe('findDistManifest', () => {
 		);
 		await writeBuildId(distPath, 'live');
 
-		await expect(findDistManifest({ cachePath: root, distPath })).rejects.toThrow(
+		await expect(findDistManifest({ distPath, storePath: root })).rejects.toThrow(
 			/version 1, not 7/,
 		);
 	});

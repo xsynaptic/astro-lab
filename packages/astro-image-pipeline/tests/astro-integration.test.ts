@@ -34,8 +34,8 @@ function createLogger() {
 function createIntegration() {
 	return imagePipeline({
 		baseUrl: '/img',
-		cachePath: root,
 		mediaPath: path.join(root, 'media'),
+		storePath: root,
 	});
 }
 
@@ -69,14 +69,14 @@ describe('imagePipeline', () => {
 		expect(() =>
 			imagePipeline({
 				baseUrl,
-				cachePath: 'cache',
 				mediaPath: 'media',
+				storePath: 'cache',
 			}),
 		).toThrow('below the site root');
 	});
 
 	test('without a base URL, records cards and serves nothing in dev', async () => {
-		const { hooks } = imagePipeline({ cachePath: root, mediaPath: path.join(root, 'media') });
+		const { hooks } = imagePipeline({ mediaPath: path.join(root, 'media'), storePath: root });
 		const use = vi.fn();
 
 		await hooks['astro:server:setup']?.({
@@ -87,7 +87,7 @@ describe('imagePipeline', () => {
 		getCardName({ id: 'atlas', input: { title: 'Atlas' } }, cardFormat);
 		await finishBuild(hooks);
 
-		const manifest = await readDistManifest({ cachePath: root, distPath: path.join(root, 'dist') });
+		const manifest = await readDistManifest({ distPath: path.join(root, 'dist'), storePath: root });
 
 		expect(use).not.toHaveBeenCalled();
 		expect(Object.keys(manifest.cards)).toEqual(['atlas.jpg']);
@@ -326,14 +326,14 @@ describe('imagePipeline build manifests', () => {
 		const first = await buildOnce('a.jpg');
 		const second = await buildOnce('b.jpg');
 
-		const latest = await readDistManifest({ cachePath: root, distPath });
+		const latest = await readDistManifest({ distPath, storePath: root });
 
 		expect(latest.buildId).toBe(second);
 		expect(latest.renditions).toStrictEqual({ 'b-600x400.webp': 'b.jpg' });
 
 		await writeBuildId(distPath, first);
 
-		const previous = await readDistManifest({ cachePath: root, distPath });
+		const previous = await readDistManifest({ distPath, storePath: root });
 
 		expect(previous.buildId).toBe(first);
 		expect(previous.renditions).toStrictEqual({ 'a-600x400.webp': 'a.jpg' });

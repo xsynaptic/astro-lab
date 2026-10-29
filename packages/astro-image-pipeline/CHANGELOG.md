@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.10.0
+
+### Minor Changes
+
+- Breaking: `cachePath` is now `storePath`. `prepareImageSweep` takes `live`, `previous` and `retentionDays` instead of `keep`, sweeps cards too, deletes superseded renditions at once, and returns `{ renditions, cards }`
+
 ## 0.9.0
 
 ### Minor Changes

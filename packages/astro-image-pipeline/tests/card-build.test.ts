@@ -10,7 +10,7 @@ import type { Card } from '../src/card-name.js';
 import { getCardKey, prepareCardRender } from '../src/card-build.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
 import {
-	getImageCachePaths,
+	getImageStorePaths,
 	imageManifestVersion,
 	writeBuildId,
 	writeImageManifest,
@@ -50,11 +50,11 @@ function createDecode() {
 
 function prepare(options: Partial<CardRenderOptions<string>> = {}) {
 	return prepareCardRender<string>({
-		cachePath: root,
 		decode: createDecode(),
 		distPath,
 		render: (input, decoded = 'none') =>
 			Promise.resolve(new TextEncoder().encode(`${JSON.stringify(input.title)}|${decoded}`)),
+		storePath: root,
 		templateVersion: 'template-1',
 		...options,
 	});
@@ -70,7 +70,7 @@ beforeEach(async () => {
 	root = await fs.mkdtemp(path.join(tmpdir(), 'card-build-'));
 	mediaPath = path.join(root, 'media');
 	distPath = path.join(root, 'dist');
-	directory = getImageCachePaths(root).cardsPath;
+	directory = getImageStorePaths(root).cardsPath;
 	await fs.mkdir(mediaPath);
 	await fs.mkdir(distPath);
 	await sharp({ create: { background: '#336699', channels: 3, height: 40, width: 60 } })

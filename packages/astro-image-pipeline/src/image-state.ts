@@ -28,8 +28,8 @@ export interface ImageManifest {
 }
 
 export interface ImageRenderTarget {
-	cachePath: string;
 	distPath: string;
+	storePath: string;
 }
 
 export interface ImageBuild {
@@ -37,39 +37,48 @@ export interface ImageBuild {
 	writtenAt: Date;
 }
 
-export function getCacheLayout(cachePath: string) {
+export function getStoreLayout(storePath: string) {
 	return {
-		cardsPath: path.join(cachePath, 'cards'),
-		devPath: path.join(cachePath, 'dev'),
-		manifestsPath: path.join(cachePath, 'manifests'),
-		placeholdersPath: path.join(cachePath, 'placeholders.sqlite'),
-		recordsPath: path.join(cachePath, 'records'),
-		renditionsPath: path.join(cachePath, 'renditions'),
+		cardsPath: path.join(storePath, 'cards'),
+		devPath: path.join(storePath, 'dev'),
+		manifestsPath: path.join(storePath, 'manifests'),
+		placeholdersPath: path.join(storePath, 'placeholders.sqlite'),
+		recordsPath: path.join(storePath, 'records'),
+		renditionsPath: path.join(storePath, 'renditions'),
 	};
 }
 
-export function getImageCachePaths(cachePath: string) {
-	const { cardsPath, renditionsPath } = getCacheLayout(cachePath);
+export function getImageStorePaths(storePath: string) {
+	const { cardsPath, renditionsPath } = getStoreLayout(storePath);
 
 	return { cardsPath, renditionsPath };
 }
 
-function getManifestPath(cachePath: string, buildId: string) {
-	return path.join(getCacheLayout(cachePath).manifestsPath, `${buildId}${imageManifestExtension}`);
+function getManifestPath(storePath: string, buildId: string) {
+	return path.join(getStoreLayout(storePath).manifestsPath, `${buildId}${imageManifestExtension}`);
 }
 
 function isCurrentManifest(manifest: { version?: number }): manifest is ImageManifest {
 	return manifest.version === imageManifestVersion;
 }
 
-async function readImageManifest(cachePath: string, buildId: string) {
-	const manifestPath = getManifestPath(cachePath, buildId);
+async function readManifestFile(manifestPath: string) {
 	const data = await readFileIfExists(manifestPath);
 
 	if (!data) return;
 
 	const json = await gunzipAsync(data);
-	const manifest = JSON.parse(json.toString('utf8')) as { version?: number };
+
+	return JSON.parse(json.toString('utf8')) as Partial<
+		Pick<ImageManifest, 'cards' | 'mediaPath' | 'renditions'>
+	> & { version?: number };
+}
+
+async function readImageManifest(storePath: string, buildId: string) {
+	const manifestPath = getManifestPath(storePath, buildId);
+	const manifest = await readManifestFile(manifestPath);
+
+	if (!manifest) return;
 
 	if (!isCurrentManifest(manifest)) {
 		throw new UserError(
@@ -80,15 +89,15 @@ async function readImageManifest(cachePath: string, buildId: string) {
 	return manifest;
 }
 
-export async function writeImageManifest(cachePath: string, manifest: ImageManifest) {
+export async function writeImageManifest(storePath: string, manifest: ImageManifest) {
 	await writeFileAtomic(
-		getManifestPath(cachePath, manifest.buildId),
+		getManifestPath(storePath, manifest.buildId),
 		await gzipAsync(JSON.stringify(manifest)),
 	);
 }
 
-export async function listImageBuilds(cachePath: string) {
-	const { manifestsPath } = getCacheLayout(path.resolve(cachePath));
+export async function listImageBuilds(storePath: string) {
+	const { manifestsPath } = getStoreLayout(path.resolve(storePath));
 	const entries = await readDirectoryIfExists(manifestsPath);
 	const builds = await Promise.all(
 		entries
@@ -103,12 +112,12 @@ export async function listImageBuilds(cachePath: string) {
 	return builds.toSorted((first, second) => second.writtenAt.getTime() - first.writtenAt.getTime());
 }
 
-export async function readLatestManifest(cachePath: string) {
-	const [latest] = await listImageBuilds(cachePath);
+export async function readLatestManifest(storePath: string) {
+	const [latest] = await listImageBuilds(storePath);
 
 	if (!latest) return;
 
-	return readImageManifest(path.resolve(cachePath), latest.buildId);
+	return readImageManifest(path.resolve(storePath), latest.buildId);
 }
 
 async function readBuildId(distPath: string) {
@@ -121,36 +130,45 @@ export async function writeBuildId(distPath: string, buildId: string) {
 	await fs.writeFile(path.join(distPath, imageBuildIdFile), buildId);
 }
 
-export async function readBuildManifest(cachePath: string, buildId: string) {
-	const manifest = await readImageManifest(path.resolve(cachePath), buildId);
+export async function readBuildNames(storePath: string, buildId: string) {
+	const manifestPath = getManifestPath(storePath, buildId);
+	const manifest = await readManifestFile(manifestPath);
 
-	if (!manifest) throw new UserError(`No image manifest for build ${buildId} in ${cachePath}`);
+	if (!manifest) throw new UserError(`No image manifest for build ${buildId} in ${storePath}`);
 
-	return manifest;
+	if (!manifest.renditions || manifest.mediaPath === undefined) {
+		throw new UserError(`The image manifest ${manifestPath} lists no renditions; rebuild first`);
+	}
+
+	return {
+		cards: Object.keys(manifest.cards ?? {}),
+		mediaPath: manifest.mediaPath,
+		renditions: manifest.renditions,
+	};
 }
 
-export async function dropImageManifests(cachePath: string, buildIds: ReadonlyArray<string>) {
-	await Promise.all(buildIds.map((buildId) => fs.rm(getManifestPath(cachePath, buildId))));
+export async function dropImageManifests(storePath: string, buildIds: ReadonlyArray<string>) {
+	await Promise.all(buildIds.map((buildId) => fs.rm(getManifestPath(storePath, buildId))));
 }
 
-export async function findDistManifest({ cachePath, distPath }: ImageRenderTarget) {
+export async function findDistManifest({ distPath, storePath }: ImageRenderTarget) {
 	const buildId = await readBuildId(distPath);
 
 	if (!buildId) return;
 
-	return readImageManifest(path.resolve(cachePath), buildId);
+	return readImageManifest(path.resolve(storePath), buildId);
 }
 
-export async function readDistManifest({ cachePath, distPath }: ImageRenderTarget) {
+export async function readDistManifest({ distPath, storePath }: ImageRenderTarget) {
 	const buildId = await readBuildId(distPath);
 
 	if (!buildId) throw new UserError(`${distPath} has no ${imageBuildIdFile}; build first`);
 
-	const manifest = await readImageManifest(path.resolve(cachePath), buildId);
+	const manifest = await readImageManifest(path.resolve(storePath), buildId);
 
 	if (!manifest) {
 		throw new UserError(
-			`No image manifest for build ${buildId} (from ${distPath}) in ${cachePath}; rebuild first`,
+			`No image manifest for build ${buildId} (from ${distPath}) in ${storePath}; rebuild first`,
 		);
 	}
 

@@ -18,7 +18,7 @@ function createResolver(builtPath?: string, sources = createDirectorySources(med
 	const render = vi.fn(renderImage);
 	const getDevImage = createDevImageResolver({
 		builtPath,
-		cachePath: path.join(rootPath, 'cache'),
+		devPath: path.join(rootPath, 'cache'),
 		encoding: resolveImageEncoding(),
 		limitInputPixels: 268_402_689,
 		mediaPath,

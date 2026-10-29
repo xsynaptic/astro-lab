@@ -1,6 +1,6 @@
 import type { JpegOptions, WebpOptions } from 'sharp';
 
-// Part of every cache key; bump it when a render change alters the output bytes
+// Part of every render key; bump it when a render change alters the output bytes
 export const imageRenderRevision = 3;
 
 export interface ImageEncoding {

@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -9,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import type { RenditionRenderRunOptions } from '../src/image-build.js';
 import type { ImageManifest } from '../src/image-state.js';
 
+import { readFileRecords, writeFileRecords } from '../src/file-store.js';
 import { readFileIfExists } from '../src/files.js';
 import { getRenditionKey, prepareRenditionRender } from '../src/image-build.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
@@ -86,7 +88,7 @@ async function writeSource(width: number, height: number) {
 }
 
 async function render(options: RenditionRenderRunOptions = {}) {
-	const prepared = await prepareRenditionRender({ cachePath: root, distPath });
+	const prepared = await prepareRenditionRender({ distPath, storePath: root });
 
 	return prepared.run(options);
 }
@@ -126,7 +128,7 @@ afterEach(async () => {
 describe('prepareRenditionRender', () => {
 	test('knows the total before anything renders', async () => {
 		const names = await writeBuild();
-		const prepared = await prepareRenditionRender({ cachePath: root, distPath });
+		const prepared = await prepareRenditionRender({ distPath, storePath: root });
 
 		expect(prepared.total).toBe(names.length);
 		expect(await listFiles()).toEqual([]);
@@ -173,6 +175,31 @@ describe('prepareRenditionRender', () => {
 
 		expect(counts.overwritten).toBe(names.length);
 		expect(sortNames(replaced)).toEqual(sortNames(names));
+	});
+
+	test('every file records its source digest, fresh ones included, keeping its age', async () => {
+		const [name = ''] = await writeBuild(['450.webp']);
+
+		await render();
+
+		const records = await readFileRecords(renditionsPath);
+		const { key = '' } = records.get(name) ?? {};
+		const digest = createHash('sha256')
+			.update(await fs.readFile(path.join(mediaPath, sourcePath)))
+			.digest('hex');
+
+		await writeFileRecords(renditionsPath, new Map([[name, { key, namedAt: 'then' }]]));
+
+		const counts = await render();
+
+		expect(counts.fresh).toBe(1);
+		const rerecorded = await readFileRecords(renditionsPath);
+
+		expect(rerecorded.get(name)).toStrictEqual({
+			key,
+			namedAt: 'then',
+			source: { digest, path: sourcePath },
+		});
 	});
 
 	test('an identical regeneration leaves the file and its mtime alone', async () => {

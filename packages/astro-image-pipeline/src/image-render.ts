@@ -37,7 +37,7 @@ export async function renderImage(
 			: { fastShrinkOnLoad: false, fit: 'cover', height, width },
 	);
 
-	// A no-op on opaque sources, so the background stays out of the cache key
+	// A no-op on opaque sources, so the background stays out of the render key
 	if (format === 'jpg') {
 		return stage
 			.flatten({ background: '#ffffff' })

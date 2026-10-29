@@ -25,10 +25,10 @@ async function getFileStats(filePath: string) {
 	}
 }
 
-function openDatabase(cachePath: string) {
-	mkdirSync(cachePath, { recursive: true });
+function openDatabase(storePath: string) {
+	mkdirSync(storePath, { recursive: true });
 
-	const database = new DatabaseSync(path.join(cachePath, 'source-fingerprints.sqlite'));
+	const database = new DatabaseSync(path.join(storePath, 'source-fingerprints.sqlite'));
 
 	database.exec(
 		'PRAGMA busy_timeout = 10000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL',
@@ -40,8 +40,8 @@ function openDatabase(cachePath: string) {
 	return database;
 }
 
-export function createSourceFingerprints(cachePath: string): SourceFingerprints {
-	const database = openDatabase(cachePath);
+export function createSourceFingerprints(storePath: string): SourceFingerprints {
+	const database = openDatabase(storePath);
 	const selectStatement = database.prepare(
 		'SELECT sha256, width, height FROM fingerprints WHERE path = ? AND version = ?',
 	);

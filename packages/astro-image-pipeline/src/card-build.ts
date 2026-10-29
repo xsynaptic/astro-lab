@@ -6,7 +6,7 @@ import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { engineId } from './image-render.js';
-import { getCacheLayout, readDistManifest } from './image-state.js';
+import { getStoreLayout, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { runRenderJobs } from './run-render-jobs.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
@@ -108,20 +108,20 @@ function createGroupDecoder<Decoded>({
 }
 
 async function createCardJobs<Decoded>({
-	cachePath,
 	decode,
 	groups,
 	mediaPath,
 	missingImage,
 	render,
+	storePath,
 	templateVersion,
 }: Pick<CardRenderOptions<Decoded>, 'decode' | 'render' | 'templateVersion'> & {
-	cachePath: string;
 	groups: ReadonlyArray<CardGroup>;
 	mediaPath: string;
 	missingImage: MissingImagePolicy;
+	storePath: string;
 }) {
-	const fingerprints = createSourceFingerprints(cachePath);
+	const fingerprints = createSourceFingerprints(storePath);
 	const getDecoded = createGroupDecoder({ decode, missingImage });
 	const jobs: Array<RenderJob> = [];
 	const missingImages = new Map<string, Array<string>>();
@@ -167,24 +167,24 @@ async function createCardJobs<Decoded>({
 }
 
 export async function prepareCardRender<Decoded>({
-	cachePath,
 	decode,
 	distPath,
 	missingImage = 'fail',
 	render,
+	storePath,
 	templateVersion,
 }: CardRenderOptions<Decoded>) {
-	const resolvedCachePath = path.resolve(cachePath);
-	const { cardsPath } = getCacheLayout(resolvedCachePath);
-	const manifest = await readDistManifest({ cachePath: resolvedCachePath, distPath });
+	const resolvedStorePath = path.resolve(storePath);
+	const { cardsPath } = getStoreLayout(resolvedStorePath);
+	const manifest = await readDistManifest({ distPath, storePath: resolvedStorePath });
 	const groups = groupByImage(manifest.cards);
 	const { jobs, missingImages } = await createCardJobs({
-		cachePath: resolvedCachePath,
 		decode,
 		groups,
 		mediaPath: manifest.mediaPath,
 		missingImage,
 		render,
+		storePath: resolvedStorePath,
 		templateVersion,
 	});
 

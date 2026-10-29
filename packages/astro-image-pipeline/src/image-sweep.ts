@@ -1,20 +1,27 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { pruneFileCache } from './file-cache.js';
+import type { FileRecord } from './file-store.js';
+import type { ImageBuild } from './image-state.js';
+
+import { readFileRecords, writeFileRecords } from './file-store.js';
 import { readDirectoryTreeIfExists, statIfExists } from './files.js';
+import { parseRenditionName } from './image-name.js';
 import {
 	dropImageManifests,
-	getCacheLayout,
+	getStoreLayout,
 	listImageBuilds,
-	readBuildManifest,
+	readBuildNames,
 } from './image-state.js';
 import { withRenderLock } from './render-lock.js';
+import { createSourceFingerprints } from './source-fingerprints.js';
 import { UserError } from './user-error.js';
 
 export interface ImageSweepOptions {
-	cachePath: string;
-	keep: ReadonlyArray<string>;
+	live: string;
+	previous?: string;
+	retentionDays: { cards: number; renditions: number };
+	storePath: string;
 }
 
 export interface ImageSweepFile {
@@ -22,27 +29,129 @@ export interface ImageSweepFile {
 	size: number;
 }
 
-async function resolveKeep(cachePath: string, keep: ReadonlyArray<string>) {
-	const builds = await listImageBuilds(cachePath);
-	const [newest] = builds;
-	const buildIds = new Set(keep);
-
-	if (newest) buildIds.add(newest.buildId);
-
-	if (buildIds.size === 0) throw new UserError(`${cachePath} has no image builds to keep`);
-
-	const manifests = await Promise.all(
-		[...buildIds].map((buildId) => readBuildManifest(cachePath, buildId)),
-	);
-	const names = new Set(manifests.flatMap((manifest) => Object.keys(manifest.renditions)));
-
-	const dropped = builds.map((build) => build.buildId).filter((buildId) => !buildIds.has(buildId));
-
-	return { dropped, names };
+export interface ImageSweepPlan {
+	deletions: ReadonlyArray<ImageSweepFile>;
+	directory: string;
+	total: number;
 }
 
-function isSwept(name: string, keep: ReadonlySet<string>) {
-	return name.endsWith('.tmp') || !keep.has(name);
+interface DirectoryPlan extends ImageSweepPlan {
+	names: ReadonlyArray<string>;
+	records: ReadonlyMap<string, FileRecord>;
+}
+
+interface NamedBuild extends ImageBuild {
+	names: Awaited<ReturnType<typeof readBuildNames>>;
+}
+
+interface SweepRules {
+	cutoff: number;
+	kept: ReadonlySet<string>;
+	records: ReadonlyMap<string, FileRecord>;
+	superseded: ReadonlySet<string>;
+}
+
+const dayMilliseconds = 24 * 60 * 60 * 1000;
+
+async function readNamedBuilds(storePath: string) {
+	const builds = await listImageBuilds(storePath);
+
+	return Promise.all(
+		builds.map(async (build): Promise<NamedBuild> => ({
+			...build,
+			names: await readBuildNames(storePath, build.buildId),
+		})),
+	);
+}
+
+function findBuild(builds: ReadonlyArray<NamedBuild>, storePath: string, buildId: string) {
+	const build = builds.find((candidate) => candidate.buildId === buildId);
+
+	if (!build) throw new UserError(`No image manifest for build ${buildId} in ${storePath}`);
+
+	return build;
+}
+
+function stampNamedAt(
+	records: ReadonlyMap<string, FileRecord>,
+	builds: ReadonlyArray<NamedBuild>,
+	getNames: (build: NamedBuild) => ReadonlyArray<string>,
+	now: Date,
+) {
+	for (const build of builds) {
+		for (const name of getNames(build)) {
+			const record = records.get(name);
+
+			if (!record) continue;
+
+			if (record.namedAt === undefined || Date.parse(record.namedAt) < build.writtenAt.getTime()) {
+				record.namedAt = build.writtenAt.toISOString();
+			}
+		}
+	}
+
+	for (const record of records.values()) {
+		if (record.namedAt === undefined) record.namedAt = now.toISOString();
+	}
+}
+
+async function findSupersededRenditions(
+	storePath: string,
+	records: ReadonlyMap<string, FileRecord>,
+	live: NamedBuild['names'],
+) {
+	const liveSources = new Map<string, string>();
+	const digests = new Map<string, string | undefined>();
+	const superseded = new Set<string>();
+	const fingerprints = createSourceFingerprints(storePath);
+
+	for (const [name, sourcePath] of Object.entries(live.renditions)) {
+		const stem = parseRenditionName(name)?.stem;
+
+		if (stem !== undefined) liveSources.set(stem, sourcePath);
+	}
+
+	async function readDigest(sourcePath: string) {
+		if (!digests.has(sourcePath)) {
+			const fingerprint = await fingerprints.get(path.resolve(live.mediaPath, sourcePath));
+
+			digests.set(sourcePath, fingerprint?.sha256);
+		}
+
+		return digests.get(sourcePath);
+	}
+
+	try {
+		for (const [name, { source }] of records) {
+			if (!source || Object.hasOwn(live.renditions, name)) continue;
+
+			const stem = parseRenditionName(name)?.stem;
+			const liveSource = stem === undefined ? undefined : liveSources.get(stem);
+
+			if (liveSource !== undefined && liveSource !== source.path) {
+				superseded.add(name);
+				continue;
+			}
+
+			if ((await readDigest(source.path)) !== source.digest) superseded.add(name);
+		}
+	} finally {
+		fingerprints.close();
+	}
+
+	return superseded;
+}
+
+function isSwept(name: string, rules: SweepRules) {
+	if (name.endsWith('.tmp')) return true;
+
+	if (rules.superseded.has(name)) return true;
+
+	if (rules.kept.has(name)) return false;
+
+	const namedAt = rules.records.get(name)?.namedAt;
+
+	return namedAt === undefined || Date.parse(namedAt) < rules.cutoff;
 }
 
 async function listFiles(directory: string) {
@@ -51,6 +160,64 @@ async function listFiles(directory: string) {
 	return entries
 		.filter((entry) => entry.isFile())
 		.map((entry) => path.relative(directory, path.join(entry.parentPath, entry.name)));
+}
+
+async function planDirectory(directory: string, rules: SweepRules): Promise<DirectoryPlan> {
+	const names = await listFiles(directory);
+	const sizes = await Promise.all(
+		names
+			.filter((name) => isSwept(name, rules))
+			.map(async (name) => {
+				const stats = await statIfExists(path.join(directory, name));
+
+				return stats ? [{ name, size: stats.size }] : [];
+			}),
+	);
+
+	return {
+		deletions: sizes.flat(),
+		directory,
+		names,
+		records: rules.records,
+		total: names.length,
+	};
+}
+
+async function planSweep(storePath: string, { live, previous, retentionDays }: ImageSweepOptions) {
+	const { cardsPath, renditionsPath } = getStoreLayout(storePath);
+	const now = new Date();
+	const builds = await readNamedBuilds(storePath);
+	const liveBuild = findBuild(builds, storePath, live);
+	const keptBuilds = [
+		liveBuild,
+		...(previous === undefined ? [] : [findBuild(builds, storePath, previous)]),
+		...builds.slice(0, 1),
+	];
+	const keptIds = new Set(keptBuilds.map((build) => build.buildId));
+	const renditionRecords = await readFileRecords(renditionsPath);
+	const cardRecords = await readFileRecords(cardsPath);
+
+	stampNamedAt(renditionRecords, builds, (build) => Object.keys(build.names.renditions), now);
+	stampNamedAt(cardRecords, builds, (build) => build.names.cards, now);
+
+	const renditions = await planDirectory(renditionsPath, {
+		cutoff: now.getTime() - retentionDays.renditions * dayMilliseconds,
+		kept: new Set(keptBuilds.flatMap((build) => Object.keys(build.names.renditions))),
+		records: renditionRecords,
+		superseded: await findSupersededRenditions(storePath, renditionRecords, liveBuild.names),
+	});
+	const cards = await planDirectory(cardsPath, {
+		cutoff: now.getTime() - retentionDays.cards * dayMilliseconds,
+		kept: new Set(keptBuilds.flatMap((build) => build.names.cards)),
+		records: cardRecords,
+		superseded: new Set(),
+	});
+
+	return {
+		cards,
+		dropped: builds.map((build) => build.buildId).filter((buildId) => !keptIds.has(buildId)),
+		renditions,
+	};
 }
 
 async function removeEmptyDirectories(directory: string) {
@@ -67,40 +234,52 @@ async function removeEmptyDirectories(directory: string) {
 	}
 }
 
-export async function prepareImageSweep({ cachePath, keep }: ImageSweepOptions) {
-	const resolvedCachePath = path.resolve(cachePath);
-	const { renditionsPath } = getCacheLayout(resolvedCachePath);
-	const kept = await resolveKeep(resolvedCachePath, keep);
-	const names = await listFiles(renditionsPath);
-	const sizes = await Promise.all(
-		names
-			.filter((name) => isSwept(name, kept.names))
-			.map(async (name) => {
-				const stats = await statIfExists(path.join(renditionsPath, name));
+function toPlan({ deletions, directory, total }: ImageSweepPlan): ImageSweepPlan {
+	return { deletions, directory, total };
+}
 
-				return stats ? [{ name, size: stats.size }] : [];
-			}),
+async function sweepDirectory(planned: ImageSweepPlan, current: DirectoryPlan) {
+	const plannedNames = new Set(planned.deletions.map((file) => file.name));
+	const removed = current.deletions.filter((file) => plannedNames.has(file.name));
+	const removedNames = new Set(removed.map((file) => file.name));
+
+	await Promise.all(
+		removed.map((file) => fs.rm(path.join(current.directory, file.name), { force: true })),
 	);
-	const deletions: ReadonlyArray<ImageSweepFile> = sizes.flat();
+	await removeEmptyDirectories(current.directory);
 
-	function run() {
-		return withRenderLock(renditionsPath, async () => {
-			const current = await resolveKeep(resolvedCachePath, keep);
-			const removed = deletions.filter((file) => isSwept(file.name, current.names));
+	if (current.records.size > 0) {
+		const remaining = new Set(current.names.filter((name) => !removedNames.has(name)));
 
-			await Promise.all(
-				removed.map((file) => fs.rm(path.join(renditionsPath, file.name), { force: true })),
-			);
-			await removeEmptyDirectories(renditionsPath);
-			await pruneFileCache(renditionsPath, current.names);
-
-			await dropImageManifests(resolvedCachePath, current.dropped);
-
-			return { deletions: removed, droppedBuilds: current.dropped, keep: current.names };
-		});
+		await writeFileRecords(
+			current.directory,
+			new Map([...current.records].filter(([name]) => remaining.has(name))),
+		);
 	}
 
-	return { deletions, directory: renditionsPath, keep: kept.names, run, total: names.length };
+	return toPlan({ ...current, deletions: removed });
+}
+
+export async function prepareImageSweep(options: ImageSweepOptions) {
+	const storePath = path.resolve(options.storePath);
+	const { cardsPath, renditionsPath } = getStoreLayout(storePath);
+	const planned = await planSweep(storePath, options);
+
+	function run() {
+		return withRenderLock(renditionsPath, () =>
+			withRenderLock(cardsPath, async () => {
+				const current = await planSweep(storePath, options);
+				const renditions = await sweepDirectory(planned.renditions, current.renditions);
+				const cards = await sweepDirectory(planned.cards, current.cards);
+
+				await dropImageManifests(storePath, current.dropped);
+
+				return { cards, droppedBuilds: current.dropped, renditions };
+			}),
+		);
+	}
+
+	return { cards: toPlan(planned.cards), renditions: toPlan(planned.renditions), run };
 }
 
 export type PreparedImageSweep = Awaited<ReturnType<typeof prepareImageSweep>>;

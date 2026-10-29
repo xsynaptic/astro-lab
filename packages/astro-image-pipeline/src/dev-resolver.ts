@@ -11,7 +11,7 @@ import { isWithinSource } from './image-sizes.js';
 
 interface DevImageOptions {
 	builtPath: string | undefined;
-	cachePath: string;
+	devPath: string;
 	encoding: ResolvedImageEncoding;
 	limitInputPixels: number;
 	mediaPath: string;
@@ -58,7 +58,7 @@ async function writeImage(target: string, data: Uint8Array) {
 
 export function createDevImageResolver({
 	builtPath,
-	cachePath,
+	devPath,
 	encoding,
 	limitInputPixels,
 	mediaPath,
@@ -86,7 +86,7 @@ export function createDevImageResolver({
 			if (await isNewerThanSource(built, sourceFilePath)) return built;
 		}
 
-		const target = path.join(cachePath, name);
+		const target = path.join(devPath, name);
 
 		if (await isNewerThanSource(target, sourceFilePath)) return target;
 

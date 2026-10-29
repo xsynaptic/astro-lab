@@ -7,7 +7,7 @@ import sharp from 'sharp';
 
 import type { ImageFormat, RenditionName } from './image-name.js';
 import type { ImageManifest, ImageRenderTarget } from './image-state.js';
-import type { RenderJobOptions } from './run-render-jobs.js';
+import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { formatList } from './format.js';
@@ -15,7 +15,7 @@ import { imageRenderRevision, serializeEncoding } from './image-encoding.js';
 import { parseRenditionName } from './image-name.js';
 import { engineId, renderImage } from './image-render.js';
 import { isWithinSource } from './image-sizes.js';
-import { getCacheLayout, readDistManifest } from './image-state.js';
+import { getStoreLayout, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { getDefaultConcurrency, runRenderJobs } from './run-render-jobs.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
@@ -139,16 +139,16 @@ function assertEncodedSize(rendition: ImageRendition, info: OutputInfo) {
 	throw new Error(`encoded ${String(info.width)}x${String(info.height)}`);
 }
 
-function getManifestRenditionKey(
+function createRenditionJob(
 	rendition: ImageRendition,
 	manifest: ImageManifest,
 	digests: ReadonlyMap<string, string>,
-) {
+): RenderJob {
 	const digest = digests.get(rendition.sourcePath);
 
 	if (!digest) throw new Error(`no digest was read for source ${rendition.sourcePath}`);
 
-	return getRenditionKey({
+	const key = getRenditionKey({
 		digest,
 		encoding: manifest.encoding[rendition.format],
 		engine: engineId,
@@ -156,6 +156,13 @@ function getManifestRenditionKey(
 		height: rendition.height,
 		width: rendition.width,
 	});
+
+	return {
+		key,
+		name: rendition.name,
+		render: () => encodeRendition(rendition, manifest),
+		source: { digest, path: rendition.sourcePath },
+	};
 }
 
 async function encodeRendition(rendition: ImageRendition, manifest: ImageManifest) {
@@ -172,19 +179,15 @@ async function encodeRendition(rendition: ImageRendition, manifest: ImageManifes
 	return data;
 }
 
-async function readImageJobs({ cachePath, distPath }: ImageRenderTarget, concurrency: number) {
-	const { renditionsPath } = getCacheLayout(cachePath);
-	const manifest = await readDistManifest({ cachePath, distPath });
+async function readImageJobs({ distPath, storePath }: ImageRenderTarget, concurrency: number) {
+	const { renditionsPath } = getStoreLayout(storePath);
+	const manifest = await readDistManifest({ distPath, storePath });
 	const renditions = getManifestRenditions(manifest);
-	const fingerprints = createSourceFingerprints(cachePath);
+	const fingerprints = createSourceFingerprints(storePath);
 
 	try {
 		const digests = await readSourceDigests(fingerprints, manifest, { concurrency, renditions });
-		const jobs = renditions.map((rendition) => ({
-			key: getManifestRenditionKey(rendition, manifest, digests),
-			name: rendition.name,
-			render: () => encodeRendition(rendition, manifest),
-		}));
+		const jobs = renditions.map((rendition) => createRenditionJob(rendition, manifest, digests));
 
 		return { directory: renditionsPath, jobs };
 	} finally {
@@ -192,11 +195,11 @@ async function readImageJobs({ cachePath, distPath }: ImageRenderTarget, concurr
 	}
 }
 
-export async function prepareRenditionRender({ cachePath, distPath }: ImageRenderTarget) {
-	const resolvedCachePath = path.resolve(cachePath);
+export async function prepareRenditionRender({ distPath, storePath }: ImageRenderTarget) {
+	const resolvedStorePath = path.resolve(storePath);
 	const concurrency = getDefaultConcurrency();
 	const { directory, jobs } = await readImageJobs(
-		{ cachePath: resolvedCachePath, distPath },
+		{ distPath, storePath: resolvedStorePath },
 		concurrency,
 	);
 
@@ -216,7 +219,7 @@ export async function prepareRenditionRender({ cachePath, distPath }: ImageRende
 		});
 
 		// Dev serves built renditions first, so its own renders are redundant now
-		await fs.rm(getCacheLayout(resolvedCachePath).devPath, { force: true, recursive: true });
+		await fs.rm(getStoreLayout(resolvedStorePath).devPath, { force: true, recursive: true });
 
 		return counts;
 	}

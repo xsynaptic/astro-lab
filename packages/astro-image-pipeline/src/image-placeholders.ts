@@ -11,7 +11,7 @@ import type { SourceFingerprints } from './source-fingerprints.js';
 
 import { openImageSource } from './image-render.js';
 import { formatSize, getSourcePath, isPixelCount, isWholeSize } from './image-sizes.js';
-import { getCacheLayout } from './image-state.js';
+import { getStoreLayout } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { createSourceFingerprints } from './source-fingerprints.js';
 import { UserError } from './user-error.js';
@@ -30,9 +30,9 @@ export interface ImagePlaceholderOptions {
 type PlaceholderLook = Omit<ImagePlaceholderOptions, 'pixels'>;
 
 export interface PlaceholderConfig extends ImagePlaceholderOptions {
-	cachePath: string;
 	limitInputPixels: number;
 	mediaPath: string;
+	storePath: string;
 }
 
 export interface ImagePlaceholderRequest {
@@ -118,9 +118,9 @@ export function getPlaceholderKey({
 function openPlaceholderStore(variable: string): PlaceholderStore {
 	const config = JSON.parse(variable) as PlaceholderConfig;
 
-	mkdirSync(config.cachePath, { recursive: true });
+	mkdirSync(config.storePath, { recursive: true });
 
-	const database = new DatabaseSync(getCacheLayout(config.cachePath).placeholdersPath);
+	const database = new DatabaseSync(getStoreLayout(config.storePath).placeholdersPath);
 
 	database.exec(
 		'PRAGMA busy_timeout = 10000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL',
@@ -132,7 +132,7 @@ function openPlaceholderStore(variable: string): PlaceholderStore {
 		'INSERT INTO placeholders (key, data_url) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET data_url = excluded.data_url',
 	);
 
-	const fingerprints = createSourceFingerprints(config.cachePath);
+	const fingerprints = createSourceFingerprints(config.storePath);
 
 	return {
 		close() {

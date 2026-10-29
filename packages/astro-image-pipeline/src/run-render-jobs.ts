@@ -2,15 +2,15 @@ import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import pLimit from 'p-limit';
 
-import { createFileCache } from './file-cache.js';
+import type { StoredFile } from './file-store.js';
+
+import { createFileStore } from './file-store.js';
 import { formatList } from './format.js';
 import { withRenderLock } from './render-lock.js';
 
 const saveInterval = 10_000;
 
-export interface RenderJob {
-	key: string;
-	name: string;
+export interface RenderJob extends StoredFile {
 	render: () => Promise<Uint8Array>;
 }
 
@@ -57,7 +57,7 @@ async function runJobs({
 	signal,
 }: RenderJobOptions) {
 	const counts: RenderCounts = { fresh: 0, overwritten: 0, rendered: 0, written: 0 };
-	const cache = await createFileCache({
+	const store = await createFileStore({
 		directory,
 		onReplace: async (name) => {
 			counts.overwritten++;
@@ -66,21 +66,22 @@ async function runJobs({
 	});
 	const limit = pLimit(concurrency);
 	const saveLimit = pLimit(1);
-	const save = () => saveLimit(() => cache.save());
+	const save = () => saveLimit(() => store.save());
 	const failures: Array<RenderFailure> = [];
 	let done = 0;
 	let lastSave = Date.now();
 
 	async function runJob(job: RenderJob) {
-		if (cache.isFresh(job.name, job.key)) {
+		if (store.isFresh(job.name, job.key)) {
 			counts.fresh++;
+			store.record(job);
 			return;
 		}
 
 		const data = await job.render();
 
 		counts.rendered++;
-		if (await cache.write(job.name, job.key, data)) counts.written++;
+		if (await store.write(job, data)) counts.written++;
 	}
 
 	await Promise.all(

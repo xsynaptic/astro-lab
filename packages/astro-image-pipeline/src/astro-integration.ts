@@ -19,7 +19,7 @@ import { imageRecordsVariable } from './image-recorder.js';
 import { readImageRecords, resetImageRecords } from './image-records.js';
 import { createDirectorySources } from './image-sources.js';
 import {
-	getCacheLayout,
+	getStoreLayout,
 	imageManifestVersion,
 	readLatestManifest,
 	writeBuildId,
@@ -34,12 +34,12 @@ export { createDirectorySources } from './image-sources.js';
 
 export interface ImagePipelineOptions {
 	baseUrl?: string;
-	cachePath: string;
 	encoding?: ImageEncoding;
 	limitInputPixels?: number;
 	mediaPath: string;
 	placeholders?: ImagePlaceholderOptions;
 	sources?: ImageSourceResolver;
+	storePath: string;
 }
 
 const sharpDefaultInputPixelLimit = 0x3f_ff * 0x3f_ff;
@@ -52,9 +52,9 @@ function decodeImageName(pathname: string) {
 	}
 }
 
-async function readPreviousManifest(cachePath: string) {
+async function readPreviousManifest(storePath: string) {
 	try {
-		return await readLatestManifest(cachePath);
+		return await readLatestManifest(storePath);
 	} catch (error) {
 		if (error instanceof UserError) return;
 
@@ -63,17 +63,17 @@ async function readPreviousManifest(cachePath: string) {
 }
 
 async function readRecorded({
-	cachePath,
 	isIncremental,
 	logger,
 	pageCount,
 	recordsPath,
+	storePath,
 }: {
-	cachePath: string;
 	isIncremental: boolean;
 	logger: AstroIntegrationLogger;
 	pageCount: number;
 	recordsPath: string;
+	storePath: string;
 }) {
 	const recorded = await readImageRecords(recordsPath);
 
@@ -83,7 +83,7 @@ async function readRecorded({
 			"Incremental build: pages restored from cache record nothing, so the manifest keeps the previous build's names too; names only fall out on a full build",
 		);
 
-		const previous = await readPreviousManifest(cachePath);
+		const previous = await readPreviousManifest(storePath);
 
 		return {
 			cards: new Map([...Object.entries(previous?.cards ?? {}), ...recorded.cards]),
@@ -101,13 +101,12 @@ async function readRecorded({
 }
 
 async function writeBuildManifest({
-	cachePath,
 	distPath,
 	logger,
 	manifest,
 	recorded: { cards, renditions },
+	storePath,
 }: {
-	cachePath: string;
 	distPath: string;
 	logger: AstroIntegrationLogger;
 	manifest: Pick<ImageManifest, 'encoding' | 'limitInputPixels' | 'mediaPath'>;
@@ -115,10 +114,11 @@ async function writeBuildManifest({
 		cards: ReadonlyMap<string, Card>;
 		renditions: ReadonlyMap<string, string>;
 	};
+	storePath: string;
 }) {
 	const buildId = randomUUID();
 
-	await writeImageManifest(cachePath, {
+	await writeImageManifest(storePath, {
 		...manifest,
 		buildId,
 		cards: Object.fromEntries(cards),
@@ -166,9 +166,9 @@ function createDevImageHandler(
 	};
 }
 
-async function isBuiltFrom(cachePath: string, mediaPath: string) {
+async function isBuiltFrom(storePath: string, mediaPath: string) {
 	try {
-		const manifest = await readLatestManifest(cachePath);
+		const manifest = await readLatestManifest(storePath);
 
 		return manifest?.mediaPath === mediaPath;
 	} catch {
@@ -178,12 +178,12 @@ async function isBuiltFrom(cachePath: string, mediaPath: string) {
 
 export default function imagePipeline({
 	baseUrl,
-	cachePath,
 	encoding,
 	limitInputPixels = sharpDefaultInputPixelLimit,
 	mediaPath,
 	placeholders,
 	sources,
+	storePath,
 }: ImagePipelineOptions): AstroIntegration {
 	if (baseUrl?.replace(/\/+$/, '') === '') {
 		throw new Error(
@@ -195,16 +195,16 @@ export default function imagePipeline({
 
 	const absoluteMediaPath = path.resolve(mediaPath);
 	const resolvedEncoding = resolveImageEncoding(encoding);
-	const absoluteCachePath = path.resolve(cachePath);
+	const absoluteStorePath = path.resolve(storePath);
 	const placeholderVariable =
 		placeholders &&
 		JSON.stringify({
 			...placeholders,
-			cachePath: absoluteCachePath,
 			limitInputPixels,
 			mediaPath: absoluteMediaPath,
+			storePath: absoluteStorePath,
 		} satisfies PlaceholderConfig);
-	const { devPath, recordsPath, renditionsPath } = getCacheLayout(absoluteCachePath);
+	const { devPath, recordsPath, renditionsPath } = getStoreLayout(absoluteStorePath);
 	let isIncremental = false;
 	let buildRecordsPath = recordsPath;
 
@@ -214,15 +214,14 @@ export default function imagePipeline({
 				try {
 					const distPath = fileURLToPath(dir);
 					const recorded = await readRecorded({
-						cachePath: absoluteCachePath,
 						isIncremental,
 						logger,
 						pageCount: pages.length,
 						recordsPath: buildRecordsPath,
+						storePath: absoluteStorePath,
 					});
 
 					await writeBuildManifest({
-						cachePath: absoluteCachePath,
 						distPath,
 						logger,
 						manifest: {
@@ -231,6 +230,7 @@ export default function imagePipeline({
 							mediaPath: absoluteMediaPath,
 						},
 						recorded,
+						storePath: absoluteStorePath,
 					});
 					await fs.rm(recordsPath, { force: true, recursive: true });
 				} finally {
@@ -258,10 +258,10 @@ export default function imagePipeline({
 					.digest('hex')
 					.slice(0, 8);
 				const getDevImage = createDevImageResolver({
-					builtPath: (await isBuiltFrom(absoluteCachePath, absoluteMediaPath))
+					builtPath: (await isBuiltFrom(absoluteStorePath, absoluteMediaPath))
 						? renditionsPath
 						: undefined,
-					cachePath: path.resolve(devPath, mediaPathKey),
+					devPath: path.resolve(devPath, mediaPathKey),
 					encoding: resolvedEncoding,
 					limitInputPixels,
 					mediaPath: absoluteMediaPath,
