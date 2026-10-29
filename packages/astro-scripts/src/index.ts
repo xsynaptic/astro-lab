@@ -2,7 +2,6 @@ export type { ContentEntry } from './astro.js';
 export { findAstroRoot, getCollectionEntries, withAstroContent } from './astro.js';
 export { createCommandRunner, parseNumberOption } from './command.js';
 export type { Command, CommandContext } from './command.js';
-export { getEntryCommitDates } from './commit-dates.js';
 export type { ComponentProp, ComponentTag } from './content-checks.js';
 export {
 	checkComponentProps,

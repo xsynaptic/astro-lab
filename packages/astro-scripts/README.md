@@ -38,7 +38,7 @@ Statuses pair on `command` plus `id`, since a nested command's ids restart at 1.
 
 `checkReferences`, `checkEntryIds`, `checkComponentProps` and `checkComponentTargets` are the checks every content project runs, each returning a `ValidationResult` for `runValidations`; `findComponentTags`, `getTagProp` and `getBodyLineOffset` are their MDX helpers, for a project's own checks. They parse with [Sätteri](https://github.com/bruits/satteri), an optional peer; add `satteri` at the version the site renders with.
 
-`getEntryCommitDates` dates entries by their last commit, and `fetchUrl` is [ky](https://github.com/sindresorhus/ky) bound to the command's abort signal.
+`fetchUrl` is [ky](https://github.com/sindresorhus/ky) bound to the command's abort signal.
 
 ## License
 
