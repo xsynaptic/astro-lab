@@ -3,7 +3,6 @@ import type { OutputInfo } from 'sharp';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import pLimit from 'p-limit';
-import sharp from 'sharp';
 
 import type { ImageFormat } from './image-formats.js';
 import type { RenditionName } from './image-name.js';
@@ -14,7 +13,7 @@ import type { SourceFingerprints } from './source-fingerprints.js';
 import { formatList } from './format.js';
 import { imageRenderRevision, serializeEncoding } from './image-encoding.js';
 import { parseRenditionName } from './image-name.js';
-import { engineId, renderImage } from './image-render.js';
+import { configureEngineForJobPool, engineId, renderImage } from './image-render.js';
 import { isWithinSource } from './image-sizes.js';
 import { getStoreLayout, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
@@ -229,9 +228,7 @@ export async function prepareRenditionRender({ distPath, storePath }: ImageRende
 		concurrency: runConcurrency = concurrency,
 		...options
 	}: RenditionRenderRunOptions = {}) {
-		// Process-wide; the job pool supplies the parallelism instead of libvips threads
-		sharp.concurrency(1);
-		sharp.cache(false);
+		configureEngineForJobPool();
 
 		const counts = await runRenderJobs({
 			...options,

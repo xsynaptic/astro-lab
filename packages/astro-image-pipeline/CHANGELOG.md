@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.11.1
+
+### Patch Changes
+
+- `prepareCardRender().run()` sets `sharp.concurrency(1)` and `sharp.cache(false)`, as the rendition run does
+
 ## 0.11.0
 
 ### Minor Changes

@@ -17,6 +17,12 @@ export const engineId = createHash('sha256')
 	.digest('hex')
 	.slice(0, 8);
 
+// Process-wide; the job pool supplies the parallelism instead of libvips threads
+export function configureEngineForJobPool() {
+	sharp.concurrency(1);
+	sharp.cache(false);
+}
+
 export function openImageSource(input: SharpInput, options?: Omit<SharpOptions, 'autoOrient'>) {
 	return sharp(input, { ...options, autoOrient: true });
 }

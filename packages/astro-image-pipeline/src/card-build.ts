@@ -5,7 +5,7 @@ import type { ImageRenderTarget } from './image-state.js';
 import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
-import { engineId } from './image-render.js';
+import { configureEngineForJobPool, engineId } from './image-render.js';
 import { getStoreLayout, readDistManifest } from './image-state.js';
 import { hashRenderKey } from './render-key.js';
 import { runRenderJobs } from './run-render-jobs.js';
@@ -189,6 +189,8 @@ export async function prepareCardRender<Decoded>({
 	});
 
 	function run(options: CardRenderRunOptions = {}) {
+		configureEngineForJobPool();
+
 		return runRenderJobs({ ...options, directory: cardsPath, jobs });
 	}
 
