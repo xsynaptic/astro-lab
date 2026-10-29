@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.13.0
+
+### Minor Changes
+
+- Breaking: `fetchUrl` (ky) replaces `fetchWithRetry`, and MDX component checks parse with Sätteri, a new optional peer. Commit dates handle non-ASCII paths, and an aborted subprocess that ignores SIGTERM is stopped after 5 s.
+
 ## 0.12.0
 
 ### Minor Changes

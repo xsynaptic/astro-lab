@@ -1,15 +1,26 @@
+import type * as SatteriModule from 'satteri';
+import type { MdastNode, MdxJsxAttributeUnion } from 'satteri';
+
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import type { ContentEntry } from './astro.js';
 import type { EntryReference, ReferenceIssue, ValidationIssue } from './validation.js';
 
+import { formatError } from './output/format.js';
+import { UserError } from './user-error.js';
 import { toReferenceValidationResult, toValidationResult } from './validation.js';
+
+export type ComponentProp =
+	| { kind: 'expression'; name: string }
+	| { kind: 'flag'; name: string }
+	| { kind: 'literal'; name: string; value: string };
 
 export interface ComponentTag {
 	lineNumber: number;
 	name: string;
-	props: string;
+	props: ReadonlyArray<ComponentProp>;
 }
 
 interface CheckReferencesOptions {
@@ -39,32 +50,84 @@ interface LocatedTag {
 	tag: ComponentTag;
 }
 
-const componentTagPattern = /<([A-Z]\w*)((?:\s[^>]*?)?)\/?>/g;
+interface LocatedTags {
+	issues: Array<ValidationIssue>;
+	tags: Array<LocatedTag>;
+}
+
+let satteri: typeof SatteriModule | undefined;
+
+function loadSatteri() {
+	if (satteri) return satteri;
+
+	try {
+		satteri = createRequire(import.meta.url)('satteri') as typeof SatteriModule;
+	} catch (error) {
+		throw new UserError(
+			'MDX component checks need the `satteri` package; add it to the scripts package at the version the site renders with',
+			{ cause: error },
+		);
+	}
+
+	return satteri;
+}
 
 function getLocation(entry: Pick<ContentEntry, 'filePath' | 'id'>) {
 	return entry.filePath ?? entry.id;
 }
 
+function toComponentProp(attribute: MdxJsxAttributeUnion): ComponentProp | undefined {
+	if (attribute.type === 'mdxJsxExpressionAttribute') return;
+
+	const { name, value } = attribute;
+
+	if (typeof value === 'string') return { kind: 'literal', name, value };
+
+	if (value) return { kind: 'expression', name };
+
+	return { kind: 'flag', name };
+}
+
+function collectComponentTags(
+	node: MdastNode,
+	names: ReadonlyArray<string>,
+	tags: Array<ComponentTag>,
+) {
+	const isComponent = node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement';
+
+	if (isComponent && node.name && names.includes(node.name) && node.position) {
+		tags.push({
+			lineNumber: node.position.start.line,
+			name: node.name,
+			props: node.attributes.flatMap((attribute) => toComponentProp(attribute) ?? []),
+		});
+	}
+
+	if (!('children' in node)) return;
+
+	for (const child of node.children as ReadonlyArray<MdastNode>) {
+		collectComponentTags(child, names, tags);
+	}
+}
+
 export function findComponentTags(body: string, names: ReadonlyArray<string>) {
 	const tags: Array<ComponentTag> = [];
 
-	for (const match of body.matchAll(componentTagPattern)) {
-		const name = match[1];
-
-		if (!name || !names.includes(name)) continue;
-
-		tags.push({
-			lineNumber: body.slice(0, match.index).split('\n').length,
-			name,
-			props: match[2] ?? '',
-		});
-	}
+	collectComponentTags(loadSatteri().mdxToMdast(body), names, tags);
 
 	return tags;
 }
 
 export function getTagProp({ props }: ComponentTag, name: string) {
-	return new RegExp(String.raw`(?:^|\s)${name}=["']([^"']+)["']`).exec(props)?.[1];
+	for (const prop of props) {
+		if (prop.name === name && prop.kind === 'literal') return prop.value;
+	}
+
+	return;
+}
+
+function hasTagProp({ props }: ComponentTag, name: string) {
+	return props.some((prop) => prop.name === name && prop.kind !== 'flag');
 }
 
 export function getBodyLineOffset(entry: ContentEntry, rootPath: string) {
@@ -90,23 +153,38 @@ function findLocatedTags(
 	names: ReadonlyArray<string>,
 	rootPath: string,
 ) {
-	return entries.flatMap((entry): Array<LocatedTag> => {
-		if (!entry.body) return [];
+	const located: LocatedTags = { issues: [], tags: [] };
 
-		const tags = findComponentTags(entry.body, names);
+	for (const entry of entries) {
+		if (!entry.body) continue;
 
-		if (tags.length === 0) return [];
+		const location = getLocation(entry);
+		let tags: Array<ComponentTag>;
+
+		try {
+			tags = findComponentTags(entry.body, names);
+		} catch (error) {
+			if (error instanceof UserError) throw error;
+
+			located.issues.push({ location, message: `MDX failed to parse: ${formatError(error)}` });
+			continue;
+		}
+
+		if (tags.length === 0) continue;
 
 		const lines = entry.body.split('\n');
 		const lineOffset = getBodyLineOffset(entry, rootPath);
-		const location = getLocation(entry);
 
-		return tags.map((tag) => ({
-			context: lines[tag.lineNumber - 1]?.trim() ?? '',
-			location: `${location}:${String(tag.lineNumber + lineOffset)}`,
-			tag,
-		}));
-	});
+		for (const tag of tags) {
+			located.tags.push({
+				context: lines[tag.lineNumber - 1]?.trim() ?? '',
+				location: `${location}:${String(tag.lineNumber + lineOffset)}`,
+				tag,
+			});
+		}
+	}
+
+	return located;
 }
 
 function toEntryReference(record: Record<string, unknown>, field: string) {
@@ -210,17 +288,19 @@ export function checkComponentProps(
 	entries: ReadonlyArray<ContentEntry>,
 	{ required, rootPath }: CheckComponentPropsOptions,
 ) {
-	const issues = findLocatedTags(entries, Object.keys(required), rootPath).flatMap(
-		({ context, location, tag }): Array<ValidationIssue> => {
+	const { issues: parseIssues, tags } = findLocatedTags(entries, Object.keys(required), rootPath);
+	const issues = [
+		...parseIssues,
+		...tags.flatMap(({ context, location, tag }): Array<ValidationIssue> => {
 			const prop = required[tag.name];
 
-			if (prop === undefined || getTagProp(tag, prop) !== undefined) return [];
+			if (prop === undefined || hasTagProp(tag, prop)) return [];
 
 			return [
 				{ details: [context], location, message: `${tag.name} component missing ${prop} prop` },
 			];
-		},
-	);
+		}),
+	];
 
 	return toValidationResult(issues, {
 		fail: `Found ${String(issues.length)} invalid component(s)`,
@@ -239,15 +319,17 @@ export function checkComponentTargets(
 	}: CheckComponentTargetsOptions,
 ) {
 	const validTargets = new Set(targets);
-	const issues = findLocatedTags(entries, [component], rootPath).flatMap(
-		({ location, tag }): Array<ValidationIssue> => {
+	const { issues: parseIssues, tags } = findLocatedTags(entries, [component], rootPath);
+	const issues = [
+		...parseIssues,
+		...tags.flatMap(({ location, tag }): Array<ValidationIssue> => {
 			const value = getTagProp(tag, prop);
 
 			if (value === undefined || validTargets.has(value)) return [];
 
 			return [{ location, message: `broken ${label} "${value}"` }];
-		},
-	);
+		}),
+	];
 
 	return toValidationResult(issues, {
 		fail: `Found ${String(issues.length)} broken ${label}(s)`,

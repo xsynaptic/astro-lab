@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-scripts",
-	"version": "0.12.0",
+	"version": "0.13.0",
 	"description": "Plumbing for an Astro project's scripts package: a command runner, output with interchangeable reporters, and a bridge into Astro's content layer",
 	"type": "module",
 	"license": "MIT",
@@ -44,19 +44,25 @@
 	},
 	"dependencies": {
 		"chalk": "^6.0.1",
+		"ky": "^2.2.0",
 		"ora": "^9.4.1"
 	},
 	"peerDependencies": {
-		"astro": "^7.4.2"
+		"astro": "^7.4.2",
+		"satteri": "^0.10.0 || ^0.11.0"
 	},
 	"peerDependenciesMeta": {
 		"astro": {
+			"optional": true
+		},
+		"satteri": {
 			"optional": true
 		}
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
 		"astro": "^7.4.2",
+		"satteri": "^0.11.5",
 		"vite": "^8.3.5",
 		"zx": "^8.8.5"
 	}

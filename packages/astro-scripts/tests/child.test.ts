@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { OutputEvent } from '../src/output/events.js';
 
@@ -359,6 +359,38 @@ describe('runChild failures', () => {
 
 		expect(outputs(events).map((event) => event.text)).toEqual(['ready', 'saved']);
 		expect(getFailureReport(error, { isAborted: true }).isInterrupted).toBe(true);
+	});
+
+	test('stops a subprocess that ignores SIGTERM once the grace period runs out', async () => {
+		configureOutput('json');
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+		const controller = new AbortController();
+
+		try {
+			const { error } = await captureFailure(() =>
+				runChild(
+					'Rendering',
+					node(
+						'process.on("SIGTERM", () => {}); console.log("ready"); setInterval(() => {}, 1000)',
+					),
+					{
+						onLine: (line) => {
+							if (line === 'ready') {
+								controller.abort();
+								vi.advanceTimersByTime(5000);
+							}
+							return true;
+						},
+						signal: controller.signal,
+					},
+				),
+			);
+
+			expect(error).toMatchObject({ signal: 'SIGKILL' });
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	test('fails its step when the executable is missing', async () => {

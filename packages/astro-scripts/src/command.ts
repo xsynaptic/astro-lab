@@ -258,7 +258,7 @@ function describeError(error: unknown): Pick<FailureReport, 'detail' | 'message'
 
 	if (isChildProcessFailure(error)) {
 		const reason = error.signal
-			? `was killed by ${error.signal}`
+			? `was stopped by ${error.signal}`
 			: `exited with code ${String(error.exitCode)}`;
 		const message = error.name === 'ChildProcessError' ? error.message : `Child process ${reason}`;
 		const detail = getOutputTail(error);

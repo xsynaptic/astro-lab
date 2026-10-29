@@ -62,7 +62,7 @@ class ChildProcessError extends Error {
 		{ exitCode, signal }: { exitCode: null | number; signal: ExitSignal },
 		output?: { stderr: string; stdout: string },
 	) {
-		const reason = signal ? `was killed by ${signal}` : `exited with code ${String(exitCode)}`;
+		const reason = signal ? `was stopped by ${signal}` : `exited with code ${String(exitCode)}`;
 
 		super(`${argv.join(' ')} ${reason}`);
 		this.name = 'ChildProcessError';
@@ -122,19 +122,25 @@ function getChildEnv(env: ChildOptions['env'], extra: Record<string, string>) {
 	return { ...process.env, ...env, ...extra };
 }
 
-function writeInput(child: ChildProcess, input: string | undefined) {
-	if (input !== undefined) child.stdin?.end(input);
+function writeInput(subprocess: ChildProcess, input: string | undefined) {
+	if (input !== undefined) subprocess.stdin?.end(input);
 }
 
-function forwardAbort(child: ChildProcess, signal: AbortSignal | undefined) {
+const forceStopDelayMs = 5000;
+
+function forwardAbort(subprocess: ChildProcess, signal: AbortSignal | undefined) {
+	let forceStop: NodeJS.Timeout | undefined;
+
 	function onAbort() {
-		child.kill('SIGTERM');
+		subprocess.kill('SIGTERM');
+		forceStop = setTimeout(() => subprocess.kill('SIGKILL'), forceStopDelayMs).unref();
 	}
 
 	signal?.addEventListener('abort', onAbort, { once: true });
 
 	return () => {
 		signal?.removeEventListener('abort', onAbort);
+		clearTimeout(forceStop);
 	};
 }
 
@@ -170,7 +176,7 @@ async function spawnChild(
 	const isPiped = mode === 'json' || onLine !== undefined || capture;
 	const stdout: Array<string> = [];
 	const [file, ...args] = argv;
-	const child = spawn(file, args, {
+	const subprocess = spawn(file, args, {
 		cwd,
 		env: getChildEnv(env, {
 			...(isPiped && mode === 'pretty' ? { FORCE_COLOR: '1' } : {}),
@@ -196,19 +202,19 @@ async function spawnChild(
 		emit({ id, stream, text: line.replaceAll(nonColourSequence, ''), type: 'output' });
 	}
 
-	const stopForwarding = forwardAbort(child, signal);
+	const stopForwarding = forwardAbort(subprocess, signal);
 
-	writeInput(child, input);
+	writeInput(subprocess, input);
 
 	const relays = [
-		...(child.stdout ? [relayLines(child.stdout, 'stdout', relayLine)] : []),
-		...(child.stderr ? [relayLines(child.stderr, 'stderr', relayLine)] : []),
+		...(subprocess.stdout ? [relayLines(subprocess.stdout, 'stdout', relayLine)] : []),
+		...(subprocess.stderr ? [relayLines(subprocess.stderr, 'stderr', relayLine)] : []),
 	];
 
 	try {
 		const [, [exitCode, exitSignal]] = (await Promise.all([
 			Promise.all(relays),
-			once(child, 'close'),
+			once(subprocess, 'close'),
 		])) as [unknown, [null | number, ExitSignal]];
 
 		if (exitCode !== 0) throw new ChildProcessError(argv, { exitCode, signal: exitSignal });
@@ -249,20 +255,20 @@ export async function readChild(
 	signal?.throwIfAborted();
 
 	const [file, ...args] = argv;
-	const child = spawn(file, args, {
+	const subprocess = spawn(file, args, {
 		cwd,
 		env: getChildEnv(env, {}),
 		stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
 	});
-	const stopForwarding = forwardAbort(child, signal);
+	const stopForwarding = forwardAbort(subprocess, signal);
 
-	writeInput(child, input);
+	writeInput(subprocess, input);
 
 	try {
 		const [stdout, stderr, [exitCode, exitSignal]] = (await Promise.all([
-			readStream(child.stdout),
-			readStream(child.stderr),
-			once(child, 'close'),
+			readStream(subprocess.stdout),
+			readStream(subprocess.stderr),
+			once(subprocess, 'close'),
 		])) as [string, string, [null | number, ExitSignal]];
 
 		signal?.throwIfAborted();

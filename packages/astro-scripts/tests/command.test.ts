@@ -35,7 +35,7 @@ describe('getFailureReport', () => {
 
 	test.each([
 		{ error: new ProcessOutput(130), label: 'exited with 130' },
-		{ error: new ProcessOutput(undefined, 'SIGINT'), label: 'was killed by SIGINT' },
+		{ error: new ProcessOutput(undefined, 'SIGINT'), label: 'was stopped by SIGINT' },
 	])('reports a child that $label as an interrupt', ({ error }) => {
 		expect(getFailureReport(error, { isAborted: false })).toMatchObject({
 			exitCode: 130,
@@ -61,12 +61,12 @@ describe('getFailureReport', () => {
 		});
 	});
 
-	test('reports a child killed by a signal other than SIGINT as a failure', () => {
+	test('reports a subprocess stopped by a signal other than SIGINT as a failure', () => {
 		expect(getFailureReport(new ProcessOutput(undefined, 'SIGKILL'), { isAborted: false })).toEqual(
 			{
 				exitCode: 1,
 				isInterrupted: false,
-				message: 'Child process was killed by SIGKILL',
+				message: 'Child process was stopped by SIGKILL',
 			},
 		);
 	});

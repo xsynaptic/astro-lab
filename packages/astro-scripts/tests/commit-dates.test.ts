@@ -106,4 +106,50 @@ describe('getEntryCommitDates', () => {
 			]),
 		);
 	});
+
+	test('dates paths git would otherwise quote', async () => {
+		await commit('collections/posts/café.mdx', '2026-04-01T00:00:00Z');
+		await commit('collections/posts/with space.mdx', '2026-05-01T00:00:00Z');
+		await commit('collections/posts/with "quote".mdx', '2026-06-01T00:00:00Z');
+
+		const dates = await getEntryCommitDates(
+			[
+				{ filePath: 'packages/content/collections/posts/café.mdx' },
+				{ filePath: 'packages/content/collections/posts/with space.mdx' },
+				{ filePath: 'packages/content/collections/posts/with "quote".mdx' },
+			],
+			{ rootPath },
+		);
+
+		expect(dates).toEqual(
+			new Map([
+				['packages/content/collections/posts/café.mdx', '2026-04-01T00:00:00Z'],
+				['packages/content/collections/posts/with "quote".mdx', '2026-06-01T00:00:00Z'],
+				['packages/content/collections/posts/with space.mdx', '2026-05-01T00:00:00Z'],
+			]),
+		);
+	});
+
+	test('dates paths by their own commit, not a later merge that lists none', async () => {
+		await git(['checkout', '--quiet', '-b', 'side']);
+		await commit('collections/posts/side.mdx', '2026-04-01T00:00:00Z');
+		await git(['checkout', '--quiet', '-']);
+		await commit('collections/posts/main.mdx', '2026-05-01T00:00:00Z');
+		await git(['merge', '--quiet', '--no-ff', '-m', 'merge', 'side'], '2026-06-01T00:00:00Z');
+
+		const dates = await getEntryCommitDates(
+			[
+				{ filePath: 'packages/content/collections/posts/main.mdx' },
+				{ filePath: 'packages/content/collections/posts/side.mdx' },
+			],
+			{ rootPath },
+		);
+
+		expect(dates).toEqual(
+			new Map([
+				['packages/content/collections/posts/main.mdx', '2026-05-01T00:00:00Z'],
+				['packages/content/collections/posts/side.mdx', '2026-04-01T00:00:00Z'],
+			]),
+		);
+	});
 });

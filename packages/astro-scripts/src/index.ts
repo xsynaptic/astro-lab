@@ -5,7 +5,7 @@ export type { ChildResult } from './child.js';
 export { createCommandRunner, parseNumberOption } from './command.js';
 export type { Command, CommandContext } from './command.js';
 export { getEntryCommitDates } from './commit-dates.js';
-export type { ComponentTag } from './content-checks.js';
+export type { ComponentProp, ComponentTag } from './content-checks.js';
 export {
 	checkComponentProps,
 	checkComponentTargets,
@@ -15,7 +15,7 @@ export {
 	getBodyLineOffset,
 	getTagProp,
 } from './content-checks.js';
-export { fetchWithRetry } from './fetch-with-retry.js';
+export { fetchUrl } from './fetch-url.js';
 export type { OutputEvent } from './output/events.js';
 export { formatBytes, formatCount, formatDuration, formatError } from './output/format.js';
 export { captureOutput, createStatus, getOutputMode, log } from './output/output.js';

@@ -12,7 +12,7 @@ interface EntryCommitDatesOptions {
 	rootPath: string;
 }
 
-const dateLineMarker = '\u{1}';
+const dateMarker = '\u{1}';
 
 const shallowMessage =
 	'Shallow clone detected: git history is truncated, so file dates will be missing or wrong. Fetch full history first (`git fetch --unshallow`, or checkout with fetch-depth 0).';
@@ -99,17 +99,24 @@ function parseLog(
 ) {
 	let currentDate = '';
 
-	for (const line of stdout.split('\n')) {
-		if (line.startsWith(dateLineMarker)) {
-			currentDate = line.slice(dateLineMarker.length);
-			continue;
+	for (const token of stdout.split('\0')) {
+		let filePath = token;
+
+		if (token.startsWith(dateMarker)) {
+			const newline = token.indexOf('\n');
+
+			currentDate = token.slice(dateMarker.length, newline === -1 ? undefined : newline);
+			filePath = newline === -1 ? '' : token.slice(newline + 1);
 		}
 
-		if (!line || !currentDate) continue;
+		if (!filePath || !currentDate) continue;
 
-		const filePath = path.relative(rootPath, path.join(repository, line)).split(path.sep).join('/');
+		const relativePath = path
+			.relative(rootPath, path.join(repository, filePath))
+			.split(path.sep)
+			.join('/');
 
-		if (!dates.has(filePath)) dates.set(filePath, currentDate);
+		if (!dates.has(relativePath)) dates.set(relativePath, currentDate);
 	}
 }
 
@@ -132,8 +139,9 @@ export async function getEntryCommitDates(
 
 		const stdout = await readGit(repository, [
 			'log',
+			'-z',
 			'--name-only',
-			`--pretty=format:${dateLineMarker}${format}`,
+			`--pretty=format:${dateMarker}${format}`,
 			'--',
 			findCommonDirectory(repository, repositoryDirectories),
 		]);
