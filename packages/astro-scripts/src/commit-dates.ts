@@ -3,8 +3,8 @@ import path from 'node:path';
 
 import type { ContentEntry } from './astro.js';
 
-import { readChild } from './child.js';
 import { log } from './output/output.js';
+import { readSubprocess } from './subprocess.js';
 
 interface EntryCommitDatesOptions {
 	date?: 'author' | 'committer';
@@ -18,7 +18,7 @@ const shallowMessage =
 	'Shallow clone detected: git history is truncated, so file dates will be missing or wrong. Fetch full history first (`git fetch --unshallow`, or checkout with fetch-depth 0).';
 
 async function readGit(cwd: string, args: Array<string>) {
-	const { stdout } = await readChild(['git', ...args], { cwd });
+	const { stdout } = await readSubprocess(['git', ...args], { cwd });
 
 	return stdout.trim();
 }

@@ -2,7 +2,6 @@ import { stripVTControlCharacters } from 'node:util';
 import { afterEach, beforeEach, describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { ProcessOutput } from 'zx';
 
-import { readChild, runChild } from '../src/child.js';
 import {
 	createCommandRunner,
 	formatHelp,
@@ -10,6 +9,7 @@ import {
 	parseNumberOption,
 } from '../src/command.js';
 import { withStep } from '../src/output/progress.js';
+import { readSubprocess, runSubprocess } from '../src/subprocess.js';
 import { UserError } from '../src/user-error.js';
 
 class LibraryUserError extends Error {
@@ -36,20 +36,20 @@ describe('getFailureReport', () => {
 	test.each([
 		{ error: new ProcessOutput(130), label: 'exited with 130' },
 		{ error: new ProcessOutput(undefined, 'SIGINT'), label: 'was stopped by SIGINT' },
-	])('reports a child that $label as an interrupt', ({ error }) => {
+	])('reports a subprocess that $label as an interrupt', ({ error }) => {
 		expect(getFailureReport(error, { isAborted: false })).toMatchObject({
 			exitCode: 130,
 			isInterrupted: true,
 		});
 	});
 
-	test('reports a child that inherited stdio by exit code alone, its stderr already printed', () => {
+	test('reports a subprocess that inherited stdio by exit code alone, its stderr already printed', () => {
 		expect(getFailureReport(new ProcessOutput(2, undefined, '', ''), { isAborted: false })).toEqual(
-			{ exitCode: 1, isInterrupted: false, message: 'Child process exited with code 2' },
+			{ exitCode: 1, isInterrupted: false, message: 'Subprocess exited with code 2' },
 		);
 	});
 
-	test('reports the last 20 lines of the stderr a failed child captured', () => {
+	test('reports the last 20 lines of the stderr a failed subprocess captured', () => {
 		const lines = Array.from({ length: 25 }, (_, index) => `line ${String(index + 1)}`);
 		const error = new ProcessOutput(1, undefined, '', `${lines.join('\n')}\n`);
 
@@ -57,7 +57,7 @@ describe('getFailureReport', () => {
 			detail: lines.slice(5).join('\n'),
 			exitCode: 1,
 			isInterrupted: false,
-			message: 'Child process exited with code 1',
+			message: 'Subprocess exited with code 1',
 		});
 	});
 
@@ -66,7 +66,7 @@ describe('getFailureReport', () => {
 			{
 				exitCode: 1,
 				isInterrupted: false,
-				message: 'Child process was stopped by SIGKILL',
+				message: 'Subprocess was stopped by SIGKILL',
 			},
 		);
 	});
@@ -357,14 +357,14 @@ describe('runCommand', () => {
 		});
 	});
 
-	test('stops a child on interrupt without the command passing its signal', async () => {
+	test('stops a subprocess on interrupt without the command passing its signal', async () => {
 		const { runCommand } = createCommandRunner();
 
 		setArgs();
 		await runCommand({
 			name: 'deploy-site',
 			run: async () => {
-				await runChild(
+				await runSubprocess(
 					'Waiting',
 					[
 						process.execPath,
@@ -439,14 +439,14 @@ describe('runCommand', () => {
 		expect(run).toHaveBeenCalledWith(true);
 	});
 
-	test('reports a captured child that fails with its output tail', async () => {
+	test('reports a captured subprocess that fails with its output tail', async () => {
 		const { runCommand } = createCommandRunner();
 
 		setArgs();
 		await runCommand({
 			name: 'deploy-app',
 			run: async () => {
-				await readChild([
+				await readSubprocess([
 					process.execPath,
 					'-e',
 					'console.error("quota exceeded"); process.exit(2)',
@@ -504,7 +504,7 @@ describe('runCommand', () => {
 		expect(process.env.XSYNAPTIC_SCRIPTS_OUTPUT).toBeUndefined();
 	});
 
-	test('passes json mode on to child processes', async () => {
+	test('passes json mode on to subprocesses', async () => {
 		const { runCommand } = createCommandRunner();
 
 		delete process.env.XSYNAPTIC_SCRIPTS_OUTPUT;

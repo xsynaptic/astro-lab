@@ -65,7 +65,7 @@ interface CommandRunnerOptions<Context> {
 	usagePrefix?: string;
 }
 
-interface ChildProcessFailure extends Error {
+interface SubprocessFailure extends Error {
 	exitCode: null | number | undefined;
 	signal: null | string | undefined;
 	stderr?: unknown;
@@ -234,7 +234,7 @@ function isParseError(error: unknown): error is Error {
 }
 
 // Matched by shape, which covers zx's `ProcessOutput` and execa's `ExecaError` alike
-function isChildProcessFailure(error: unknown): error is ChildProcessFailure {
+function isSubprocessFailure(error: unknown): error is SubprocessFailure {
 	return error instanceof Error && 'exitCode' in error && 'signal' in error;
 }
 
@@ -242,7 +242,7 @@ function isInterruption(error: unknown, isAborted: boolean) {
 	if (isAborted) return true;
 
 	return (
-		isChildProcessFailure(error) &&
+		isSubprocessFailure(error) &&
 		(error.exitCode === interruptedExitCode || error.signal === 'SIGINT')
 	);
 }
@@ -256,11 +256,11 @@ function describeError(error: unknown): Pick<FailureReport, 'detail' | 'message'
 		return typeof detail === 'string' && detail !== '' ? { detail, message } : { message };
 	}
 
-	if (isChildProcessFailure(error)) {
+	if (isSubprocessFailure(error)) {
 		const reason = error.signal
 			? `was stopped by ${error.signal}`
 			: `exited with code ${String(error.exitCode)}`;
-		const message = error.name === 'ChildProcessError' ? error.message : `Child process ${reason}`;
+		const message = error.name === 'SubprocessError' ? error.message : `Subprocess ${reason}`;
 		const detail = getOutputTail(error);
 
 		return detail === undefined ? { message } : { detail, message };

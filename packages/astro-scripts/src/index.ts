@@ -1,7 +1,5 @@
 export type { ContentEntry } from './astro.js';
 export { findAstroRoot, getCollectionEntries, withAstroContent } from './astro.js';
-export { readChild, runChild } from './child.js';
-export type { ChildResult } from './child.js';
 export { createCommandRunner, parseNumberOption } from './command.js';
 export type { Command, CommandContext } from './command.js';
 export { getEntryCommitDates } from './commit-dates.js';
@@ -22,6 +20,8 @@ export { captureOutput, createStatus, getOutputMode, log } from './output/output
 export type { OutputMode, Status } from './output/output.js';
 export { createProgress, withSpinner, withStep } from './output/progress.js';
 export type { Progress, Step } from './output/progress.js';
+export { readSubprocess, runSubprocess } from './subprocess.js';
+export type { SubprocessResult } from './subprocess.js';
 export { UserError } from './user-error.js';
 export {
 	reportValidationResult,

@@ -3,14 +3,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import { readChild } from '../src/child.js';
 import { getEntryCommitDates } from '../src/commit-dates.js';
+import { readSubprocess } from '../src/subprocess.js';
 
 let rootPath: string;
 let contentPath: string;
 
 async function git(args: Array<string>, date?: string) {
-	await readChild(['git', ...args], {
+	await readSubprocess(['git', ...args], {
 		cwd: contentPath,
 		env: {
 			GIT_AUTHOR_EMAIL: 'test@example.com',

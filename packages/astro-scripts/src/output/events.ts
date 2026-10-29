@@ -48,7 +48,7 @@ interface DataEvent {
 	value: unknown;
 }
 
-interface ChildOutputEvent {
+interface SubprocessOutputEvent {
 	id: number;
 	stream: OutputStream;
 	text: string;
@@ -73,7 +73,6 @@ interface EndEvent {
 }
 
 export type OutputEvent =
-	| ChildOutputEvent
 	| DataEvent
 	| EndEvent
 	| MessageEvent
@@ -81,6 +80,7 @@ export type OutputEvent =
 	| ProgressEvent
 	| StartEvent
 	| StatusEvent
+	| SubprocessOutputEvent
 	| SummaryEvent;
 
 export interface Reporter {

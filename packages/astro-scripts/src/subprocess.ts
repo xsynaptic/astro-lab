@@ -14,7 +14,7 @@ import { runStep } from './output/progress.js';
 
 type Argv = [string, ...Array<string>];
 
-interface ChildOptions {
+interface SubprocessOptions {
 	cwd?: string;
 	env?: Record<string, string | undefined>;
 	input?: string;
@@ -23,27 +23,27 @@ interface ChildOptions {
 
 type LineFilter = (line: string, stream: OutputStream) => boolean;
 
-interface RunChildOptions extends ChildOptions {
+interface RunSubprocessOptions extends SubprocessOptions {
 	describe?: () => string;
 	onLine?: LineFilter;
 }
 
-interface CaptureChildOptions extends ChildOptions {
+interface CaptureSubprocessOptions extends SubprocessOptions {
 	capture: true;
 	describe?: (stdout: string) => string;
 	onLine?: LineFilter;
 }
 
-interface SpawnChildOptions extends ChildOptions {
+interface SpawnSubprocessOptions extends SubprocessOptions {
 	capture?: boolean;
 	onLine?: LineFilter;
 }
 
-interface ReadChildOptions extends ChildOptions {
+interface ReadSubprocessOptions extends SubprocessOptions {
 	allowFailure?: boolean;
 }
 
-export interface ChildResult {
+export interface SubprocessResult {
 	exitCode: null | number;
 	stderr: string;
 	stdout: string;
@@ -51,7 +51,7 @@ export interface ChildResult {
 
 type ExitSignal = NodeJS.Signals | null;
 
-class ChildProcessError extends Error {
+class SubprocessError extends Error {
 	exitCode: null | number;
 	signal: ExitSignal;
 	stderr?: string;
@@ -65,7 +65,7 @@ class ChildProcessError extends Error {
 		const reason = signal ? `was stopped by ${signal}` : `exited with code ${String(exitCode)}`;
 
 		super(`${argv.join(' ')} ${reason}`);
-		this.name = 'ChildProcessError';
+		this.name = 'SubprocessError';
 		this.exitCode = exitCode;
 		this.signal = signal;
 
@@ -118,7 +118,7 @@ function withParent(line: string, event: object, id: number) {
 	return JSON.stringify({ ...event, parent: { command: getCommandName(), id } });
 }
 
-function getChildEnv(env: ChildOptions['env'], extra: Record<string, string>) {
+function getSubprocessEnv(env: SubprocessOptions['env'], extra: Record<string, string>) {
 	return { ...process.env, ...env, ...extra };
 }
 
@@ -166,10 +166,10 @@ async function readStream(input: null | Readable) {
 	return text;
 }
 
-async function spawnChild(
+async function spawnSubprocess(
 	id: number,
 	argv: Argv,
-	{ capture = false, cwd, env, input, onLine }: SpawnChildOptions,
+	{ capture = false, cwd, env, input, onLine }: SpawnSubprocessOptions,
 	signal: AbortSignal | undefined,
 ) {
 	const mode = getOutputMode();
@@ -178,7 +178,7 @@ async function spawnChild(
 	const [file, ...args] = argv;
 	const subprocess = spawn(file, args, {
 		cwd,
-		env: getChildEnv(env, {
+		env: getSubprocessEnv(env, {
 			...(isPiped && mode === 'pretty' ? { FORCE_COLOR: '1' } : {}),
 			XSYNAPTIC_SCRIPTS_NESTED: '1',
 		}),
@@ -217,7 +217,7 @@ async function spawnChild(
 			once(subprocess, 'close'),
 		])) as [unknown, [null | number, ExitSignal]];
 
-		if (exitCode !== 0) throw new ChildProcessError(argv, { exitCode, signal: exitSignal });
+		if (exitCode !== 0) throw new SubprocessError(argv, { exitCode, signal: exitSignal });
 
 		return stdout.join('\n');
 	} finally {
@@ -225,22 +225,26 @@ async function spawnChild(
 	}
 }
 
-export async function runChild(
+export async function runSubprocess(
 	text: string,
 	argv: Argv,
-	options: CaptureChildOptions,
+	options: CaptureSubprocessOptions,
 ): Promise<string>;
-export async function runChild(text: string, argv: Argv, options?: RunChildOptions): Promise<void>;
-export async function runChild(
+export async function runSubprocess(
 	text: string,
 	argv: Argv,
-	options: CaptureChildOptions | RunChildOptions = {},
+	options?: RunSubprocessOptions,
+): Promise<void>;
+export async function runSubprocess(
+	text: string,
+	argv: Argv,
+	options: CaptureSubprocessOptions | RunSubprocessOptions = {},
 ): Promise<string | void> {
 	const signal = options.signal ?? getCommandSignal();
 
 	signal?.throwIfAborted();
 
-	const stdout = await runStep(text, ({ id }) => spawnChild(id, argv, options, signal), {
+	const stdout = await runStep(text, ({ id }) => spawnSubprocess(id, argv, options, signal), {
 		argv,
 		describe: options.describe,
 	});
@@ -248,16 +252,22 @@ export async function runChild(
 	return 'capture' in options ? stdout : undefined;
 }
 
-export async function readChild(
+export async function readSubprocess(
 	argv: Argv,
-	{ allowFailure = false, cwd, env, input, signal = getCommandSignal() }: ReadChildOptions = {},
-): Promise<ChildResult> {
+	{
+		allowFailure = false,
+		cwd,
+		env,
+		input,
+		signal = getCommandSignal(),
+	}: ReadSubprocessOptions = {},
+): Promise<SubprocessResult> {
 	signal?.throwIfAborted();
 
 	const [file, ...args] = argv;
 	const subprocess = spawn(file, args, {
 		cwd,
-		env: getChildEnv(env, {}),
+		env: getSubprocessEnv(env, {}),
 		stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
 	});
 	const stopForwarding = forwardAbort(subprocess, signal);
@@ -274,7 +284,7 @@ export async function readChild(
 		signal?.throwIfAborted();
 
 		if (exitCode !== 0 && !allowFailure) {
-			throw new ChildProcessError(argv, { exitCode, signal: exitSignal }, { stderr, stdout });
+			throw new SubprocessError(argv, { exitCode, signal: exitSignal }, { stderr, stdout });
 		}
 
 		return { exitCode, stderr, stdout };

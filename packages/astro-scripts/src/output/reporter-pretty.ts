@@ -95,7 +95,7 @@ export function createPrettyReporter(
 
 		if (state === 'start') {
 			getActiveSpinner()?.stop();
-			// Stdin stays cooked so the terminal still signals the whole process group on Ctrl-C, child processes included
+			// Stdin stays cooked so the terminal still signals the whole process group on Ctrl-C, subprocesses included
 			spinners.set(id, ora({ discardStdin: false, stream: stderr, text }).start());
 			openIds.push(id);
 			return;

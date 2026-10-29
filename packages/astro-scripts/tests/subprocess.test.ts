@@ -4,13 +4,13 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { OutputEvent } from '../src/output/events.js';
 
-import { readChild, runChild } from '../src/child.js';
 import { getFailureReport } from '../src/command.js';
 import { captureOutput, configureOutput } from '../src/output/output.js';
+import { readSubprocess, runSubprocess } from '../src/subprocess.js';
 
-type ChildOutputEvent = Extract<OutputEvent, { type: 'output' }>;
+type SubprocessOutputEvent = Extract<OutputEvent, { type: 'output' }>;
 
-const fixturePath = fileURLToPath(new URL('fixtures/run-child.ts', import.meta.url));
+const fixturePath = fileURLToPath(new URL('fixtures/run-subprocess.ts', import.meta.url));
 const nestedCommandPath = fileURLToPath(new URL('fixtures/nested-command.ts', import.meta.url));
 const originalOutput = process.env.XSYNAPTIC_SCRIPTS_OUTPUT;
 
@@ -18,9 +18,9 @@ function node(script: string): [string, ...Array<string>] {
 	return [process.execPath, '-e', script];
 }
 
-function outputs(events: Array<OutputEvent>, stream?: ChildOutputEvent['stream']) {
+function outputs(events: Array<OutputEvent>, stream?: SubprocessOutputEvent['stream']) {
 	return events.filter(
-		(event): event is ChildOutputEvent =>
+		(event): event is SubprocessOutputEvent =>
 			event.type === 'output' && (stream === undefined || event.stream === stream),
 	);
 }
@@ -54,14 +54,14 @@ afterEach(() => {
 	configureOutput();
 });
 
-describe('runChild in json mode', () => {
+describe('runSubprocess in json mode', () => {
 	test('streams each line as an output event tied to its step', async () => {
 		configureOutput('json');
 
 		const argv = node(
 			String.raw`process.stdout.write("one\ntw"); setTimeout(() => { process.stdout.write("o\r\ntail"); console.error("warned"); }, 20)`,
 		);
-		const { events } = await captureOutput(() => runChild('Echoing', argv));
+		const { events } = await captureOutput(() => runSubprocess('Echoing', argv));
 		const [start, end] = statuses(events);
 
 		expect(start).toMatchObject({ argv, state: 'start', text: 'Echoing' });
@@ -77,7 +77,7 @@ describe('runChild in json mode', () => {
 		const event =
 			'{"type":"status","command":"validate-content","time":"t","id":1,"state":"start"}';
 		const { events } = await captureOutput(() =>
-			runChild(
+			runSubprocess(
 				'Validating',
 				node(
 					`console.log(${JSON.stringify(event)}); console.log('{"type":"bogus","command":"x","time":"t"}'); console.error(${JSON.stringify(event)})`,
@@ -102,7 +102,7 @@ describe('runChild in json mode', () => {
 	});
 });
 
-describe('runChild running a nested command', () => {
+describe('runSubprocess running a nested command', () => {
 	const argv: [string, ...Array<string>] = [
 		process.execPath,
 		'--import',
@@ -114,7 +114,7 @@ describe('runChild running a nested command', () => {
 		process.env.XSYNAPTIC_SCRIPTS_OUTPUT = 'json';
 		configureOutput('json');
 
-		const { events } = await captureOutput(() => runChild('Generating placeholders', argv));
+		const { events } = await captureOutput(() => runSubprocess('Generating placeholders', argv));
 		const nested = events.flatMap((event) =>
 			event.type === 'nested' ? [JSON.parse(event.line) as Record<string, unknown>] : [],
 		);
@@ -128,20 +128,20 @@ describe('runChild running a nested command', () => {
 		configureOutput('plain');
 
 		const { events } = await captureOutput(() =>
-			runChild('Generating placeholders', argv, { onLine: () => true }),
+			runSubprocess('Generating placeholders', argv, { onLine: () => true }),
 		);
 
 		expect(outputs(events).map((event) => event.text)).toEqual(['{', '  "generated": 2', '}']);
 	});
 });
 
-describe('runChild with onLine', () => {
+describe('runSubprocess with onLine', () => {
 	test('judges the line without colour, keeps its colour, and drops cursor movement', async () => {
 		configureOutput('pretty');
 
 		const seen: Array<string> = [];
 		const { events } = await captureOutput(() =>
-			runChild(
+			runSubprocess(
 				'Deploying worker',
 				node(
 					String.raw`console.log("\u001B[2K\u001B[32m+ /a.js\u001B[39m"); console.log("\u001B[1A\u001B[2K\u001B[32mUploaded\u001B[39m")`,
@@ -160,14 +160,14 @@ describe('runChild with onLine', () => {
 	});
 });
 
-describe('runChild relaying a nested step', () => {
+describe('runSubprocess relaying a nested step', () => {
 	test('keeps a parent a deeper command already stamped', async () => {
 		configureOutput('json', 'deploy-site');
 
 		const event =
 			'{"type":"status","command":"lqip","time":"t","id":1,"state":"start","parent":{"command":"build","id":4}}';
 		const { events } = await captureOutput(() =>
-			runChild('Building', node(`console.log(${JSON.stringify(event)})`)),
+			runSubprocess('Building', node(`console.log(${JSON.stringify(event)})`)),
 		);
 
 		expect(events.filter((item) => item.type === 'nested')).toEqual([
@@ -176,13 +176,13 @@ describe('runChild relaying a nested step', () => {
 	});
 });
 
-describe('runChild with onLine and describe', () => {
+describe('runSubprocess with onLine and describe', () => {
 	test('parses every line, shows only the ones it keeps, and closes with the parsed summary', async () => {
 		configureOutput('json');
 
 		const changed: Array<string> = [];
 		const { events } = await captureOutput(() =>
-			runChild(
+			runSubprocess(
 				'Uploading',
 				node(
 					String.raw`console.log(">f+++++++++ a.webp\n>f.st...... b.webp\nTotal bytes sent: 10")`,
@@ -208,11 +208,11 @@ describe('runChild with onLine and describe', () => {
 		});
 	});
 
-	test('feeds input to the child and merges env over the parent environment', async () => {
+	test('feeds input to the subprocess and merges env over the parent environment', async () => {
 		configureOutput('json');
 
 		const { events } = await captureOutput(() =>
-			runChild(
+			runSubprocess(
 				'Writing secrets',
 				node(
 					'process.stdin.on("data", (chunk) => console.log(`${process.env.TARGET}:${String(chunk)}:${typeof process.env.PATH}`))',
@@ -225,12 +225,12 @@ describe('runChild with onLine and describe', () => {
 	});
 });
 
-describe('runChild with capture', () => {
+describe('runSubprocess with capture', () => {
 	test('resolves to stdout and closes with it, still showing every line', async () => {
 		configureOutput('json');
 
 		const { events, result } = await captureOutput(() =>
-			runChild(
+			runSubprocess(
 				'Uploading',
 				node(String.raw`console.log("a.webp\nb.webp"); console.error("note")`),
 				{
@@ -250,11 +250,11 @@ describe('runChild with capture', () => {
 		});
 	});
 
-	test('captures stdout in plain output too, where the child would otherwise inherit our stderr', async () => {
+	test('captures stdout in plain output too, where the subprocess would otherwise inherit our stderr', async () => {
 		configureOutput('plain');
 
 		const { result } = await captureOutput(() =>
-			runChild('Listing', node(String.raw`console.log("\u001B[32mkept\u001B[39m")`), {
+			runSubprocess('Listing', node(String.raw`console.log("\u001B[32mkept\u001B[39m")`), {
 				capture: true,
 			}),
 		);
@@ -263,12 +263,12 @@ describe('runChild with capture', () => {
 	});
 });
 
-describe('readChild', () => {
-	test('returns what the child wrote, emitting nothing', async () => {
+describe('readSubprocess', () => {
+	test('returns what the subprocess wrote, emitting nothing', async () => {
 		configureOutput('json');
 
 		const { events, result } = await captureOutput(() =>
-			readChild(node('console.log("main"); console.error("noise")')),
+			readSubprocess(node('console.log("main"); console.error("noise")')),
 		);
 
 		expect(result).toEqual({ exitCode: 0, stderr: 'noise\n', stdout: 'main\n' });
@@ -276,7 +276,7 @@ describe('readChild', () => {
 	});
 
 	test('feeds input and env', async () => {
-		const result = await readChild(
+		const result = await readSubprocess(
 			node(
 				'process.stdin.on("data", (chunk) => process.stdout.write(`${process.env.TARGET}:${String(chunk)}`))',
 			),
@@ -286,9 +286,11 @@ describe('readChild', () => {
 		expect(result.stdout).toBe('vps:token');
 	});
 
-	test('reports the stdout of a child that failed with an empty stderr', async () => {
+	test('reports the stdout of a subprocess that failed with an empty stderr', async () => {
 		const { error } = await captureFailure(async () => {
-			await readChild(node('console.log("Authentication error [code: 10000]"); process.exit(1)'));
+			await readSubprocess(
+				node('console.log("Authentication error [code: 10000]"); process.exit(1)'),
+			);
 		});
 
 		expect(getFailureReport(error, { isAborted: false })).toEqual({
@@ -300,14 +302,16 @@ describe('readChild', () => {
 	});
 
 	test('returns a failed exit code instead of throwing when allowed', async () => {
-		const result = await readChild(node('process.exit(4)'), { allowFailure: true });
+		const result = await readSubprocess(node('process.exit(4)'), { allowFailure: true });
 
 		expect(result.exitCode).toBe(4);
 	});
 
-	test('stops the child on abort', async () => {
+	test('stops the subprocess on abort', async () => {
 		const controller = new AbortController();
-		const pending = readChild(node('setInterval(() => {}, 1000)'), { signal: controller.signal });
+		const pending = readSubprocess(node('setInterval(() => {}, 1000)'), {
+			signal: controller.signal,
+		});
 
 		controller.abort();
 
@@ -315,12 +319,12 @@ describe('readChild', () => {
 	});
 });
 
-describe('runChild failures', () => {
+describe('runSubprocess failures', () => {
 	test('fails its step and reports the exit code with nothing repeated', async () => {
 		configureOutput('json');
 
 		const { error, events } = await captureFailure(() =>
-			runChild('Building', node('console.error("boom"); process.exit(3)')),
+			runSubprocess('Building', node('console.error("boom"); process.exit(3)')),
 		);
 
 		expect(error).toMatchObject({
@@ -337,12 +341,12 @@ describe('runChild failures', () => {
 		expect(statuses(events).at(-1)).toMatchObject({ state: 'fail' });
 	});
 
-	test("forwards an abort as SIGTERM and settles only after the child's cleanup lines", async () => {
+	test("forwards an abort as SIGTERM and settles only after the subprocess's cleanup lines", async () => {
 		configureOutput('json');
 
 		const controller = new AbortController();
 		const { error, events } = await captureFailure(() =>
-			runChild(
+			runSubprocess(
 				'Rendering',
 				node(
 					'process.on("SIGTERM", () => setTimeout(() => { console.log("saved"); process.exit(130); }, 50)); console.log("ready"); setInterval(() => {}, 1000)',
@@ -369,7 +373,7 @@ describe('runChild failures', () => {
 
 		try {
 			const { error } = await captureFailure(() =>
-				runChild(
+				runSubprocess(
 					'Rendering',
 					node(
 						'process.on("SIGTERM", () => {}); console.log("ready"); setInterval(() => {}, 1000)',
@@ -397,7 +401,7 @@ describe('runChild failures', () => {
 		configureOutput('json');
 
 		const { error, events } = await captureFailure(() =>
-			runChild('Building', ['astro-scripts-missing-executable']),
+			runSubprocess('Building', ['astro-scripts-missing-executable']),
 		);
 
 		expect(error).toMatchObject({ code: 'ENOENT' });
@@ -405,8 +409,8 @@ describe('runChild failures', () => {
 	});
 });
 
-describe('runChild without onLine', () => {
-	test('hands the child our stderr for both streams, keeping stdout for data', () => {
+describe('runSubprocess without onLine', () => {
+	test('hands the subprocess our stderr for both streams, keeping stdout for data', () => {
 		const result = spawnSync(process.execPath, ['--import', 'jiti/register', fixturePath], {
 			encoding: 'utf8',
 			env: { ...process.env, XSYNAPTIC_SCRIPTS_OUTPUT: undefined },
@@ -415,8 +419,8 @@ describe('runChild without onLine', () => {
 		expect(result.stdout).toBe('');
 		expect(result.stderr.split('\n')).toEqual([
 			'Echoing',
-			'child stdout',
-			'child stderr',
+			'subprocess stdout',
+			'subprocess stderr',
 			expect.stringMatching(/^✓ Echoing · \d+(ms|\.\ds)$/),
 			'',
 		]);

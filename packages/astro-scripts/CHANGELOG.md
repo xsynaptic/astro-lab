@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.14.0
+
+### Minor Changes
+
+- Breaking: `runChild`, `readChild` and `ChildResult` are renamed `runSubprocess`, `readSubprocess` and `SubprocessResult`, and failures read "Subprocess exited with code…".
+
 ## 0.13.0
 
 ### Minor Changes

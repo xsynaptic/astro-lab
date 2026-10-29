@@ -147,7 +147,7 @@ describe('pretty reporter', () => {
 				detail: 'See --help',
 				durationMs: 10,
 				exitCode: 1,
-				message: 'Child process exited with code 2',
+				message: 'Subprocess exited with code 2',
 				status: 'failed',
 				type: 'end',
 			},
@@ -155,7 +155,7 @@ describe('pretty reporter', () => {
 
 		expect(harness.stderr().slice(-3)).toEqual([
 			'✗ Reloading Caddy · waiting',
-			'✗ Child process exited with code 2',
+			'✗ Subprocess exited with code 2',
 			'  See --help',
 		]);
 	});
@@ -232,13 +232,13 @@ describe('pretty reporter', () => {
 			detail: 'rsync: connection unexpectedly closed\nrsync error: code 12',
 			durationMs: 1,
 			exitCode: 1,
-			message: 'Child process exited with code 12',
+			message: 'Subprocess exited with code 12',
 			status: 'failed',
 			type: 'end',
 		});
 
 		expect(harness.stderr()).toEqual([
-			'✗ Child process exited with code 12',
+			'✗ Subprocess exited with code 12',
 			'  rsync: connection unexpectedly closed',
 			'  rsync error: code 12',
 		]);
@@ -287,7 +287,7 @@ describe('pretty reporter on a terminal', () => {
 		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
 	});
 
-	test('hands the terminal to a child step, then resumes the outer spinner', () => {
+	test('hands the terminal to a subprocess step, then resumes the outer spinner', () => {
 		const harness = createTerminalHarness({ isStdoutTerminal: false });
 
 		harness.emit(
@@ -334,7 +334,7 @@ describe('pretty reporter on a terminal', () => {
 		]);
 	});
 
-	test('marks a child step failed when the run ends inside it', () => {
+	test('marks a subprocess step failed when the run ends inside it', () => {
 		const harness = createTerminalHarness({ isStdoutTerminal: false });
 
 		harness.emit(
@@ -365,7 +365,7 @@ describe('pretty reporter on a terminal', () => {
 });
 
 describe('plain reporter', () => {
-	test('prints child lines bare, without their colour', () => {
+	test('prints subprocess lines bare, without their colour', () => {
 		const harness = createHarness(createPlainReporter);
 
 		harness.emit(
@@ -510,7 +510,7 @@ describe.each([
 describe.each([
 	['pretty', createPrettyReporter],
 	['plain', createPlainReporter],
-] as const)('%s reporter under runChild', (_name, createReporter) => {
+] as const)('%s reporter under runSubprocess', (_name, createReporter) => {
 	function createNestedHarness() {
 		return createHarness((streams) => createReporter(streams, { isNested: true }));
 	}
@@ -547,7 +547,7 @@ describe.each([
 });
 
 describe('json reporter', () => {
-	test('wraps child lines with their step and stream, and relays nested events verbatim', () => {
+	test('wraps subprocess lines with their step and stream, and relays nested events verbatim', () => {
 		const harness = createHarness((streams) =>
 			createJsonReporter(streams, { command: 'deploy-site', now: () => 0 }),
 		);
