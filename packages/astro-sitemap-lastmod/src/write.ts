@@ -7,6 +7,8 @@ import type { SitemapLastmodFile } from './file.js';
 
 import { normalizePathname } from './file.js';
 
+export { createCommitDateReader } from './commit-dates.js';
+
 export type SitemapLastmodEntry = ReturnType<LoaderContext['store']['values']>[number];
 
 export type SitemapLastmodPair = readonly [pathname: string, date: Date | string | undefined];
@@ -40,10 +42,7 @@ export function createSitemapLastmodWriter({ filePath }: SitemapLastmodWriterOpt
 			if (existing === undefined || existing < isoDate) dates.set(key, isoDate);
 		}
 
-		const file = {
-			generatedAt: new Date().toISOString(),
-			urls: Object.fromEntries(dates),
-		} satisfies SitemapLastmodFile;
+		const file = { urls: Object.fromEntries(dates) } satisfies SitemapLastmodFile;
 
 		mkdirSync(path.dirname(resolvedPath), { recursive: true });
 		writeFileSync(resolvedPath, JSON.stringify(file, undefined, '\t'));
@@ -53,13 +52,15 @@ export function createSitemapLastmodWriter({ filePath }: SitemapLastmodWriterOpt
 
 	function wrap(
 		loader: Loader,
-		getPaths: (entry: SitemapLastmodEntry) => Iterable<SitemapLastmodPair>,
+		getPairs: (
+			entries: Array<SitemapLastmodEntry>,
+		) => Iterable<SitemapLastmodPair> | Promise<Iterable<SitemapLastmodPair>>,
 	): Loader {
 		return {
 			...loader,
 			load: async (context) => {
 				await loader.load(context);
-				record(context.store.values().flatMap((entry) => [...getPaths(entry)]));
+				record(await getPairs(context.store.values()));
 			},
 		};
 	}

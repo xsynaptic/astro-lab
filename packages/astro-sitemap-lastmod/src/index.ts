@@ -18,7 +18,6 @@ type LastmodRead =
 
 interface LastmodLookup {
 	dates: Map<string, string>;
-	fallback: string;
 	read: LastmodRead;
 }
 
@@ -33,7 +32,6 @@ type ReportLogger = Pick<AstroIntegrationLogger, 'info' | 'warn'>;
 
 function isSitemapLastmodFile(value: unknown): value is SitemapLastmodFile {
 	if (typeof value !== 'object' || value === null) return false;
-	if (!('generatedAt' in value) || typeof value.generatedAt !== 'string') return false;
 	if (!('urls' in value) || typeof value.urls !== 'object' || value.urls === null) return false;
 	if (Array.isArray(value.urls)) return false;
 
@@ -61,18 +59,17 @@ function loadLookup(filePath: string): LastmodLookup {
 
 	if (read.status === 'invalid') {
 		console.warn(
-			`[@xsynaptic/astro-sitemap-lastmod] Couldn't use ${filePath} (${read.error}); falling back to the build time`,
+			`[@xsynaptic/astro-sitemap-lastmod] Couldn't use ${filePath} (${read.error}); the sitemap gets no lastmod dates`,
 		);
 	}
 
-	if (read.status !== 'found')
-		return { dates: new Map(), fallback: new Date().toISOString(), read };
+	if (read.status !== 'found') return { dates: new Map(), read };
 
 	const dates = new Map(
 		Object.entries(read.file.urls).map(([pathname, date]) => [normalizePathname(pathname), date]),
 	);
 
-	return { dates, fallback: read.file.generatedAt, read };
+	return { dates, read };
 }
 
 function reportMatches(
@@ -89,14 +86,12 @@ function reportMatches(
 	const { dates, read } = lookup;
 
 	if (read.status === 'invalid') {
-		logger.warn(
-			`Couldn't use ${filePath} (${read.error}), so every sitemap URL got the build time`,
-		);
+		logger.warn(`Couldn't use ${filePath} (${read.error}), so no sitemap URL has a lastmod`);
 		return;
 	}
 
 	if (read.status === 'missing') {
-		logger.info(`No lastmod file at ${filePath} yet, so every sitemap URL got the build time`);
+		logger.info(`No lastmod file at ${filePath} yet, so no sitemap URL has a lastmod`);
 		return;
 	}
 
@@ -107,7 +102,7 @@ function reportMatches(
 		return;
 	}
 
-	logger.info(`Found lastmod dates for ${String(hitCount)} of ${String(lookupCount)} sitemap URLs`);
+	logger.info(`${String(hitCount)} of ${String(lookupCount)} sitemap URLs have a lastmod`);
 }
 
 export function sitemapLastmod({ filePath }: SitemapLastmodOptions) {
@@ -118,15 +113,18 @@ export function sitemapLastmod({ filePath }: SitemapLastmodOptions) {
 	let hitCount = 0;
 
 	// Read on first use, so loading the Astro config never depends on the file existing yet
-	function serialize<Item extends { url: string }>(item: Item) {
+	function serialize<Item extends { lastmod?: string; url: string }>(item: Item) {
 		if (!lookup) lookup = loadLookup(resolvedPath);
 
 		const lastmod = lookup.dates.get(normalizePathname(item.url));
 
 		lookupCount++;
-		if (lastmod !== undefined) hitCount++;
 
-		return { ...item, lastmod: lastmod ?? lookup.fallback };
+		if (lastmod === undefined) return item;
+
+		hitCount++;
+
+		return { ...item, lastmod };
 	}
 
 	const integration = {
