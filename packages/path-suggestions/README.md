@@ -1,6 +1,6 @@
 # @xsynaptic/path-suggestions
 
-A helper utility for 404 pages. Scores the path a visitor asked for against the paths that actually exist, then lists the closest matches, or redirects outright when one scores high enough. It ships as two independent pieces: a scoring function with no DOM dependency, and a custom element that drives a 404 page. Either works without the other.
+A helper utility for 404 pages. Scores the path a visitor asked for against the paths that actually exist, then lists the closest matches, or redirects outright when one scores high enough and nothing ties it. It ships as two independent pieces: a scoring function with no DOM dependency, and a custom element that drives a 404 page. Either works without the other.
 
 _Note_: this package is ESM-only.
 
@@ -75,7 +75,7 @@ getPathSuggestions({ path: '/example', entries });
 // { type: 'redirect', url: '/example-post/' }
 ```
 
-Returns `undefined` when nothing clears the threshold, `{ type: 'redirect', url }` when the best candidate clears `redirectThreshold`, and `{ type: 'list', items }` otherwise, where each item carries its `score`.
+Returns `undefined` when nothing clears the threshold, `{ type: 'redirect', url }` when the best candidate clears `redirectThreshold` and nothing ties it, and `{ type: 'list', items }` otherwise, where each item carries its `score`.
 
 Trailing slashes are stripped before comparing, so a candidate matching the requested path never triggers a redirect, and neither does one differing only by a trailing slash. That last case is canonicalization, and belongs in a 301 at the host.
 

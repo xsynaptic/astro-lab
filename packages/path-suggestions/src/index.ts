@@ -53,7 +53,8 @@ export function getPathSimilarity(a: string, b: string): number {
  * Rank known paths against the one requested
  *
  * Returns `undefined` when nothing clears the threshold, a redirect when the best candidate clears
- * `redirectThreshold` and is not the path already requested, and a list otherwise
+ * `redirectThreshold`, outscores every other path, and is not the path already requested, and a
+ * list otherwise
  */
 export function getPathSuggestions(
 	options: PathSuggestionsOptions,
@@ -72,7 +73,12 @@ export function getPathSuggestions(
 
 	if (!best || best.score < threshold) return;
 
-	if (best.score >= redirectThreshold && normalizePath(best.url) !== current) {
+	const bestPath = normalizePath(best.url);
+
+	const runnerUp = scored.find((suggestion) => normalizePath(suggestion.url) !== bestPath);
+	const isClearWinner = runnerUp === undefined || runnerUp.score < best.score;
+
+	if (isClearWinner && bestPath !== current && best.score >= redirectThreshold) {
 		return { type: 'redirect', url: best.url };
 	}
 

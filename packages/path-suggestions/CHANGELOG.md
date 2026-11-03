@@ -1,5 +1,11 @@
 # @xsynaptic/path-suggestions
 
+## 0.2.1
+
+### Patch Changes
+
+- Show the list instead of redirecting when two paths tie for the top score
+
 ## 0.2.0
 
 ### Minor Changes
