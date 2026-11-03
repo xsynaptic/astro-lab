@@ -1,5 +1,17 @@
 # @xsynaptic/satteri-trailing-slash
 
+## 0.2.3
+
+### Patch Changes
+
+- `'never'` now strips a run of trailing slashes, so `/about//` becomes `/about` instead of `/about/`
+
+## 0.2.2
+
+### Patch Changes
+
+- `'never'` now strips every trailing slash, not just the last one
+
 ## 0.2.1
 
 ### Patch Changes

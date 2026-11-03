@@ -46,7 +46,7 @@ function normalizeHref(href: string, mode: 'always' | 'never'): string | undefin
 	}
 
 	if (!path.endsWith('/')) return undefined; // 'never': nothing to strip
-	return `${path.slice(0, -1)}${suffix}`;
+	return `${path.replace(/\/+$/, '')}${suffix}`;
 }
 
 export { normalizeHref };

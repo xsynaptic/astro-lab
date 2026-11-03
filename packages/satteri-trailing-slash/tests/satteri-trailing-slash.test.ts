@@ -1,5 +1,6 @@
+import { fc, test } from '@fast-check/vitest';
 import { markdownToHtml } from 'satteri';
-import { describe, expect, test } from 'vitest';
+import { describe, expect } from 'vitest';
 
 import type { TrailingSlashOptions } from '../src/index.js';
 
@@ -66,6 +67,7 @@ describe('normalizeHref', () => {
 		['/about/', '/about'],
 		['/about/?q=1', '/about?q=1'],
 		['/about/#s', '/about#s'],
+		['/about//', '/about'],
 		['/', undefined],
 		['/about', undefined],
 		['https://x/y/', undefined],
@@ -73,5 +75,69 @@ describe('normalizeHref', () => {
 
 	test.each(neverCases)('never: %s', (href, expected) => {
 		expect(normalizeHref(href, 'never')).toBe(expected);
+	});
+});
+
+const modes = ['always', 'never'] as const;
+
+const segments = fc.array(fc.string({ maxLength: 3, unit: fc.constantFrom('a', 'b', '.', '-') }), {
+	maxLength: 3,
+	minLength: 1,
+});
+
+const rootRelativePath = fc
+	.tuple(segments, fc.boolean())
+	.map(([parts, isSlashed]) => `/${parts.join('/')}${isSlashed ? '/' : ''}`)
+	.filter((path) => !path.startsWith('//'));
+
+const suffix = fc.constantFrom('', '?q=1', '#top', '?next=/a/', '#a?b', '?a#b/');
+
+const otherHref = fc
+	.tuple(
+		fc.constantFrom('https://x.test', '//cdn.test', 'mailto:me', '#', 'relative', './', '../'),
+		rootRelativePath,
+		suffix,
+	)
+	.map(([prefix, path, tail]) => `${prefix}${path}${tail}`);
+
+const directoryPath = fc
+	.array(fc.string({ maxLength: 3, minLength: 1, unit: fc.constantFrom('a', 'b', '-') }), {
+		maxLength: 3,
+		minLength: 1,
+	})
+	.map((parts) => `/${parts.join('/')}/`);
+
+describe('normalizeHref properties', () => {
+	test.prop([otherHref, fc.constantFrom(...modes)])(
+		'leaves every href that is not root-relative alone',
+		(href, mode) => {
+			expect(normalizeHref(href, mode)).toBeUndefined();
+		},
+	);
+
+	test.prop([rootRelativePath, suffix, fc.constantFrom(...modes)])(
+		'keeps the query and hash exactly as written',
+		(path, tail, mode) => {
+			const result = normalizeHref(`${path}${tail}`, mode) ?? `${path}${tail}`;
+
+			expect(result.slice(result.length - tail.length)).toBe(tail);
+			expect(result.slice(0, result.length - tail.length)).not.toMatch(/[?#]/);
+		},
+	);
+
+	test.prop([rootRelativePath, suffix, fc.constantFrom(...modes)])(
+		'needs no second pass over an href it has normalized',
+		(path, tail, mode) => {
+			const once = normalizeHref(`${path}${tail}`, mode) ?? `${path}${tail}`;
+
+			expect(normalizeHref(once, mode)).toBeUndefined();
+		},
+	);
+
+	test.prop([directoryPath, suffix])('puts back the slash that never took off', (path, tail) => {
+		const stripped = normalizeHref(`${path}${tail}`, 'never');
+
+		expect(stripped).toBeDefined();
+		expect(normalizeHref(stripped ?? '', 'always')).toBe(`${path}${tail}`);
 	});
 });
