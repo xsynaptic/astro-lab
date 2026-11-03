@@ -43,6 +43,10 @@ const punctuation = String.raw`[\.,;:!?'"’”)]`;
 
 const sentenceStart = /\w+[!.?]\)? $/;
 
+// `\b` only knows ASCII letters, so it treats é or ü as the edge of a word
+const wordStart = String.raw`(?<![\p{L}\p{M}\p{N}_])`;
+const wordEnd = String.raw`(?![\p{L}\p{M}\p{N}_])`;
+
 interface CompiledBuckets {
 	patterns: Array<CompiledRule>;
 	terms: Array<CompiledRule>;
@@ -279,15 +283,15 @@ function compileWords(
 	const corrections = words.map((word) => {
 		const source = getPattern(word, marks);
 
-		return { pattern: new RegExp(String.raw`\b${source}\b`, 'i'), source, word };
+		return { pattern: new RegExp(`${wordStart}${source}${wordEnd}`, 'iu'), source, word };
 	});
 
 	return [
 		{
 			isEditorial: false,
 			matcher: new RegExp(
-				String.raw`\b(?:${corrections.map((correction) => correction.source).join('|')})\b`,
-				'ig',
+				`${wordStart}(?:${corrections.map((correction) => correction.source).join('|')})${wordEnd}`,
+				'giu',
 			),
 			reason: (value: string, replacement: string) =>
 				`Incorrect usage of the word: “${value}”, use “${replacement}” instead`,

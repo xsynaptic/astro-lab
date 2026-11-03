@@ -1,5 +1,11 @@
 # @xsynaptic/remark-prose-rules
 
+## 0.3.2
+
+### Patch Changes
+
+- Listed words now match on Unicode word boundaries, so `cafè` gets corrected and a listed word inside a longer accented word is left alone
+
 ## 0.3.1
 
 ### Patch Changes

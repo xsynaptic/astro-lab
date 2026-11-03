@@ -1,11 +1,12 @@
 import type { VFileMessage } from 'vfile-message';
 
+import { fc, test } from '@fast-check/vitest';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkMdx from 'remark-mdx';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { unified } from 'unified';
-import { describe, expect, test } from 'vitest';
+import { describe, expect } from 'vitest';
 
 import type { RemarkProseRulesOptions } from '../src/index.js';
 
@@ -66,6 +67,12 @@ describe('words', () => {
 	// Those corrections belong in `terms` instead
 	test('cannot derive a mark it has no group for', async () => {
 		const { messages } = await run('The kominka period.', { words: ['kōminka'] });
+
+		expect(messages).toHaveLength(0);
+	});
+
+	test('leaves a decomposed, already-correct word alone', async () => {
+		const { messages } = await run('A cafe\u{301} visit.', words);
 
 		expect(messages).toHaveLength(0);
 	});
@@ -367,5 +374,121 @@ describe('messages', () => {
 
 		expect(value).toBe('A café here.\n');
 		expect(messages).toHaveLength(1);
+	});
+});
+
+const ruleOptions: RemarkProseRulesOptions = {
+	patterns: [numberRange],
+	terms: [...(terms ?? []), ['cafe society', 'café society']],
+	words: diacriticsWords,
+};
+
+function findMarkGroup(char: string) {
+	return diacriticsMarks.find((group) => group.slice(0, -1).includes(char.toLowerCase()));
+}
+
+const listedWord = fc.constantFrom(...diacriticsWords);
+
+const misspelling = listedWord.chain((word) =>
+	fc
+		.tuple(
+			...[...word].map((char) =>
+				fc.record({
+					char: fc.constantFrom(...(findMarkGroup(char) ?? char)),
+					isUpper: fc.boolean(),
+				}),
+			),
+		)
+		.map((chars) => ({
+			typed: chars.map(({ char, isUpper }) => (isUpper ? char.toUpperCase() : char)).join(''),
+			word,
+		})),
+);
+
+// No 1-2-3: the matches of `(\d)-(\d)` overlap there, so fixing it takes two passes
+const prose = fc
+	.array(
+		fc.oneof(
+			misspelling.map(({ typed }) => typed),
+			fc.constantFrom(
+				'postwar',
+				'metre',
+				'kominka',
+				'cafe society',
+				'the',
+				'a',
+				'visit',
+				'1-2',
+				'3',
+				',',
+			),
+		),
+		{ maxLength: 8, minLength: 1 },
+	)
+	.map((tokens) => `${tokens.join(' ')}.`);
+
+const letter = fc.constantFrom('x', 'a', 'é', 'ñ', 'ü');
+
+function expectedSpelling(typed: string, word: string) {
+	const typedChars = [...typed];
+
+	return [...word]
+		.map((char, index) => {
+			const typedChar = typedChars[index] ?? '';
+
+			return typedChar === typedChar.toLowerCase() ? char : char.toUpperCase();
+		})
+		.join('');
+}
+
+function getOffsets(message: VFileMessage) {
+	const { place } = message;
+
+	if (!place || !('start' in place)) return;
+
+	return { end: place.end.offset ?? 0, start: place.start.offset ?? 0 };
+}
+
+describe('properties', () => {
+	test.prop([misspelling])(
+		'restores the listed spelling, keeping the case the author typed',
+		async ({ typed, word }) => {
+			const { value } = await run(`Visit ${typed} today.`, ruleOptions);
+
+			expect(value).toBe(`Visit ${expectedSpelling(typed, word)} today.\n`);
+		},
+	);
+
+	test.prop([misspelling, fc.option(letter, { nil: '' }), fc.option(letter, { nil: '' })])(
+		'never rewrites a listed word inside a longer word',
+		async ({ typed }, before, after) => {
+			fc.pre(before !== '' || after !== '');
+
+			const { messages } = await run(`Visit ${before}${typed}${after} today.`, {
+				words: diacriticsWords,
+			});
+
+			expect(messages.map((message) => message.actual)).toEqual([]);
+		},
+	);
+
+	test.prop([prose])('reports matches that never overlap', async (input) => {
+		const { messages } = await run(input, ruleOptions, true);
+		const spans = messages
+			.flatMap((message) => getOffsets(message) ?? [])
+			.toSorted((first, second) => first.start - second.start);
+
+		for (const [index, span] of spans.entries()) {
+			const next = spans[index + 1];
+
+			if (next) expect(span.end).toBeLessThanOrEqual(next.start);
+		}
+	});
+
+	test.prop([prose])('leaves nothing to fix in text it has already fixed', async (input) => {
+		const once = await run(input, ruleOptions, true);
+		const twice = await run(once.value, ruleOptions, true);
+
+		expect(twice.messages.map((message) => message.actual)).toEqual([]);
 	});
 });
