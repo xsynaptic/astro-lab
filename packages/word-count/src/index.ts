@@ -1,64 +1,69 @@
 /**
- * Multilingual word counter using a bitmap approach
+ * Multilingual word counter using a packed lookup table
  * Derived from alfaaz (https://github.com/thecodrr/alfaaz) by Abdullah Atta, MIT License
  *
- * Uses a Uint8Array bitmap to map Unicode codepoints to word boundaries
- * Each bit represents whether a codepoint is a word separator, reducing
- * memory from 205.7KB to 25.7KB (1 bit per codepoint instead of 1 byte)
+ * Two bits per codepoint keep the table near 51KB
  */
 import { UNICODE_RANGES } from './unicode-ranges.js';
 
 const maxCodePoint = 205_743;
-const byteSize = 8;
+const classesPerByte = 4;
 
-function buildBitmap(): Uint8Array {
-	const bitmap = new Uint8Array(maxCodePoint / byteSize + 1);
+const charClass = {
+	boundary: 1,
+	joiner: 3,
+	script: 2,
+	word: 0,
+} as const;
 
-	function insertCharsIntoBitmap(...chars: Array<string>) {
-		for (const char of chars) {
-			const charCode = char.codePointAt(0) ?? 0;
-			const byteIndex = Math.floor(charCode / byteSize);
-			const bitIndex = charCode % byteSize;
+type CharClass = (typeof charClass)[keyof typeof charClass];
 
-			bitmap[byteIndex] = (bitmap[byteIndex] ?? 0) ^ (1 << bitIndex);
-		}
+const boundaryChars = [
+	'=',
+	'\u{200B}', // Zero-width space (can also be a word boundary)
+];
+
+const whitespacePattern = /[\s\p{Z}]/u;
+const punctuationPattern = /\p{P}/u;
+const joinerPattern = /[\p{Pc}'’\-‐‑]/u;
+const surrogates = { from: 0xd8_00, to: 0xdf_ff } as const;
+
+function buildTable(): Uint8Array {
+	const table = new Uint8Array(Math.ceil((maxCodePoint + 1) / classesPerByte));
+
+	function setClass(codePoint: number, value: CharClass) {
+		const byteIndex = Math.floor(codePoint / classesPerByte);
+		const shift = (codePoint % classesPerByte) * 2;
+
+		table[byteIndex] = ((table[byteIndex] ?? 0) & ~(0b11 << shift)) | (value << shift);
 	}
 
-	function insertRangeIntoBitmap(from: number, to: number) {
-		for (let index = from / byteSize; index < Math.ceil(to / byteSize); index++) {
-			bitmap[index] = 0b1111_1111;
-		}
+	for (const [from, to] of UNICODE_RANGES) {
+		for (let codePoint = from; codePoint <= to; codePoint++) setClass(codePoint, charClass.script);
 	}
 
-	// Word boundary characters
-	insertCharsIntoBitmap(
-		' ',
-		'\n',
-		'\t',
-		'\v',
-		'*',
-		'/',
-		'&',
-		':',
-		';',
-		'.',
-		',',
-		'?',
-		'=',
-		'\u{F0B}', // Tibetan mark intersyllabic tsheg (signals end of syllable)
-		'\u{1361}', // Ethiopic wordspace (indicates word boundaries)
-		'\u{200B}', // Zero-width space (can also be a word boundary)
-	);
+	for (let codePoint = 0; codePoint <= maxCodePoint; codePoint++) {
+		if (codePoint >= surrogates.from && codePoint <= surrogates.to) continue;
 
-	// Unicode language ranges where each character is a word/syllable
-	for (const range of UNICODE_RANGES) {
-		insertRangeIntoBitmap(range[0], range[1]);
+		const char = String.fromCodePoint(codePoint);
+
+		if (whitespacePattern.test(char)) setClass(codePoint, charClass.boundary);
+		else if (joinerPattern.test(char)) setClass(codePoint, charClass.joiner);
+		else if (punctuationPattern.test(char)) setClass(codePoint, charClass.boundary);
 	}
 
-	return bitmap;
+	for (const char of boundaryChars) setClass(char.codePointAt(0) ?? 0, charClass.boundary);
+
+	return table;
 }
 
-const bitmap = buildBitmap();
+const table = buildTable();
+
+function classOf(codePoint: number): CharClass {
+	const byte = table[Math.floor(codePoint / classesPerByte)] ?? 0;
+
+	return ((byte >> ((codePoint % classesPerByte) * 2)) & 0b11) as CharClass;
+}
 
 /** Split word count for callers that need per-script-class rates (e.g. reading time). */
 export interface WordCountBreakdown {
@@ -85,35 +90,26 @@ export function countWords(str: string): number {
 export function countWordsBreakdown(str: string): WordCountBreakdown {
 	let words = 0;
 	let scriptChars = 0;
-	let shouldCount = false;
+	let isInWord = false;
 
 	for (let index = 0; index < str.length;) {
-		const charCode = str.codePointAt(index) ?? 0;
-		const byteIndex = Math.floor(charCode / byteSize);
-		const bitIndex = charCode % byteSize;
-		const byteAtIndex = bitmap[byteIndex] ?? 0;
-		const isMatch = ((byteAtIndex >> bitIndex) & 1) === 1;
+		const codePoint = str.codePointAt(index) ?? 0;
+		const value = classOf(codePoint);
 
-		if (isMatch) {
-			// 255 means a Unicode range match (every character is its own unit)
-			// A pending delimited word ends here even without a boundary, e.g. Latin glued to CJK
-			if (byteAtIndex === 255) {
-				if (shouldCount) words += 1;
-				scriptChars += 1;
-			} else if (shouldCount) {
-				words += 1;
-			}
-			shouldCount = false;
-		} else {
-			shouldCount = true;
+		// A pending delimited word ends here even without a boundary, e.g. Latin glued to CJK
+		if (value === charClass.boundary || value === charClass.script) {
+			if (isInWord) words += 1;
+			if (value === charClass.script) scriptChars += 1;
+			isInWord = false;
+		} else if (value === charClass.word) {
+			isInWord = true;
 		}
 
 		// Step by 2 for supplementary plane characters (surrogate pairs)
-		index += charCode > 0xff_ff ? 2 : 1;
+		index += codePoint > 0xff_ff ? 2 : 1;
 	}
 
-	// Count the last word if string didn't end on a boundary
-	if (shouldCount) words += 1;
+	if (isInWord) words += 1;
 
 	return { scriptChars, total: words + scriptChars, words };
 }

@@ -1,5 +1,11 @@
 # @xsynaptic/word-count
 
+## 1.0.1
+
+### Patch Changes
+
+- Punctuation no longer counts as a word, and words now split at any Unicode space and at punctuation other than apostrophes, hyphens and underscores
+
 ## 1.0.0
 
 ### Major Changes
