@@ -1,5 +1,13 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.11.2
+
+### Patch Changes
+
+- Keep a `__proto__` key in card input instead of dropping it
+- `fitWithinSource` now fills the source on its limiting side, so some clamped renditions get new names and re-render
+- Fix the render lock letting two renders run at once
+
 ## 0.11.1
 
 ### Patch Changes

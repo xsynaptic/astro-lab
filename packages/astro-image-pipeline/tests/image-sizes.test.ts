@@ -1,6 +1,29 @@
-import { describe, expect, test } from 'vitest';
+import { fc, test } from '@fast-check/vitest';
+import { describe, expect } from 'vitest';
 
-import { fitWithinSource, getRenditionName } from '../src/image-sizes.js';
+import type { ImageSize } from '../src/image-name.js';
+
+import {
+	fitWithinSource,
+	getRenditionName,
+	isWholeSize,
+	isWithinSource,
+} from '../src/image-sizes.js';
+
+const sourceDimensions = fc.record({
+	height: fc.integer({ max: 60, min: 1 }),
+	width: fc.integer({ max: 60, min: 1 }),
+});
+
+// Float division can land just past an exact half: 55 × (3 / 22) gives 7.4999…
+const halfPixel = 0.5 + 1e-9;
+
+const requestedSize = fc
+	.record({
+		height: fc.option(fc.integer({ max: 150, min: 1 }), { nil: undefined }),
+		width: fc.integer({ max: 150, min: 1 }),
+	})
+	.map(({ height, width }): ImageSize => (height === undefined ? { width } : { height, width }));
 
 function makeSource(width: number, height: number, id = 'taiwan/taipei/some-image-1.jpg') {
 	return { height, id, width };
@@ -102,4 +125,50 @@ describe('fitWithinSource', () => {
 			}
 		}
 	});
+
+	test.prop([requestedSize, sourceDimensions])(
+		'fits whole pixels within the source, and leaves a size that already fits alone',
+		(size, source) => {
+			const fitted = fitWithinSource(size, source);
+
+			expect(isWholeSize(fitted)).toBe(true);
+			expect(isWithinSource(fitted, source)).toBe(true);
+			expect(fitWithinSource(fitted, source)).toStrictEqual(fitted);
+			if (isWithinSource(size, source)) expect(fitted).toStrictEqual(size);
+		},
+	);
+
+	test.prop([requestedSize, sourceDimensions])(
+		'shrinks a size too large for its source only until one edge meets the source',
+		(size, source) => {
+			fc.pre(!isWithinSource(size, source));
+
+			const fitted = fitWithinSource(size, source);
+
+			expect(fitted.width === source.width || fitted.height === source.height).toBe(true);
+		},
+	);
+
+	test.prop([requestedSize, sourceDimensions], {
+		examples: [
+			[
+				{ height: 22, width: 55 },
+				{ height: 3, width: 8 },
+			],
+		],
+	})(
+		'keeps each side within half a pixel of the requested size scaled to fit the source',
+		(size, source) => {
+			fc.pre(!isWithinSource(size, source) && size.height !== undefined);
+
+			const requestedHeight = size.height ?? 0;
+			const scale = Math.min(source.width / size.width, source.height / requestedHeight);
+			const { height = 0, width } = fitWithinSource(size, source);
+
+			if (width > 1) expect(Math.abs(width - size.width * scale)).toBeLessThanOrEqual(halfPixel);
+			if (height > 1) {
+				expect(Math.abs(height - requestedHeight * scale)).toBeLessThanOrEqual(halfPixel);
+			}
+		},
+	);
 });

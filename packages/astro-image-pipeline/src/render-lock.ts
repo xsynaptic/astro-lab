@@ -1,21 +1,26 @@
+import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { readFileIfExists } from './files.js';
 import { UserError } from './user-error.js';
 
+// Linking a finished file means the lock never exists without its pid
 async function didClaimLock(lockPath: string) {
-	try {
-		const handle = await fs.open(lockPath, 'wx');
+	const temporary = `${lockPath}.${randomUUID()}.tmp`;
 
-		await handle.writeFile(String(process.pid));
-		await handle.close();
+	await fs.writeFile(temporary, String(process.pid));
+
+	try {
+		await fs.link(temporary, lockPath);
 
 		return true;
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false;
 
 		throw error;
+	} finally {
+		await fs.rm(temporary, { force: true });
 	}
 }
 
@@ -31,9 +36,37 @@ function isProcessAlive(pid: number) {
 
 async function readLockHolder(lockPath: string) {
 	const data = await readFileIfExists(lockPath);
-	const pid = Number(data?.toString('utf8').trim());
 
-	return Number.isSafeInteger(pid) && pid > 0 ? pid : undefined;
+	return data?.toString('utf8');
+}
+
+function isLiveHolder(holder: string) {
+	const pid = Number(holder.trim());
+
+	return Number.isSafeInteger(pid) && pid > 0 && isProcessAlive(pid);
+}
+
+// Without the break lock and the re-read, two takeovers can delete each other's fresh lock
+async function breakStaleLock(lockPath: string, staleHolder: string) {
+	const breakPath = `${lockPath}.break`;
+
+	if (!(await didClaimLock(breakPath))) {
+		const breaker = await readLockHolder(breakPath);
+
+		if (breaker !== undefined && !isLiveHolder(breaker)) {
+			throw new UserError(
+				`A render died while taking over the stale lock at ${lockPath}; delete ${breakPath}`,
+			);
+		}
+
+		throw new UserError(`Another render is taking over the stale lock at ${lockPath}`);
+	}
+
+	try {
+		if ((await readLockHolder(lockPath)) === staleHolder) await fs.rm(lockPath, { force: true });
+	} finally {
+		await fs.rm(breakPath, { force: true });
+	}
 }
 
 async function acquireRenderLock(directory: string) {
@@ -45,15 +78,15 @@ async function acquireRenderLock(directory: string) {
 
 	const holder = await readLockHolder(lockPath);
 
-	if (holder !== undefined && isProcessAlive(holder)) {
-		throw new UserError(`Another render (pid ${String(holder)}) holds ${lockPath}`);
+	if (holder !== undefined && isLiveHolder(holder)) {
+		throw new UserError(`Another render (pid ${holder.trim()}) holds ${lockPath}`);
 	}
 
-	await fs.rm(lockPath, { force: true });
+	if (holder !== undefined) await breakStaleLock(lockPath, holder);
 
 	if (await didClaimLock(lockPath)) return lockPath;
 
-	throw new UserError(`Another render took over the stale lock at ${lockPath}`);
+	throw new UserError(`Another render claimed the lock at ${lockPath} first`);
 }
 
 // The lock sits beside the output directory, which is rsynced whole

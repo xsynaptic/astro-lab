@@ -53,16 +53,17 @@ function compareCodeUnits(first: string, second: string) {
 	return 0;
 }
 
-function canonicalizeObject(value: CardObject) {
-	const sorted: CardObject = {};
+// Assigning a `__proto__` key sets the prototype instead, and the key disappears
+function canonicalizeObject(value: CardObject): CardObject {
+	const entries: Array<[string, CardValue]> = [];
 
 	for (const key of Object.keys(value).toSorted(compareCodeUnits)) {
 		const entry = value[key];
 
-		if (entry !== undefined) sorted[key] = canonicalizeValue(entry);
+		if (entry !== undefined) entries.push([key, canonicalizeValue(entry)]);
 	}
 
-	return sorted;
+	return Object.fromEntries(entries);
 }
 
 export function canonicalizeCard({ image, input }: Omit<CardRequest, 'id'>): Card {

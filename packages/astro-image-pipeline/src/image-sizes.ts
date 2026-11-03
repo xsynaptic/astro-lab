@@ -40,13 +40,17 @@ export function fitWithinSource(size: ImageSize, source: ImageDimensions) {
 
 	if (size.height === undefined) return { width: source.width };
 
-	const isWidthBound = source.width * size.height <= source.height * size.width;
-	const width = isWidthBound
-		? source.width
-		: Math.max(1, Math.floor((size.width * source.height) / size.height));
-	const height = Math.round((width * size.height) / size.width);
+	if (source.width * size.height <= source.height * size.width) {
+		return {
+			height: Math.max(1, Math.round((source.width * size.height) / size.width)),
+			width: source.width,
+		};
+	}
 
-	return { height: Math.min(Math.max(1, height), source.height), width };
+	return {
+		height: source.height,
+		width: Math.max(1, Math.round((size.width * source.height) / size.height)),
+	};
 }
 
 export function getRenditionName(source: ImageSource, { format, ...size }: RenditionSize) {

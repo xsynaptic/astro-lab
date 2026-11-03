@@ -1,11 +1,47 @@
-import { describe, expect, test } from 'vitest';
+import { fc, test } from '@fast-check/vitest';
+import { describe, expect } from 'vitest';
 
+import type { RenditionName } from '../src/image-name.js';
+
+import { imageFormats } from '../src/image-formats.js';
 import {
 	findStemCollisions,
 	formatRenditionName,
 	getImageStem,
+	isImageStem,
 	parseRenditionName,
 } from '../src/image-name.js';
+
+const stemSegment = fc.string({
+	maxLength: 6,
+	minLength: 1,
+	unit: fc.constantFrom('a', 'B', '0', '1', '2', '-', 'x', '.', '_'),
+});
+
+const safeStem = fc
+	.array(stemSegment, { maxLength: 3, minLength: 1 })
+	.map((segments) => segments.join('/'))
+	.filter((stem) => isImageStem(stem));
+
+const pixelCount = fc.integer({ max: 99_999, min: 1 });
+
+const renditionName = fc
+	.record({
+		format: fc.constantFrom(...imageFormats),
+		height: fc.option(pixelCount, { nil: undefined }),
+		stem: safeStem,
+		width: pixelCount,
+	})
+	.map(({ height, ...name }): RenditionName => (height === undefined ? name : { ...name, height }));
+
+const nameLike = fc
+	.tuple(
+		stemSegment,
+		fc.string({ maxLength: 4, minLength: 1, unit: fc.constantFrom('0', '1', '9') }),
+		fc.option(fc.string({ maxLength: 3, unit: fc.constantFrom('x', '0', '1', '-') }), { nil: '' }),
+		fc.constantFrom(...imageFormats, 'jpeg', 'gif'),
+	)
+	.map(([stem, width, height, format]) => `${stem}-${width}${height}.${format}`);
 
 describe('parseRenditionName', () => {
 	test.each([
@@ -23,6 +59,18 @@ describe('parseRenditionName', () => {
 			stem: 'a/b-1',
 			width: 450,
 		});
+	});
+
+	test.prop([renditionName])('reads back every name it formats', (name) => {
+		expect(parseRenditionName(formatRenditionName(name))).toStrictEqual(name);
+	});
+
+	test.prop([nameLike])('formats every name it reads back to the same string', (name) => {
+		const parsed = parseRenditionName(name);
+
+		fc.pre(parsed !== undefined);
+
+		expect(formatRenditionName(parsed)).toBe(name);
 	});
 
 	test.each([
