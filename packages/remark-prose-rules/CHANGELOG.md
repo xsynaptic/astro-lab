@@ -1,5 +1,11 @@
 # @xsynaptic/remark-prose-rules
 
+## 0.3.3
+
+### Patch Changes
+
+- Fix quickfixes that rewrote a whole text node when the match came after an escape, an entity or a line break inside a list item or blockquote, or that landed a character early in a quoted frontmatter value
+
 ## 0.3.2
 
 ### Patch Changes

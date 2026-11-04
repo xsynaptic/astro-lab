@@ -324,6 +324,79 @@ describe('frontmatter', () => {
 	});
 });
 
+function quote(text: string, style: string) {
+	if (style === 'single') return `'${text}'`;
+	if (style === 'double') return `"${text}"`;
+	return text;
+}
+
+function getMatchSpans(text: string, offset: number) {
+	return [...text.matchAll(/\.\.\.|&/g)].map(
+		(match) => `${String(offset + match.index)}-${String(offset + match.index + match[0].length)}`,
+	);
+}
+
+describe('quickfix spans', () => {
+	const patterns = [
+		{ message: 'Use an ellipsis', pattern: String.raw`\.\.\.`, replace: '…' },
+		{ message: 'Spell it out', pattern: '&', replace: 'and' },
+	];
+
+	// Runs of one character are where a window shifted by an escape still reads the same
+	function repetitiveText(units: Array<string>) {
+		return fc
+			.string({ maxLength: 12, minLength: 3, unit: fc.constantFrom(...units) })
+			.filter((text) => text.trim() === text && text.includes('...'));
+	}
+
+	// A leading `&` in a plain scalar is a YAML anchor, so titles leave it out
+	const titleText = repetitiveText(['.', '.', 'a', ' ']);
+
+	const bodyText = repetitiveText(['.', '.', 'a', ' ', '&']);
+
+	const quoting = fc.constantFrom('plain', 'single', 'double');
+
+	const bodyPrefix = fc.constantFrom(
+		'',
+		'&amp;',
+		'&#38;',
+		String.raw`\*`,
+		String.raw`\\`,
+		'- a\n  ',
+	);
+
+	test.prop([titleText, quoting, bodyPrefix, bodyText])(
+		'quickfixes cover exactly the matches whose source span is known',
+		async (title, style, prefix, body) => {
+			const field = quote(title, style);
+			const bodyLine = `${prefix}${body}`;
+			const input = front(`title: ${field}`, bodyLine);
+			const titleSpans = getMatchSpans(title, input.indexOf(field) + (style === 'plain' ? 0 : 1));
+			const bodySpans = getMatchSpans(body, input.lastIndexOf(bodyLine) + prefix.length);
+			const { messages } = await run(input, {
+				frontmatter: { title: { patterns: true } },
+				patterns,
+			});
+			const quickfixSpans = messages
+				.filter((message) => message.expected !== undefined)
+				.map((message) => message.place)
+				.map((place) =>
+					place && 'start' in place
+						? `${String(place.start.offset)}-${String(place.end.offset)}`
+						: 'no span',
+				);
+			const known = new Set([...titleSpans, ...bodySpans]);
+			const trusted = [
+				...(style === 'plain' ? titleSpans : []),
+				...(prefix === '' ? bodySpans : []),
+			];
+
+			expect(quickfixSpans.filter((span) => !known.has(span))).toStrictEqual([]);
+			expect(trusted.filter((span) => !quickfixSpans.includes(span))).toStrictEqual([]);
+		},
+	);
+});
+
 describe('skip', () => {
 	test('skips every rule inside a blockquote', async () => {
 		const { messages, value } = await run('> A cafe in 1930-1945 was postwar.', {

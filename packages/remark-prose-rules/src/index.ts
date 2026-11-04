@@ -69,7 +69,7 @@ interface CompiledRule {
 interface FrontmatterResult {
 	bodyOffset: number;
 	canFix: boolean;
-	matches: Array<ProseMatch>;
+	matches: Array<ScalarMatch>;
 	value: string;
 }
 
@@ -86,9 +86,13 @@ type RemarkProseRulesOptions = z.input<typeof optionsSchema>;
 
 type Replacement = Pick<ProseMatch, 'end' | 'isFixable' | 'replacement' | 'start'>;
 
+interface ScalarMatch extends ProseMatch {
+	isPlaced: boolean;
+}
+
 interface ScalarResult {
 	fix: Replacement | undefined;
-	matches: Array<ProseMatch>;
+	matches: Array<ScalarMatch>;
 }
 
 export function remarkProseRules(options?: RemarkProseRulesOptions): Plugin<[], Root> {
@@ -115,15 +119,22 @@ export function remarkProseRules(options?: RemarkProseRulesOptions): Plugin<[], 
 				);
 
 				for (const match of matches) {
+					const position = toPlace(
+						{ base: node.position?.start.offset, match, text: node.value },
+						place,
+						source,
+					);
 					const message = file.message(match.reason, {
 						ancestors: [...ancestors, node],
-						place: toPlace(node.position?.start.offset, match, place, source) ?? node.position,
+						place: position ?? node.position,
 						ruleId: 'prose-rules',
 						source: 'remark-prose-rules',
 					});
 
 					message.actual = match.value;
-					message.expected = [match.replacement];
+
+					// Without a verified span a quickfix would rewrite the whole text node
+					if (position) message.expected = [match.replacement];
 				}
 
 				// Rewriting last keeps node.position describing the string the matches were found in
@@ -138,7 +149,9 @@ export function remarkProseRules(options?: RemarkProseRulesOptions): Plugin<[], 
 				if (!result) return;
 
 				for (const match of result.matches) {
-					const position = toPlace(result.bodyOffset, match, place, source);
+					const position = match.isPlaced
+						? toPlace({ base: result.bodyOffset, match, text: node.value }, place, source)
+						: undefined;
 
 					const message = file.message(match.reason, {
 						ancestors: [...ancestors, node],
@@ -418,6 +431,7 @@ function lintScalar(
 		matches: matches.map((match) => ({
 			...match,
 			end: start + match.end,
+			isPlaced: isPlain,
 			start: start + match.start,
 		})),
 	};
@@ -506,15 +520,23 @@ function substitute(value: string, matcher: RegExp, replacement: string) {
 	return value.replace(matcher, replacement);
 }
 
-// Node offsets track source offsets only where the span has no escapes or character references
+// Checking the match alone passes a span shifted along a run like `......`
 // Returning nothing leaves the caller to fall back rather than emit a shifted range
-function toPlace(base: number | undefined, match: ProseMatch, place: Location, source: string) {
+function toPlace(
+	{ base, match, text }: { base: number | undefined; match: ProseMatch; text: string },
+	place: Location,
+	source: string,
+) {
 	if (base === undefined) return;
 
 	const start = base + match.start;
 	const end = base + match.end;
 
-	if (source.slice(start, end) !== match.value) return;
+	if (source.slice(base, end) !== text.slice(0, match.end)) return;
+
+	// `&amp;` and `\\` decode to their own first character, which the prefix check cannot tell apart
+	if (source.slice(base, base + text.length) !== text && /[&\\]/.test(source.slice(start, end)))
+		return;
 
 	const startPoint = place.toPoint(start);
 	const endPoint = place.toPoint(end);
