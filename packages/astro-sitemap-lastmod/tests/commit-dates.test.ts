@@ -199,6 +199,5 @@ describe('createCommitDateReader', () => {
 
 			expect(dates).toStrictEqual(expected);
 		},
-		60_000,
 	);
 });

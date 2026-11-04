@@ -260,7 +260,6 @@ describe('runRenderJobs', () => {
 
 			expect(mismatches).toStrictEqual([]);
 		},
-		60_000,
 	);
 
 	test.prop([fc.scheduler(), renderRun, fc.nat({ max: 40 })])(
@@ -303,6 +302,5 @@ describe('runRenderJobs', () => {
 
 			expect(wrong).toStrictEqual([]);
 		},
-		60_000,
 	);
 });

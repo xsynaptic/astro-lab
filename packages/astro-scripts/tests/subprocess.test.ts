@@ -251,7 +251,6 @@ describe('runSubprocess relaying escapes', () => {
 				kept.map((token) => token.value).join(''),
 			]);
 		},
-		60_000,
 	);
 });
 

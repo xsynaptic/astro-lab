@@ -779,7 +779,6 @@ describe('prepareImageSweep against its documented rules', () => {
 				expect(cards).toStrictEqual(planInModel(store, sweep, 'cards'));
 			});
 		},
-		60_000,
 	);
 
 	test.prop([storesAroundSweep], { numRuns: 150 })(
@@ -826,6 +825,5 @@ describe('prepareImageSweep against its documented rules', () => {
 				);
 			});
 		},
-		60_000,
 	);
 });
