@@ -45,7 +45,7 @@
 	"dependencies": {
 		"chalk": "^6.0.1",
 		"ky": "^2.2.0",
-		"ora": "^9.4.1"
+		"ora": "^10.0.0"
 	},
 	"peerDependencies": {
 		"astro": "^7.4.2",
@@ -61,8 +61,8 @@
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
-		"astro": "^7.4.2",
-		"satteri": "^0.11.5",
+		"astro": "^7.4.5",
+		"satteri": "^0.11.6",
 		"vite": "^8.3.5",
 		"zx": "^8.8.5"
 	}
