@@ -50,18 +50,26 @@ function findRepository(
 	return repository;
 }
 
+// Headers are found by position, since a filename can start with the marker too
 function parseLog(stdout: string) {
 	const dates = new Map<string, string>();
 	let currentDate = '';
+	let isHeaderNext = true;
 
 	for (const token of stdout.split('\0')) {
+		if (!token) {
+			isHeaderNext = true;
+			continue;
+		}
+
 		let filePath = token;
 
-		if (token.startsWith(dateMarker)) {
+		if (isHeaderNext) {
 			const newline = token.indexOf('\n');
 
 			currentDate = token.slice(dateMarker.length, newline === -1 ? undefined : newline);
 			filePath = newline === -1 ? '' : token.slice(newline + 1);
+			isHeaderNext = newline === -1;
 		}
 
 		if (!filePath || !currentDate) continue;

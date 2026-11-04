@@ -1,5 +1,11 @@
 # @xsynaptic/astro-sitemap-lastmod
 
+## 0.3.1
+
+### Patch Changes
+
+- Fix a commit with two or more root files whose names start with `\x01` leaving one undated and giving the files after it part of that name as their date
+
 ## 0.3.0
 
 ### Minor Changes

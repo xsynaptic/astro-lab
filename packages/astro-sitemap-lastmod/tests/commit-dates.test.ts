@@ -1,9 +1,10 @@
+import { fc, test } from '@fast-check/vitest';
 import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect } from 'vitest';
 
 import { createCommitDateReader } from '../src/commit-dates.js';
 
@@ -141,4 +142,63 @@ describe('createCommitDateReader', () => {
 			]),
 		);
 	});
+
+	// Lowercase only, so a case-insensitive disk never folds two names into one; convention only
+	const pathCharacter = fc.constantFrom('a', 'b', ' ', '"', '\n', '\t', '\u{1}', 'é', '\\', '#');
+
+	const fileName = fc
+		.string({ maxLength: 3, minLength: 1, unit: pathCharacter })
+		.filter((name) => name !== '.' && name !== '..');
+
+	const filePaths = fc.uniqueArray(
+		fc
+			.tuple(
+				fc.constantFrom('', '', '', 'posts/'),
+				fc.oneof(
+					fileName,
+					fileName.map((name) => `\u{1}${name}`),
+				),
+			)
+			.map(([directory, name]) => directory + name),
+		{ maxLength: 4, minLength: 1 },
+	);
+
+	const history = filePaths.chain((paths) =>
+		fc
+			.array(fc.subarray(paths), { maxLength: 4, minLength: 1 })
+			.map((commits) => ({ commits, paths })),
+	);
+
+	test.prop([history], { numRuns: 30 })(
+		'dates each committed path by its newest commit, whatever its name holds',
+		async ({ commits, paths }) => {
+			const expected = new Map<string, string>();
+
+			await fs.rm(rootPath, { force: true, recursive: true });
+			rootPath = await fs.mkdtemp(path.join(tmpdir(), 'commit-dates-'));
+			contentPath = path.join(rootPath, 'packages', 'content');
+			await fs.mkdir(contentPath, { recursive: true });
+			await git(['init', '--quiet']);
+
+			for (const [index, touched] of commits.entries()) {
+				const date = `2026-07-${String(index + 1).padStart(2, '0')}T00:00:00Z`;
+
+				for (const filePath of touched) {
+					await fs.mkdir(path.dirname(path.join(contentPath, filePath)), { recursive: true });
+					await fs.writeFile(path.join(contentPath, filePath), date);
+					expected.set(`packages/content/${filePath}`, date);
+				}
+
+				await git(['add', '--all']);
+				await git(['commit', '--quiet', '--allow-empty', '-m', `commit ${String(index)}`], date);
+			}
+
+			const dates = await createCommitDateReader({ rootPath })(
+				paths.map((filePath) => ({ filePath: `packages/content/${filePath}` })),
+			);
+
+			expect(dates).toStrictEqual(expected);
+		},
+		60_000,
+	);
 });
