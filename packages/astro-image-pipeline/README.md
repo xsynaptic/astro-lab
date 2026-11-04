@@ -32,7 +32,7 @@ export default defineConfig({
 
 Leave out `baseUrl` on a site that only renders OpenGraph cards; dev then serves no renditions.
 
-The pipeline owns everything in `storePath`, so keep other files out of it. The render, sweep and card functions take the same `storePath` as the integration; nothing in the build output records it, since that output gets deployed. Each build keeps its own manifest in `manifests/<buildId>.json.gz` and writes its id to `image-build-id.txt` in the build output; `listImageBuilds` lists builds with their write times. `prepareImageSweep({ storePath, live, previous, retentionDays: { cards, renditions } })` plans deleting files past their kind's window that the live, previous and newest builds don't name, and renditions the live build doesn't name whose source is gone or changed; its `run()` deletes them and returns both lists for purging.
+The pipeline owns everything in `storePath`, so keep other files out of it. Copy it with timestamps preserved, or the next render redraws every file. The render, sweep and card functions take the same `storePath` as the integration; nothing in the build output records it, since that output gets deployed. Each build keeps its own manifest in `manifests/<buildId>.json.gz` and writes its id to `image-build-id.txt` in the build output; `listImageBuilds` lists builds with their write times. `prepareImageSweep({ storePath, live, previous, retentionDays: { cards, renditions } })` plans deleting files past their kind's window that the live, previous and newest builds don't name, and renditions the live build doesn't name whose source is gone or changed; its `run()` deletes them and returns both lists for purging.
 
 ## Formats
 

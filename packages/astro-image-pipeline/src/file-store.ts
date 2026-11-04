@@ -1,4 +1,6 @@
-import { existsSync, promises as fs } from 'node:fs';
+import type { Stats } from 'node:fs';
+
+import { promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
 
 import { readFileIfExists, readJsonFile, writeJsonFile } from './files.js';
@@ -10,7 +12,9 @@ interface FileSource {
 
 export interface FileRecord {
 	key: string;
+	mtimeMs?: number;
 	namedAt?: string;
+	size?: number;
 	source?: FileSource;
 }
 
@@ -59,8 +63,11 @@ export async function createFileStore({
 		return path.join(directory, name);
 	}
 
-	function record({ key, name, source }: StoredFile) {
-		const next: FileRecord = { key };
+	function record(
+		{ key, name, source }: StoredFile,
+		{ mtimeMs, size }: Pick<Stats, 'mtimeMs' | 'size'>,
+	) {
+		const next: FileRecord = { key, mtimeMs, size };
 		const namedAt = records.get(name)?.namedAt;
 
 		if (namedAt !== undefined) next.namedAt = namedAt;
@@ -71,11 +78,20 @@ export async function createFileStore({
 	}
 
 	return {
-		isFresh(name: string, key: string) {
-			return records.get(name)?.key === key && existsSync(filePath(name));
-		},
+		keepIfFresh(file: StoredFile) {
+			const recorded = records.get(file.name);
 
-		record,
+			if (recorded?.key !== file.key) return false;
+
+			const stats = statSync(filePath(file.name), { throwIfNoEntry: false });
+
+			if (!stats || stats.size !== recorded.size || stats.mtimeMs !== recorded.mtimeMs)
+				return false;
+
+			record(file, stats);
+
+			return true;
+		},
 
 		async save() {
 			await writeFileRecords(directory, records);
@@ -96,7 +112,7 @@ export async function createFileStore({
 				await fs.rename(temporary, target);
 			}
 
-			record(file);
+			record(file, await fs.stat(target));
 
 			return isChanged;
 		},

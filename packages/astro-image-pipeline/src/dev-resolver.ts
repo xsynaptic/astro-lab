@@ -40,11 +40,8 @@ function isWithinDirectory(directory: string, filePath: string) {
 	);
 }
 
-async function isNewerThanSource(target: string, sourceFilePath: string) {
-	const [sourceTime, targetTime] = await Promise.all([
-		getModifiedTime(sourceFilePath),
-		getModifiedTime(target),
-	]);
+async function isNewerThanSource(target: string, sourceTime: number | undefined) {
+	const targetTime = await getModifiedTime(target);
 
 	return sourceTime !== undefined && targetTime !== undefined && targetTime >= sourceTime;
 }
@@ -82,15 +79,17 @@ export function createDevImageResolver({
 
 		if (!isWithinDirectory(mediaPath, sourceFilePath)) return;
 
+		const sourceTime = await getModifiedTime(sourceFilePath);
+
 		if (builtPath) {
 			const built = path.join(builtPath, name);
 
-			if (await isNewerThanSource(built, sourceFilePath)) return built;
+			if (await isNewerThanSource(built, sourceTime)) return built;
 		}
 
 		const target = path.join(devPath, name);
 
-		if (await isNewerThanSource(target, sourceFilePath)) return target;
+		if (await isNewerThanSource(target, sourceTime)) return target;
 
 		const source = await readSourceInfo(sourceFilePath);
 
@@ -107,6 +106,9 @@ export function createDevImageResolver({
 		});
 
 		await writeImage(target, data);
+
+		// A save that lands mid-render would otherwise leave the old pixels looking newer than it
+		if ((await getModifiedTime(sourceFilePath)) !== sourceTime) await fs.utimes(target, 0, 0);
 
 		return target;
 	}

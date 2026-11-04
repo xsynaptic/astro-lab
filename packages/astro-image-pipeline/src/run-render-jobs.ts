@@ -72,9 +72,8 @@ async function runJobs({
 	let lastSave = Date.now();
 
 	async function runJob(job: RenderJob) {
-		if (store.isFresh(job.name, job.key)) {
+		if (store.keepIfFresh(job)) {
 			counts.fresh++;
-			store.record(job);
 			return;
 		}
 

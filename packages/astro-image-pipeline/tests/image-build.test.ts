@@ -184,12 +184,14 @@ describe('prepareRenditionRender', () => {
 		await render();
 
 		const records = await readFileRecords(renditionsPath);
-		const { key = '' } = records.get(name) ?? {};
+		const { source, ...record } = records.get(name) ?? { key: '' };
 		const digest = createHash('sha256')
 			.update(await fs.readFile(path.join(mediaPath, sourcePath)))
 			.digest('hex');
 
-		await writeFileRecords(renditionsPath, new Map([[name, { key, namedAt: 'then' }]]));
+		expect(source).toStrictEqual({ digest, path: sourcePath });
+
+		await writeFileRecords(renditionsPath, new Map([[name, { ...record, namedAt: 'then' }]]));
 
 		const counts = await render();
 
@@ -197,7 +199,7 @@ describe('prepareRenditionRender', () => {
 		const rerecorded = await readFileRecords(renditionsPath);
 
 		expect(rerecorded.get(name)).toStrictEqual({
-			key,
+			...record,
 			namedAt: 'then',
 			source: { digest, path: sourcePath },
 		});

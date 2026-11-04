@@ -1,10 +1,11 @@
+import { fc, test } from '@fast-check/vitest';
 import { createHash } from 'node:crypto';
 import { existsSync, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import sharp from 'sharp';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect } from 'vitest';
 
 import type { FileRecord } from '../src/file-store.js';
 import type { ImageManifest } from '../src/image-state.js';
@@ -384,4 +385,447 @@ describe('superseded renditions', () => {
 
 		expect(prepared.cards.deletions).toStrictEqual([]);
 	});
+});
+
+type SourceVersion = 'v1' | 'v2';
+
+interface ModelRecord {
+	namedAgeDays?: number;
+	source?: { path: string; version: 'stale' | SourceVersion };
+}
+
+interface ModelFile {
+	name: string;
+	record?: ModelRecord;
+}
+
+interface ModelBuild {
+	ageDays: number;
+	cards: Array<string>;
+	renditions: Record<string, string>;
+}
+
+interface ModelStore {
+	builds: Array<ModelBuild>;
+	cards: Array<ModelFile>;
+	renditions: Array<ModelFile>;
+	sources: Array<[string, SourceVersion]>;
+}
+
+interface ModelSweep {
+	live: number;
+	previous?: number;
+	retentionDays: { cards: number; renditions: number };
+}
+
+const modelStems = ['a', 'b', 'nested/c'];
+const modelExtensions = ['jpg', 'png'];
+const modelRenditions = modelStems.flatMap((stem) => [`${stem}-450.jpg`, `${stem}-900.jpg`]);
+const modelCards = ['x.jpg', 'nested/y.jpg'];
+const modelSources = modelStems.flatMap((stem) =>
+	modelExtensions.map((extension) => `${stem}.${extension}`),
+);
+const sourceBytes = new Map<SourceVersion, Buffer>();
+
+function getModelStem(name: string) {
+	return name.replace(/-\d+\.jpg$/, '');
+}
+
+function getBuildId(index: number) {
+	return `build-${String(index)}`;
+}
+
+// Ages sit off whole days, so no file lands exactly on a whole-day window's cutoff
+const modelAgeDays = fc.constantFrom(0.5, 1.5, 3.5);
+
+const sourceExtension = fc.constantFrom(...modelExtensions);
+
+const modelBuild = fc.record(
+	{
+		cards: fc.subarray(modelCards),
+		renditions: fc
+			.tuple(...modelRenditions.map(() => fc.option(sourceExtension, { nil: undefined })))
+			.map((extensions) =>
+				Object.fromEntries(
+					modelRenditions.flatMap((name, index) => {
+						const extension = extensions[index];
+
+						return extension === undefined ? [] : [[name, `${getModelStem(name)}.${extension}`]];
+					}),
+				),
+			),
+	},
+	{ noNullPrototype: true },
+);
+
+// Distinct ages keep the newest build unambiguous
+const modelBuilds = fc
+	.uniqueArray(fc.integer({ max: 5, min: 0 }), { maxLength: 4, minLength: 1 })
+	.chain((ages) =>
+		fc.tuple(
+			...ages.map((age) =>
+				modelBuild.map((build): ModelBuild => ({ ...build, ageDays: age + 0.25 })),
+			),
+		),
+	);
+
+// A rendition's record names a source of the same stem, as getRenditionName derives it; convention only
+function modelRecordFor(name: string, isRendition: boolean): fc.Arbitrary<ModelRecord> {
+	const options = { noNullPrototype: true, requiredKeys: [] };
+
+	if (!isRendition) return fc.record({ namedAgeDays: modelAgeDays }, options);
+
+	const source = fc.record(
+		{
+			path: sourceExtension.map((extension) => `${getModelStem(name)}.${extension}`),
+			version: fc.constantFrom<'stale' | SourceVersion>('stale', 'v1', 'v2'),
+		},
+		{ noNullPrototype: true },
+	);
+
+	return fc.record({ namedAgeDays: modelAgeDays, source }, options);
+}
+
+function modelFiles(names: ReadonlyArray<string>, isRendition: boolean) {
+	return fc
+		.tuple(
+			...names.map((name) =>
+				fc.option(
+					fc
+						.option(modelRecordFor(name, isRendition), { nil: undefined })
+						.map((record): ModelFile => (record === undefined ? { name } : { name, record })),
+					{ nil: undefined },
+				),
+			),
+		)
+		.map((files) => files.filter((file) => file !== undefined));
+}
+
+const modelSourceVersions = fc
+	.tuple(
+		...modelSources.map((sourcePath) =>
+			fc
+				.option(fc.constantFrom<SourceVersion>('v1', 'v2'), { nil: undefined })
+				.map((version) =>
+					version === undefined ? [] : [[sourcePath, version] as [string, SourceVersion]],
+				),
+		),
+	)
+	.map((entries) => entries.flat());
+
+const modelStore = fc.record(
+	{
+		builds: modelBuilds,
+		cards: modelFiles([...modelCards, 'x.jpg.tmp'], false),
+		renditions: modelFiles([...modelRenditions, 'a-450.jpg.tmp'], true),
+		sources: modelSourceVersions,
+	},
+	{ noNullPrototype: true },
+);
+
+function modelSweepFor(store: ModelStore) {
+	const buildIndex = fc.integer({ max: store.builds.length - 1, min: 0 });
+
+	return fc.record(
+		{
+			live: buildIndex,
+			previous: buildIndex,
+			retentionDays: fc.record(
+				{ cards: fc.integer({ max: 3, min: 1 }), renditions: fc.integer({ max: 3, min: 1 }) },
+				{ noNullPrototype: true },
+			),
+		},
+		{ noNullPrototype: true, requiredKeys: ['live', 'retentionDays'] },
+	);
+}
+
+const storeWithSweep = modelStore.chain((store) =>
+	modelSweepFor(store).map((sweep) => ({ store, sweep })),
+);
+
+function getSourceDigest(version: 'stale' | SourceVersion) {
+	const bytes = sourceBytes.get(version as SourceVersion);
+
+	return bytes ? createHash('sha256').update(bytes).digest('hex') : 'an earlier upload';
+}
+
+function getAgeTime(ageDays: number) {
+	return new Date(Date.now() - ageDays * dayMilliseconds);
+}
+
+async function writeModelFiles(directory: string, files: ReadonlyArray<ModelFile>) {
+	await fs.rm(directory, { force: true, recursive: true });
+
+	const records = new Map<string, FileRecord>();
+
+	for (const { name, record } of files) {
+		const filePath = path.join(directory, name);
+
+		await fs.mkdir(path.dirname(filePath), { recursive: true });
+		await fs.writeFile(filePath, name);
+
+		if (!record) continue;
+
+		const stored: FileRecord = { key: name };
+
+		if (record.namedAgeDays !== undefined) {
+			stored.namedAt = getAgeTime(record.namedAgeDays).toISOString();
+		}
+
+		if (record.source) {
+			stored.source = { digest: getSourceDigest(record.source.version), path: record.source.path };
+		}
+
+		records.set(name, stored);
+	}
+
+	await writeFileRecords(directory, records);
+}
+
+async function writeModelStore(store: ModelStore) {
+	for (const [index, build] of store.builds.entries()) {
+		await writeImageManifest(root, {
+			buildId: getBuildId(index),
+			cards: Object.fromEntries(build.cards.map((name) => [name, { input: { title: name } }])),
+			encoding: resolveImageEncoding(),
+			keepIccProfile: false,
+			limitInputPixels: 268_402_689,
+			mediaPath,
+			renditions: build.renditions,
+			version: imageManifestVersion,
+		} satisfies ImageManifest);
+
+		const writtenAt = getAgeTime(build.ageDays);
+
+		await fs.utimes(
+			path.join(root, 'manifests', `${getBuildId(index)}.json.gz`),
+			writtenAt,
+			writtenAt,
+		);
+	}
+
+	await fs.rm(mediaPath, { force: true, recursive: true });
+
+	for (const [sourcePath, version] of store.sources) {
+		const filePath = path.join(mediaPath, sourcePath);
+
+		await fs.mkdir(path.dirname(filePath), { recursive: true });
+		await fs.writeFile(filePath, sourceBytes.get(version) ?? '');
+	}
+
+	await writeModelFiles(renditionsPath, store.renditions);
+	await writeModelFiles(cardsPath, store.cards);
+}
+
+function getNewestIndex(builds: ReadonlyArray<ModelBuild>) {
+	let newest = 0;
+
+	for (const [index, build] of builds.entries()) {
+		if (build.ageDays < (builds[newest]?.ageDays ?? Infinity)) newest = index;
+	}
+
+	return newest;
+}
+
+function getKeptIndexes(store: ModelStore, sweep: ModelSweep) {
+	return new Set([
+		sweep.live,
+		...(sweep.previous === undefined ? [] : [sweep.previous]),
+		getNewestIndex(store.builds),
+	]);
+}
+
+function getBuildNames(build: ModelBuild, kind: 'cards' | 'renditions') {
+	return kind === 'cards' ? build.cards : Object.keys(build.renditions);
+}
+
+function isSupersededInModel(store: ModelStore, sweep: ModelSweep, file: ModelFile) {
+	const live = store.builds[sweep.live];
+	const source = file.record?.source;
+
+	if (!live || !source || Object.hasOwn(live.renditions, file.name)) return false;
+
+	const liveSource = Object.entries(live.renditions).find(
+		([name]) => getModelStem(name) === getModelStem(file.name),
+	)?.[1];
+
+	if (liveSource !== undefined && liveSource !== source.path) return true;
+
+	const current = store.sources.find(([sourcePath]) => sourcePath === source.path)?.[1];
+
+	return current !== source.version;
+}
+
+function planInModel(store: ModelStore, sweep: ModelSweep, kind: 'cards' | 'renditions') {
+	const keptIndexes = getKeptIndexes(store, sweep);
+	const kept = new Set(
+		store.builds
+			.filter((_build, index) => keptIndexes.has(index))
+			.flatMap((build) => getBuildNames(build, kind)),
+	);
+
+	return sortNames(
+		store[kind]
+			.filter((file) => {
+				if (file.name.endsWith('.tmp')) return true;
+
+				if (kind === 'renditions' && isSupersededInModel(store, sweep, file)) return true;
+
+				if (kept.has(file.name)) return false;
+
+				if (!file.record) return true;
+
+				const ages = [
+					...(file.record.namedAgeDays === undefined ? [] : [file.record.namedAgeDays]),
+					...store.builds
+						.filter((build) => getBuildNames(build, kind).includes(file.name))
+						.map((build) => build.ageDays),
+				];
+
+				return Math.min(...ages, ...(ages.length === 0 ? [0] : [])) > sweep.retentionDays[kind];
+			})
+			.map((file) => file.name),
+	);
+}
+
+function toSweepOptions(sweep: ModelSweep): Partial<ImageSweepOptions> {
+	const options: Partial<ImageSweepOptions> = {
+		live: getBuildId(sweep.live),
+		retentionDays: sweep.retentionDays,
+	};
+
+	if (sweep.previous !== undefined) options.previous = getBuildId(sweep.previous);
+
+	return options;
+}
+
+async function withModelRoot(check: () => Promise<void>) {
+	root = await fs.mkdtemp(path.join(tmpdir(), 'image-sweep-model-'));
+	mediaPath = path.join(root, 'media');
+	renditionsPath = path.join(root, 'renditions');
+	cardsPath = path.join(root, 'cards');
+
+	try {
+		await check();
+	} finally {
+		await fs.rm(root, { force: true, recursive: true });
+	}
+}
+
+const storesAroundSweep = storeWithSweep.chain(({ store, sweep }) =>
+	fc
+		.record(
+			{
+				cards: modelFiles([...modelCards, 'x.jpg.tmp'], false),
+				landed: fc.option(modelBuild, { nil: undefined }),
+				renditions: modelFiles([...modelRenditions, 'a-450.jpg.tmp'], true),
+				sources: modelSourceVersions,
+			},
+			{ noNullPrototype: true },
+		)
+		.map(({ landed, ...files }) => ({
+			after: {
+				...files,
+				builds: landed ? [...store.builds, { ...landed, ageDays: 0.1 }] : store.builds,
+			} satisfies ModelStore,
+			before: store,
+			sweep,
+		})),
+);
+
+function getCreatedNames(before: ReadonlyArray<ModelFile>, after: ReadonlyArray<ModelFile>) {
+	const existing = new Set(before.map((file) => file.name));
+
+	return after.map((file) => file.name).filter((name) => !existing.has(name));
+}
+
+describe('prepareImageSweep against its documented rules', () => {
+	beforeAll(async () => {
+		sourceBytes.set(
+			'v1',
+			await sharp({ create: { background: '#336699', channels: 3, height: 8, width: 8 } })
+				.jpeg()
+				.toBuffer(),
+		);
+		sourceBytes.set(
+			'v2',
+			await sharp({ create: { background: '#993366', channels: 3, height: 12, width: 12 } })
+				.jpeg()
+				.toBuffer(),
+		);
+	});
+
+	test.prop([storeWithSweep], { numRuns: 150 })(
+		'plans the files the rules call for, and never one the live build names',
+		async ({ store, sweep }) => {
+			await withModelRoot(async () => {
+				await writeModelStore(store);
+
+				const prepared = await prepareImageSweep({
+					live: getBuildId(sweep.live),
+					retentionDays: sweep.retentionDays,
+					storePath: root,
+					...toSweepOptions(sweep),
+				});
+				const live = store.builds[sweep.live];
+				const renditions = getNames(prepared.renditions.deletions);
+				const cards = getNames(prepared.cards.deletions);
+
+				expect(
+					renditions.filter((name) => live && Object.hasOwn(live.renditions, name)),
+				).toStrictEqual([]);
+				expect(cards.filter((name) => live?.cards.includes(name))).toStrictEqual([]);
+				expect(renditions).toStrictEqual(planInModel(store, sweep, 'renditions'));
+				expect(cards).toStrictEqual(planInModel(store, sweep, 'cards'));
+			});
+		},
+		60_000,
+	);
+
+	test.prop([storesAroundSweep], { numRuns: 150 })(
+		'run removes only what prepare planned and the store still calls for',
+		async ({ after, before, sweep }) => {
+			await withModelRoot(async () => {
+				await writeModelStore(before);
+
+				const prepared = await prepareImageSweep({
+					live: getBuildId(sweep.live),
+					retentionDays: sweep.retentionDays,
+					storePath: root,
+					...toSweepOptions(sweep),
+				});
+
+				await writeModelStore(after);
+
+				const result = await prepared.run();
+
+				for (const kind of ['cards', 'renditions'] as const) {
+					const planned = new Set(getNames(prepared[kind].deletions));
+					const removed = planInModel(after, sweep, kind).filter((name) => planned.has(name));
+					const removedNames = new Set(removed);
+					const directory = kind === 'cards' ? cardsPath : renditionsPath;
+					const remaining = after[kind].filter((file) => !removedNames.has(file.name));
+
+					expect(getNames(result[kind].deletions)).toStrictEqual(removed);
+					expect(await listFiles(directory)).toStrictEqual(getNames(remaining));
+					expect(
+						getCreatedNames(before[kind], after[kind]).filter((name) => removedNames.has(name)),
+					).toStrictEqual([]);
+
+					const records = await readFileRecords(directory);
+
+					expect(sortNames(records.keys())).toStrictEqual(
+						getNames(remaining.filter((file) => file.record !== undefined)),
+					);
+				}
+
+				const keptIndexes = getKeptIndexes(after, sweep);
+
+				expect(await listBuildIds()).toStrictEqual(
+					sortNames([...keptIndexes].map((index) => getBuildId(index))),
+				);
+			});
+		},
+		60_000,
+	);
 });

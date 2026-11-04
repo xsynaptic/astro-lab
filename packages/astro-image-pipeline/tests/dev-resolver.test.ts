@@ -114,6 +114,39 @@ describe('createDevImageResolver', () => {
 		expect(render).toHaveBeenCalledTimes(2);
 	});
 
+	test('a source saved while its rendition renders is rendered again', async () => {
+		const sourcePath = path.join(mediaPath, 'a/b-1.jpg');
+		const render = vi.fn<typeof renderImage>(async (...args) => {
+			const rendered = await renderImage(...args);
+
+			if (render.mock.calls.length === 1) {
+				await sharp({ create: { background: '#ff0000', channels: 3, height: 800, width: 1200 } })
+					.jpeg()
+					.toFile(sourcePath);
+			}
+
+			return rendered;
+		});
+		const getDevImage = createDevImageResolver({
+			builtPath: undefined,
+			devPath: path.join(rootPath, 'cache'),
+			encoding: resolveImageEncoding(),
+			keepIccProfile: false,
+			limitInputPixels: 268_402_689,
+			mediaPath,
+			render,
+			sources: createDirectorySources(mediaPath),
+		});
+
+		await getDevImage('a/b-1-450.jpg');
+		const target = await getDevImage('a/b-1-450.jpg');
+
+		const { dominant } = await sharp(target).stats();
+
+		expect(render).toHaveBeenCalledTimes(2);
+		expect(dominant.r).toBeGreaterThan(200);
+	});
+
 	test('a file the render already built is served as is', async () => {
 		const builtPath = path.join(rootPath, 'img');
 		const built = path.join(builtPath, 'a/b-1-450.jpg');

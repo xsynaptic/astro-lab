@@ -1,5 +1,13 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.11.3
+
+### Patch Changes
+
+- In dev, saving an image while its rendition is being made no longer leaves the old version on screen
+- Force-quitting a render, then changing a setting or image back, no longer leaves some files rendered with the abandoned change
+- The first render after upgrading redraws every file once, as does the first render after copying the image store without keeping file timestamps. Files that come out identical are left untouched, so there's nothing new to upload
+
 ## 0.11.2
 
 ### Patch Changes
