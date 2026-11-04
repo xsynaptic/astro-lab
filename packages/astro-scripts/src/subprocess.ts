@@ -87,8 +87,10 @@ const eventTypes = new Set<unknown>([
 	'summary',
 ]);
 
-// eslint-disable-next-line no-control-regex -- matching escape sequences is the point
-const nonColourSequence = /\u{1B}\[[\d;?]*[A-Za-ln-z]|\u{1B}\][^\u{7}\u{1B}]*(?:\u{7}|\u{1B}\\)/gu;
+// The two-byte branch leaves out `[` and `]`, or it would split a colour sequence it failed to match
+const nonColourSequence =
+	// eslint-disable-next-line no-control-regex -- matching escape sequences is the point
+	/\u{1B}\[[\d;?]*[A-Za-ln-z]|\u{1B}\][^\u{7}\u{1B}]*(?:\u{7}|\u{1B}\\)|\u{1B}[PX^_](?:[^\u{1B}]|\u{1B}\u{1B})*\u{1B}\\|\u{1B}[()*+][\dA-Za-z]|\u{1B}[\d=>@-Z\\^_`a-z{|}~]/gu;
 
 function parseEventLine(line: string) {
 	if (!line.startsWith('{')) return;
@@ -193,13 +195,15 @@ async function spawnSubprocess(
 			return;
 		}
 
-		const plainLine = stripVTControlCharacters(line);
+		// stripVTControlCharacters reads ESC 7 B as one sequence, eating the B
+		const text = line.replaceAll(nonColourSequence, '');
+		const plainLine = stripVTControlCharacters(text);
 
 		if (capture && stream === 'stdout') stdout.push(plainLine);
 
 		if (onLine && !onLine(plainLine, stream)) return;
 
-		emit({ id, stream, text: line.replaceAll(nonColourSequence, ''), type: 'output' });
+		emit({ id, stream, text, type: 'output' });
 	}
 
 	const stopForwarding = forwardAbort(subprocess, signal);

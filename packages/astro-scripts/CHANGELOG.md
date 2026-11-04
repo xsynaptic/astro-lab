@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.15.1
+
+### Patch Changes
+
+- Strip every non-colour escape from subprocess output, including two-byte ones like `ESC 7` and string sequences like sixel, which also stops `onLine` and `capture` losing the character after `ESC 7`
+
 ## 0.15.0
 
 ### Minor Changes

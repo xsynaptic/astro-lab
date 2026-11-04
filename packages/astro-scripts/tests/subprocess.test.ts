@@ -1,6 +1,7 @@
+import { fc, test } from '@fast-check/vitest';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, vi } from 'vitest';
 
 import type { OutputEvent } from '../src/output/events.js';
 
@@ -158,6 +159,100 @@ describe('runSubprocess with onLine', () => {
 		expect(seen).toEqual(['+ /a.js', 'Uploaded']);
 		expect(outputs(events).map((event) => event.text)).toEqual(['\u{1B}[32mUploaded\u{1B}[39m']);
 	});
+});
+
+describe('runSubprocess relaying escapes', () => {
+	interface Token {
+		kind: 'colour' | 'control' | 'text';
+		value: string;
+	}
+
+	const visibleText = fc
+		.string({
+			maxLength: 4,
+			minLength: 1,
+			unit: fc.constantFrom('a', 'B', '7', ' ', '[', 'é'),
+		})
+		.map((value): Token => ({ kind: 'text', value }));
+
+	const colour = fc
+		.constantFrom('\u{1B}[32m', '\u{1B}[39m', '\u{1B}[1;31m', '\u{1B}[0m', '\u{1B}[38;5;208m')
+		.map((value): Token => ({ kind: 'colour', value }));
+
+	const control = fc
+		.constantFrom(
+			'\u{1B}[2K',
+			'\u{1B}[1A',
+			'\u{1B}[G',
+			'\u{1B}[?25l',
+			'\u{1B}[?25h',
+			'\u{1B}[s',
+			'\u{1B}[u',
+			'\u{1B}7',
+			'\u{1B}8',
+			'\u{1B}(B',
+			'\u{1B}]8;;https://example.com\u{1B}\\',
+			'\u{1B}]0;title\u{7}',
+			'\u{1B}_Gf=100;iVBORw0KGgo=\u{1B}\\',
+			'\u{1B}Pq#0;2;0;0;0\u{1B}\\',
+			'\u{1B}Ptmux;\u{1B}\u{1B}]0;title\u{7}\u{1B}\\',
+		)
+		.map((value): Token => ({ kind: 'control', value }));
+
+	// Drawn with the text after it, which Node's stripping can swallow along with the escape
+	const shortEscapeThenText = fc.tuple(
+		fc
+			.constantFrom('\u{1B}7', '\u{1B}8', '\u{1B}(B')
+			.map((value): Token => ({ kind: 'control', value })),
+		visibleText,
+	);
+
+	test.prop(
+		[
+			fc
+				.array(
+					fc.oneof(
+						visibleText.map((token) => [token]),
+						colour.map((token) => [token]),
+						control.map((token) => [token]),
+						shortEscapeThenText,
+					),
+					{ maxLength: 6, minLength: 1 },
+				)
+				.map((chunks) => chunks.flat()),
+		],
+		{
+			numRuns: 40,
+		},
+	)(
+		'relays the visible text and colour of a line, and none of its other escapes',
+		async (tokens) => {
+			configureOutput('pretty');
+
+			const line = tokens.map((token) => token.value).join('');
+			const seen: Array<string> = [];
+			const { events } = await captureOutput(() =>
+				runSubprocess('Relaying', node(`process.stdout.write(${JSON.stringify(`${line}\n`)})`), {
+					onLine: (plainLine) => {
+						seen.push(plainLine);
+						return true;
+					},
+				}),
+			);
+			const kept = tokens.filter((token) => token.kind !== 'control');
+
+			expect(seen).toStrictEqual([
+				kept
+					.filter((token) => token.kind === 'text')
+					.map((token) => token.value)
+					.join(''),
+			]);
+			expect(outputs(events).map((event) => event.text)).toStrictEqual([
+				kept.map((token) => token.value).join(''),
+			]);
+		},
+		60_000,
+	);
 });
 
 describe('runSubprocess relaying a nested step', () => {
