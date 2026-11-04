@@ -1,9 +1,134 @@
+import type * as nodeFs from 'node:fs';
+import type * as nodeFsPromises from 'node:fs/promises';
+
+import { fc, test } from '@fast-check/vitest';
 import { mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, vi } from 'vitest';
+
+import type { ImageLoaderCacheValue } from '../src/types.js';
 
 import { createJsonlCache } from '../src/jsonl-cache.js';
+
+interface FakeInode {
+	content: string;
+}
+
+// An in-memory disk with inodes, so a rename orphans open streams as a real one does
+const fakeDisk = vi.hoisted(() => ({
+	files: new Map<string, FakeInode>(),
+	isActive: false,
+	maxOpenStreams: 0,
+	openStreams: 0,
+	tick: undefined as (() => Promise<void>) | undefined,
+}));
+
+function getInode(filePath: string) {
+	const inode = fakeDisk.files.get(filePath);
+
+	if (!inode) throw Object.assign(new Error(`ENOENT: ${filePath}`), { code: 'ENOENT' });
+
+	return inode;
+}
+
+async function afterTick(previous: Promise<FakeInode>, step: (inode: FakeInode) => void) {
+	const inode = await previous;
+
+	await fakeDisk.tick?.();
+	step(inode);
+
+	return inode;
+}
+
+function createFakeAppendStream(filePath: string) {
+	let isEnded = false;
+
+	async function open() {
+		await fakeDisk.tick?.();
+
+		const inode = fakeDisk.files.get(filePath) ?? { content: '' };
+
+		fakeDisk.files.set(filePath, inode);
+
+		return inode;
+	}
+
+	let pending = open();
+
+	fakeDisk.openStreams++;
+	fakeDisk.maxOpenStreams = Math.max(fakeDisk.maxOpenStreams, fakeDisk.openStreams);
+
+	return {
+		end(callback: () => void) {
+			isEnded = true;
+			pending = afterTick(pending, () => {
+				fakeDisk.openStreams--;
+				callback();
+			});
+		},
+		write(line: string, callback: (error?: Error) => void) {
+			if (isEnded) {
+				queueMicrotask(() => {
+					callback(new Error('write after end'));
+				});
+				return;
+			}
+
+			pending = afterTick(pending, (inode) => {
+				inode.content += line;
+				callback();
+			});
+		},
+	};
+}
+
+vi.mock('node:fs', async (importOriginal) => {
+	const actual = await importOriginal<typeof nodeFs>();
+
+	return {
+		...actual,
+		createWriteStream: (...args: Parameters<typeof actual.createWriteStream>) =>
+			fakeDisk.isActive
+				? createFakeAppendStream(String(args[0]))
+				: actual.createWriteStream(...args),
+		existsSync: (filePath: string) =>
+			fakeDisk.isActive ? fakeDisk.files.has(filePath) : actual.existsSync(filePath),
+	};
+});
+
+vi.mock('node:fs/promises', async (importOriginal) => {
+	const actual = await importOriginal<typeof nodeFsPromises>();
+
+	return {
+		...actual,
+		mkdir: async (...args: Parameters<typeof actual.mkdir>) => {
+			if (!fakeDisk.isActive) return actual.mkdir(...args);
+
+			await fakeDisk.tick?.();
+			return String(args[0]);
+		},
+		readFile: async (...args: Parameters<typeof actual.readFile>) => {
+			if (!fakeDisk.isActive) return actual.readFile(...args);
+
+			await fakeDisk.tick?.();
+			return getInode(String(args[0])).content;
+		},
+		rename: async (...args: Parameters<typeof actual.rename>) => {
+			if (!fakeDisk.isActive) return actual.rename(...args);
+
+			await fakeDisk.tick?.();
+			fakeDisk.files.set(String(args[1]), getInode(String(args[0])));
+			fakeDisk.files.delete(String(args[0]));
+		},
+		writeFile: async (...args: Parameters<typeof actual.writeFile>) => {
+			if (!fakeDisk.isActive) return actual.writeFile(...args);
+
+			await fakeDisk.tick?.();
+			fakeDisk.files.set(String(args[0]), { content: String(args[1]) });
+		},
+	};
+});
 
 async function getTempCachePath() {
 	const dir = await mkdtemp(path.join(tmpdir(), 'jsonl-cache-'));
@@ -151,4 +276,78 @@ describe('createJsonlCache', () => {
 
 		warnSpy.mockRestore();
 	});
+
+	const cacheKeys = ['a.jpg', 'b.jpg', 'c.jpg'];
+
+	// Prune only between rounds: the cache contract rules out a set in flight during prune
+	const cacheRounds = fc.array(
+		fc.record(
+			{
+				prune: fc.option(fc.subarray(cacheKeys), { nil: undefined }),
+				sets: fc.array(fc.constantFrom(...cacheKeys), { maxLength: 4, minLength: 1 }),
+			},
+			{ noNullPrototype: true },
+		),
+		{ maxLength: 4, minLength: 1 },
+	);
+
+	async function readAll(cache: ReturnType<typeof createJsonlCache>) {
+		const entries = await Promise.all(cacheKeys.map(async (key) => [key, await cache.get(key)]));
+
+		return Object.fromEntries(entries.filter(([, value]) => value !== undefined));
+	}
+
+	test.prop([fc.scheduler(), fc.array(fc.constantFrom(...cacheKeys)), cacheRounds])(
+		'a reload sees what the live cache holds, whatever order concurrent sets land in',
+		async (scheduler, seeded, rounds) => {
+			const filePath = '/fake/cache.jsonl';
+			let digest = 0;
+
+			function nextValue(): ImageLoaderCacheValue {
+				digest++;
+				return { data: {}, digest: `d${String(digest)}` };
+			}
+
+			fakeDisk.files = new Map(
+				seeded.length > 0
+					? [
+							[
+								filePath,
+								{
+									content: seeded
+										.map((key) => `${JSON.stringify({ key, value: nextValue() })}\n`)
+										.join(''),
+								},
+							],
+						]
+					: [],
+			);
+			fakeDisk.isActive = true;
+			fakeDisk.maxOpenStreams = 0;
+			fakeDisk.openStreams = 0;
+			fakeDisk.tick = () => scheduler.schedule(Promise.resolve());
+
+			try {
+				const cache = createJsonlCache({ filePath });
+
+				for (const { prune, sets } of rounds) {
+					const results = await scheduler.waitFor(
+						Promise.allSettled(sets.map((key) => cache.set(key, nextValue()))),
+					);
+
+					expect(results.filter((result) => result.status === 'rejected')).toStrictEqual([]);
+					expect(fakeDisk.maxOpenStreams).toBeLessThanOrEqual(1);
+
+					if (prune) await scheduler.waitFor(Promise.resolve(cache.prune?.(prune)));
+				}
+
+				const live = await scheduler.waitFor(readAll(cache));
+				const reloaded = await scheduler.waitFor(readAll(createJsonlCache({ filePath })));
+
+				expect(reloaded).toStrictEqual(live);
+			} finally {
+				fakeDisk.isActive = false;
+			}
+		},
+	);
 });

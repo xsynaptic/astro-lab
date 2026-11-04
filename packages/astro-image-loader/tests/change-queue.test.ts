@@ -1,5 +1,6 @@
+import { fc, test } from '@fast-check/vitest';
 import { setTimeout as delay } from 'node:timers/promises';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 
 import type { FileChangeQueueItem } from '../src/types.js';
 
@@ -152,4 +153,110 @@ describe('createChangeQueue', () => {
 		});
 		expect(processed[0]?.type).toBe('unlink');
 	});
+
+	const queueStep = fc.oneof(
+		fc.record(
+			{
+				filePath: fc.constantFrom('a.jpg', 'b.jpg'),
+				kind: fc.constant('add' as const),
+				type: fc.constantFrom<FileChangeQueueItem['type']>('add', 'change', 'unlink'),
+			},
+			{ noNullPrototype: true },
+		),
+		fc.record({ kind: fc.constant('release' as const) }, { noNullPrototype: true }),
+		fc.record(
+			{ kind: fc.constant('wait' as const), ms: fc.constantFrom(0, 5, debounceMs, 25) },
+			{ noNullPrototype: true },
+		),
+	);
+
+	async function settle(scheduler: fc.Scheduler) {
+		for (let round = 0; round < 100; round++) {
+			await vi.runAllTimersAsync();
+
+			if (scheduler.count() === 0 && vi.getTimerCount() === 0) return;
+
+			await scheduler.waitIdle();
+		}
+
+		throw new Error('The queue never settled');
+	}
+
+	test.prop([fc.scheduler(), fc.array(queueStep, { maxLength: 30, size: 'max' })])(
+		'batches never overlap, and each path ends on its latest change, processed after it was added',
+		async (scheduler, steps) => {
+			vi.useFakeTimers();
+
+			try {
+				const added: Array<FileChangeQueueItem> = [];
+				const processed: Array<{ change: FileChangeQueueItem; startedAfter: number }> = [];
+				let activeBatches = 0;
+				let overlaps = 0;
+
+				const queue = createChangeQueue({
+					debounceMs,
+					onBatchEnd: async () => {
+						await scheduler.schedule(Promise.resolve());
+						activeBatches--;
+					},
+					onBatchStart: async () => {
+						if (activeBatches > 0) overlaps++;
+						activeBatches++;
+						await scheduler.schedule(Promise.resolve());
+					},
+					onError: (error) => {
+						throw error;
+					},
+					processChange: async (change) => {
+						processed.push({ change, startedAfter: added.length });
+						await scheduler.schedule(Promise.resolve());
+					},
+				});
+
+				for (const step of steps) {
+					if (step.kind === 'add') {
+						const change = {
+							filePath: step.filePath,
+							id: `${step.filePath}#${String(added.length)}`,
+							type: step.type,
+						};
+
+						added.push(change);
+						queue.add(change);
+					} else if (step.kind === 'wait') {
+						await vi.advanceTimersByTimeAsync(step.ms);
+					} else if (scheduler.count() > 0) {
+						await scheduler.waitNext(1);
+					}
+				}
+
+				await settle(scheduler);
+
+				expect(overlaps).toBe(0);
+				expect(new Set(processed.map(({ change }) => change.id)).size).toBe(processed.length);
+
+				for (const [index, change] of added.entries()) {
+					const later = processed.filter(
+						(entry) =>
+							entry.change.filePath === change.filePath &&
+							Number(entry.change.id.split('#', 2)[1]) >= index &&
+							entry.startedAfter > index,
+					);
+
+					expect(later.length, `${change.id} was never processed or superseded`).toBeGreaterThan(0);
+				}
+
+				const addedPaths = new Set(added.map((change) => change.filePath));
+
+				for (const filePath of addedPaths) {
+					const last = added.findLast((change) => change.filePath === filePath);
+					const lastProcessed = processed.findLast((entry) => entry.change.filePath === filePath);
+
+					expect(lastProcessed?.change).toBe(last);
+				}
+			} finally {
+				vi.useRealTimers();
+			}
+		},
+	);
 });

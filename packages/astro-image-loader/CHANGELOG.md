@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-loader
 
+## 1.4.1
+
+### Patch Changes
+
+- Fix the JSONL cache opening a write stream per concurrent first write and leaving the extras open
+
 ## 1.4.0
 
 ### Minor Changes

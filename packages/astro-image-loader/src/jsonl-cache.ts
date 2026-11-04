@@ -17,7 +17,7 @@ interface JsonlCacheLine {
  */
 export function createJsonlCache({ filePath }: { filePath: string }): ImageLoaderCache {
 	let hydration: Promise<Map<string, ImageLoaderCacheValue>> | undefined;
-	let appendStream: undefined | WriteStream;
+	let appendStream: Promise<WriteStream> | undefined;
 
 	// Tracks non-empty file lines so prune can tell when the file diverges from the live map
 	let fileLineCount = 0;
@@ -59,11 +59,21 @@ export function createJsonlCache({ filePath }: { filePath: string }): ImageLoade
 		return hydration;
 	}
 
-	async function getAppendStream() {
+	async function openAppendStream() {
+		try {
+			await mkdir(path.dirname(filePath), { recursive: true });
+			return createWriteStream(filePath, { flags: 'a' });
+		} catch (error) {
+			appendStream = undefined;
+			throw error;
+		}
+	}
+
+	// Memoized, or concurrent first sets each open their own stream
+	function getAppendStream() {
 		if (appendStream) return appendStream;
 
-		await mkdir(path.dirname(filePath), { recursive: true });
-		appendStream = createWriteStream(filePath, { flags: 'a' });
+		appendStream = openAppendStream();
 		return appendStream;
 	}
 
@@ -92,7 +102,9 @@ export function createJsonlCache({ filePath }: { filePath: string }): ImageLoade
 
 			// Compact: rewrite with live keys only, atomically via temp file + rename
 			if (appendStream) {
-				await new Promise((resolve) => appendStream?.end(resolve));
+				const stream = await appendStream;
+
+				await new Promise((resolve) => stream.end(resolve));
 				appendStream = undefined;
 			}
 
