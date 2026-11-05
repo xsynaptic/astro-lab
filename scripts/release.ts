@@ -45,6 +45,10 @@ function runQuietly(script: string) {
 	console.log(`done in ${seconds}s`);
 }
 
+function releaseTag({ name, version }: PackageManifest) {
+	return `${name}@${version}`;
+}
+
 function exitWith(message: string) {
 	console.error(message);
 	process.exit(1);
@@ -59,6 +63,13 @@ async function isPublished({ name, version }: PackageManifest) {
 
 	return true;
 }
+
+const branch = spawnSync('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], {
+	encoding: 'utf8',
+}).stdout.trim();
+
+// A publish from any other branch lands on npm and then fails to push
+if (branch !== 'main') exitWith(`Release from main; HEAD is ${branch || 'detached'}`);
 
 const uncommitted = spawnSync('git', ['status', '--porcelain', '--', ...releasePaths], {
 	encoding: 'utf8',
@@ -90,17 +101,26 @@ const unpublished = lookups
 	.map((lookup) => lookup.manifest);
 
 if (unpublished.length === 0) {
+	const unpushedTags = manifests
+		.map((manifest) => releaseTag(manifest))
+		.filter(
+			(tag) => spawnSync('git', ['merge-base', '--is-ancestor', tag, 'origin/main']).status !== 0,
+		);
+
+	if (unpushedTags.length > 0)
+		exitWith(
+			`On npm but not on origin/main: ${unpushedTags.join(', ')}\nPush with \`git push --follow-tags origin main\``,
+		);
+
 	console.log('Nothing to release; every package version is already on npm');
 	process.exit(0);
 }
 
-console.log(
-	`Releasing ${unpublished.map((manifest) => `${manifest.name}@${manifest.version}`).join(', ')}\n`,
-);
+console.log(`Releasing ${unpublished.map((manifest) => releaseTag(manifest)).join(', ')}\n`);
 
 runQuietly('build');
 runQuietly('check');
 runQuietly('test:e2e');
 run('pnpm', ['changeset', 'publish']);
 // The checks above already gated this tree; the hook would recheck unrelated work in progress
-run('git', ['push', '--no-verify', '--follow-tags']);
+run('git', ['push', '--no-verify', '--follow-tags', 'origin', 'main']);
