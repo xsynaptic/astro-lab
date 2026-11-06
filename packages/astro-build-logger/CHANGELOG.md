@@ -1,5 +1,11 @@
 # @xsynaptic/astro-build-logger
 
+## 1.2.0
+
+### Minor Changes
+
+- Unknown option keys now fail when the config loads instead of being dropped
+
 ## 1.1.0
 
 ### Minor Changes

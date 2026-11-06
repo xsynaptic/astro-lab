@@ -5,15 +5,11 @@ import { appendFile, readdir, stat } from 'node:fs/promises';
 import { z } from 'zod';
 
 const optionsSchema = z
-	.object({
-		/**
-		 * Path to the JSONL log file
-		 *
-		 * @default `"astro-build.jsonl"`
-		 */
-		logFileName: z.string().optional(),
+	.strictObject({
+		/** Path to the JSONL log file */
+		logFileName: z.string().default('astro-build.jsonl'),
 	})
-	.optional();
+	.prefault({});
 
 interface BuildLogEntry {
 	astroVersion: string;
@@ -34,9 +30,20 @@ interface DirectoryMeasure {
 
 type Options = z.input<typeof optionsSchema>;
 
+function parseOptions(options: Options) {
+	const result = optionsSchema.safeParse(options);
+
+	if (!result.success) {
+		throw new Error(
+			`[@xsynaptic/astro-build-logger] Invalid options\n${z.prettifyError(result.error)}`,
+		);
+	}
+
+	return result.data;
+}
+
 export default function buildLogger(options?: Options): AstroIntegration {
-	const parsed = optionsSchema.parse(options);
-	const logFileName = parsed?.logFileName ?? 'astro-build.jsonl';
+	const { logFileName } = parseOptions(options);
 
 	let buildStartTime: number;
 
