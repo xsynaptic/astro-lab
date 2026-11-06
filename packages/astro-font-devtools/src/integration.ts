@@ -1,23 +1,40 @@
 import type { AstroIntegration } from 'astro';
 
-import type { ProviderName } from './shared/types.js';
+import { z } from 'zod';
 
 import { createCatalogHandler } from './server/catalog.js';
 import { createResolveHandler } from './server/resolve.js';
 import { icons } from './shared/icons.js';
+import { providerNames } from './shared/types.js';
 
-interface Options {
-	/** Which font providers to browse. Defaults to Fontsource only. */
-	providers?: Array<ProviderName>;
-	/** Targets pre-loaded as rows: CSS custom properties (e.g. `--font-display`) or selectors
-	 * (e.g. `h1`, `.hero`). Optional; targets can also be added from the toolbar at runtime. */
-	targets?: Array<string>;
-}
+const optionsSchema = z
+	.strictObject({
+		/** Which font providers to browse. Defaults to Fontsource only. */
+		providers: z.array(z.enum(providerNames)).min(1).default(['fontsource']),
+		/** Targets pre-loaded as rows: CSS custom properties (e.g. `--font-display`) or selectors
+		 * (e.g. `h1`, `.hero`). Optional; targets can also be added from the toolbar at runtime. */
+		targets: z.array(z.string()).default([]),
+	})
+	.prefault({});
+
+type Options = z.input<typeof optionsSchema>;
 
 const appId = 'astro-font-devtools';
 
-export default function fontDevtools(options: Options = {}): AstroIntegration {
-	const { providers = ['fontsource'], targets = [] } = options;
+function parseOptions(options: Options) {
+	const result = optionsSchema.safeParse(options);
+
+	if (!result.success) {
+		throw new Error(
+			`[@xsynaptic/astro-font-devtools] Invalid options\n${z.prettifyError(result.error)}`,
+		);
+	}
+
+	return result.data;
+}
+
+export default function fontDevtools(options?: Options): AstroIntegration {
+	const { providers, targets } = parseOptions(options);
 
 	return {
 		hooks: {

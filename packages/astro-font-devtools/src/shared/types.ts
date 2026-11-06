@@ -23,4 +23,6 @@ export const fontCategories = [
 
 export type FontCategory = (typeof fontCategories)[number];
 
-export type ProviderName = 'bunny' | 'fontshare' | 'fontsource' | 'google';
+export const providerNames = ['bunny', 'fontshare', 'fontsource', 'google'] as const;
+
+export type ProviderName = (typeof providerNames)[number];

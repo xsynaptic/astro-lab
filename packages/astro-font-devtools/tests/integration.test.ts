@@ -31,4 +31,9 @@ describe('fontDevtools', () => {
 	it('does nothing outside dev', () => {
 		expect(countRegisteredApps('build')).toBe(0);
 	});
+
+	it('refuses a misspelled key', () => {
+		// @ts-expect-error a typo an untyped astro.config.mjs would pass through
+		expect(() => fontDevtools({ target: ['h1'] })).toThrow('Unrecognized key: "target"');
+	});
 });

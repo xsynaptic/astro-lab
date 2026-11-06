@@ -1,5 +1,11 @@
 # @xsynaptic/astro-font-devtools
 
+## 1.1.0
+
+### Minor Changes
+
+- Options are validated when the config loads: an unknown provider or key fails at startup instead of on the toolbar's first request
+
 ## 1.0.4
 
 ### Patch Changes
