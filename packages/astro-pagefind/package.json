@@ -46,7 +46,8 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"sirv": "^3.0.2"
+		"sirv": "^3.0.2",
+		"zod": "^4.6.7"
 	},
 	"peerDependencies": {
 		"@pagefind/component-ui": "^1.6.0",

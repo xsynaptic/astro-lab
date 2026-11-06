@@ -1,5 +1,4 @@
 import type { AstroIntegration } from 'astro';
-import type { PagefindServiceConfig } from 'pagefind';
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -7,12 +6,13 @@ import { fileURLToPath } from 'node:url';
 import { createIndex } from 'pagefind';
 import sirv from 'sirv';
 
+import type { PagefindOptions } from './options.js';
+
 import { getBundleDir } from './bundle.js';
+import { formatUnknownKeysWarning, parseOptions } from './options.js';
 import { findPackageVersion, getPagefindVersion, versionDefine } from './package-version.js';
 
-export interface PagefindOptions {
-	indexConfig?: PagefindServiceConfig;
-}
+export type { PagefindOptions } from './options.js';
 
 function throwOnErrors(errors: Array<string>, action: string) {
 	if (errors.length === 0) return;
@@ -35,7 +35,8 @@ function assertMatchingComponentUi(root: URL) {
 	);
 }
 
-export default function pagefind({ indexConfig }: PagefindOptions = {}): AstroIntegration {
+export default function pagefind(options?: PagefindOptions): AstroIntegration {
+	const { indexConfig, unknownKeys } = parseOptions(options, getPagefindVersion);
 	let serveDirectories: Array<string> = [];
 
 	return {
@@ -73,6 +74,10 @@ export default function pagefind({ indexConfig }: PagefindOptions = {}): AstroIn
 			},
 			'astro:config:setup': ({ config, logger, updateConfig }) => {
 				assertMatchingComponentUi(config.root);
+
+				if (unknownKeys.length > 0) {
+					logger.warn(formatUnknownKeysWarning(unknownKeys, getPagefindVersion()));
+				}
 
 				if (config.output === 'server') {
 					logger.warn(

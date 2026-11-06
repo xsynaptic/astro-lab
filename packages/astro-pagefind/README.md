@@ -30,7 +30,9 @@ export default defineConfig({
 });
 ```
 
-`indexConfig` is passed unchanged to Pagefind's [`createIndex`][create-index]. After the build, the bundle is in `pagefind/<version>/` inside the output directory, for example `dist/pagefind/1.6.0/`.
+`indexConfig` goes to Pagefind's [`createIndex`][create-index]. A wrong type or an unknown key fails when the config loads; on a Pagefind release newer than 1.6, an unknown key may be a new option, so it gets a warning and passes through.
+
+After the build, the bundle is in `pagefind/<version>/` inside the output directory, for example `dist/pagefind/1.6.0/`.
 
 With `output: 'server'`, only pages that opt into prerendering are indexed.
 

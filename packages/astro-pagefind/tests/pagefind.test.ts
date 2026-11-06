@@ -217,6 +217,8 @@ describe('build', () => {
 			logLevel: 'silent',
 			outDir,
 			root: fileURLToPath(new URL('fixtures/site/', import.meta.url)),
+			// With outDir outside the cwd, Astro writes prerender chunks under the cwd, where an external zod doesn't resolve
+			vite: { environments: { prerender: { resolve: { noExternal: ['zod'] } } } },
 		});
 
 		const html = await fs.readFile(path.join(outDir, 'index.html'), 'utf8');
@@ -240,6 +242,15 @@ describe('build', () => {
 
 		expect(files).toContain('wasm.fr.pagefind');
 		expect(files).not.toContain('wasm.en.pagefind');
+	});
+});
+
+describe('options', () => {
+	test('a key the installed Pagefind drops fails when the config loads', () => {
+		// @ts-expect-error the installed Pagefind's types catch this in a typed config
+		expect(() => pagefind({ indexConfig: { excludeSelector: ['nav'] } })).toThrow(
+			`Pagefind ${String(pagefindVersion())} ignores indexConfig keys it doesn't know: excludeSelector`,
+		);
 	});
 });
 
