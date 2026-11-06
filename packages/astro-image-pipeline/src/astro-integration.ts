@@ -5,17 +5,17 @@ import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
 
 import type { Card } from './card-name.js';
-import type { ImageEncoding } from './image-encoding.js';
-import type { ImagePlaceholderOptions, PlaceholderConfig } from './image-placeholders.js';
+import type { PlaceholderConfig } from './image-placeholders.js';
 import type { ImageSourceResolver } from './image-sources.js';
 import type { ImageManifest } from './image-state.js';
 
 import { createDevImageResolver } from './dev-resolver.js';
-import { resolveImageEncoding } from './image-encoding.js';
+import { imageEncodingSchema, resolveImageEncoding } from './image-encoding.js';
 import { imageFormatTraits, isImageFormat } from './image-formats.js';
-import { imagePlaceholdersVariable, validatePlaceholderOptions } from './image-placeholders.js';
+import { imagePlaceholdersVariable, placeholderOptionsSchema } from './image-placeholders.js';
 import { imageRecordsVariable } from './image-recorder.js';
 import { readImageRecords, resetImageRecords } from './image-records.js';
 import { createDirectorySources } from './image-sources.js';
@@ -33,18 +33,49 @@ export type { ImagePlaceholderOptions } from './image-placeholders.js';
 export type { ImageSourceResolver } from './image-sources.js';
 export { createDirectorySources } from './image-sources.js';
 
-export interface ImagePipelineOptions {
-	baseUrl?: string;
-	encoding?: ImageEncoding;
-	keepIccProfile?: boolean;
-	limitInputPixels?: number;
-	mediaPath: string;
-	placeholders?: ImagePlaceholderOptions;
-	sources?: ImageSourceResolver;
-	storePath: string;
-}
-
 const sharpDefaultInputPixelLimit = 0x3f_ff * 0x3f_ff;
+
+const optionsSchema = z.strictObject({
+	baseUrl: z
+		.string()
+		.refine((value) => value.replace(/\/+$/, '') !== '', {
+			error:
+				'imagePipeline needs a baseUrl below the site root; at the root, every request and every root-relative URL would count as an image',
+		})
+		.optional(),
+	encoding: imageEncodingSchema.optional(),
+	keepIccProfile: z.boolean().default(false),
+	// Sharp reads 0 as no limit
+	limitInputPixels: z.int().min(0).default(sharpDefaultInputPixelLimit),
+	mediaPath: z.string(),
+	placeholders: placeholderOptionsSchema.optional(),
+	// Checked rather than parsed, so a class instance reaches the dev resolver intact
+	sources: z
+		.custom<ImageSourceResolver>(
+			(value) =>
+				typeof value === 'object' &&
+				value !== null &&
+				'resolve' in value &&
+				typeof value.resolve === 'function',
+			{ error: 'Expected an object with a resolve(stem) function' },
+		)
+		.optional(),
+	storePath: z.string(),
+});
+
+export type ImagePipelineOptions = z.input<typeof optionsSchema>;
+
+function parseOptions(options: ImagePipelineOptions) {
+	const result = optionsSchema.safeParse(options);
+
+	if (!result.success) {
+		throw new Error(
+			`[@xsynaptic/astro-image-pipeline] Invalid options\n${z.prettifyError(result.error)}`,
+		);
+	}
+
+	return result.data;
+}
 
 function decodeImageName(pathname: string) {
 	try {
@@ -186,24 +217,17 @@ async function isBuiltFrom(storePath: string, mediaPath: string) {
 	}
 }
 
-export default function imagePipeline({
-	baseUrl,
-	encoding,
-	keepIccProfile = false,
-	limitInputPixels = sharpDefaultInputPixelLimit,
-	mediaPath,
-	placeholders,
-	sources,
-	storePath,
-}: ImagePipelineOptions): AstroIntegration {
-	if (baseUrl?.replace(/\/+$/, '') === '') {
-		throw new Error(
-			'imagePipeline needs a baseUrl below the site root; at the root, every request and every root-relative URL would count as an image',
-		);
-	}
-
-	if (placeholders) validatePlaceholderOptions(placeholders);
-
+export default function imagePipeline(options: ImagePipelineOptions): AstroIntegration {
+	const {
+		baseUrl,
+		encoding,
+		keepIccProfile,
+		limitInputPixels,
+		mediaPath,
+		placeholders,
+		sources,
+		storePath,
+	} = parseOptions(options);
 	const absoluteMediaPath = path.resolve(mediaPath);
 	const resolvedEncoding = resolveImageEncoding(encoding);
 	const absoluteStorePath = path.resolve(storePath);

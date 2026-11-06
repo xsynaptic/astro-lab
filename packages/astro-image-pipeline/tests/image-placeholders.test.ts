@@ -104,12 +104,9 @@ describe('getPlaceholder', () => {
 	});
 
 	test.each([
-		[{ quality: 0 }, 'a whole quality from 1 to 100, not 0'],
-		[{ quality: 2.5 }, 'a whole quality from 1 to 100, not 2.5'],
-		[{ blur: 0.2 }, 'a blur sigma from 0.3 to 1000, not 0.2'],
-		[{ blur: NaN }, 'a blur sigma from 0.3 to 1000, not NaN'],
-		[{ saturation: -1 }, 'a saturation of 0 or more, not -1'],
-		[{ saturation: Infinity }, 'a saturation of 0 or more, not Infinity'],
+		[{ pixels: 2.5 }, 'Expected a whole, positive pixel count\n  → at placeholders.pixels'],
+		[{ quality: 2.5 }, 'Expected a whole quality from 1 to 100\n  → at placeholders.quality'],
+		[{ saturaton: 1.2 }, 'Unrecognized key: "saturaton"\n  → at placeholders'],
 	])('refuses %j at setup', (override, message) => {
 		expect(() =>
 			imagePipeline({

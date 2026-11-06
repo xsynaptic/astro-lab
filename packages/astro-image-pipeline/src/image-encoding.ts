@@ -1,14 +1,23 @@
 import type { AvifOptions, JpegOptions, PngOptions, WebpOptions } from 'sharp';
 
+import { z } from 'zod';
+
 // Part of every render key; bump it when a render change alters the output bytes
 export const imageRenderRevision = 3;
 
-export interface ImageEncoding {
-	avif?: AvifOptions;
-	jpg?: JpegOptions;
-	png?: PngOptions;
-	webp?: WebpOptions;
+function isObject(value: unknown) {
+	return typeof value === 'object' && value !== null;
 }
+
+// Sharp validates its own options at render time
+export const imageEncodingSchema = z.strictObject({
+	avif: z.custom<AvifOptions>(isObject).optional(),
+	jpg: z.custom<JpegOptions>(isObject).optional(),
+	png: z.custom<PngOptions>(isObject).optional(),
+	webp: z.custom<WebpOptions>(isObject).optional(),
+});
+
+export type ImageEncoding = z.input<typeof imageEncodingSchema>;
 
 export interface ResolvedImageEncoding {
 	avif: AvifOptions;

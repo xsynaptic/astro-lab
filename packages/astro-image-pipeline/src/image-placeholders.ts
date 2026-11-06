@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import sharp from 'sharp';
+import { z } from 'zod';
 
 import type { ImageSize } from './image-name.js';
 import type { ImageDimensions, ImageSource } from './image-sizes.js';
@@ -20,12 +21,16 @@ export const imagePlaceholdersVariable = 'XSYNAPTIC_IMAGE_PLACEHOLDERS';
 
 const placeholderRevision = 1;
 
-export interface ImagePlaceholderOptions {
-	blur?: number;
-	pixels: number;
-	quality: number;
-	saturation?: number;
-}
+export const placeholderOptionsSchema = z.strictObject({
+	blur: z.number().min(0.3).max(1000).optional(),
+	pixels: z.number().refine(isPixelCount, { error: 'Expected a whole, positive pixel count' }),
+	quality: z.number().refine((value) => Number.isSafeInteger(value) && value >= 1 && value <= 100, {
+		error: 'Expected a whole quality from 1 to 100',
+	}),
+	saturation: z.number().min(0).optional(),
+});
+
+export type ImagePlaceholderOptions = z.input<typeof placeholderOptionsSchema>;
 
 type PlaceholderLook = Omit<ImagePlaceholderOptions, 'pixels'>;
 
@@ -52,41 +57,6 @@ interface PlaceholderStore {
 }
 
 let store: PlaceholderStore | undefined;
-
-function isInRange(value: number, minimum: number, maximum = Infinity) {
-	return value >= minimum && value <= maximum;
-}
-
-export function validatePlaceholderOptions({
-	blur,
-	pixels,
-	quality,
-	saturation,
-}: ImagePlaceholderOptions) {
-	if (!isPixelCount(pixels)) {
-		throw new Error(
-			`imagePipeline placeholders take a whole, positive pixel count, not ${String(pixels)}`,
-		);
-	}
-
-	if (!Number.isSafeInteger(quality) || !isInRange(quality, 1, 100)) {
-		throw new Error(
-			`imagePipeline placeholders take a whole quality from 1 to 100, not ${String(quality)}`,
-		);
-	}
-
-	if (blur !== undefined && (!Number.isFinite(blur) || !isInRange(blur, 0.3, 1000))) {
-		throw new Error(
-			`imagePipeline placeholders take a blur sigma from 0.3 to 1000, not ${String(blur)}`,
-		);
-	}
-
-	if (saturation !== undefined && (!Number.isFinite(saturation) || !isInRange(saturation, 0))) {
-		throw new Error(
-			`imagePipeline placeholders take a saturation of 0 or more, not ${String(saturation)}`,
-		);
-	}
-}
 
 function getPlaceholderGrid(aspectRatio: number, pixels: number): ImageDimensions {
 	const height = Math.sqrt(pixels / aspectRatio);

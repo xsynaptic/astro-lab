@@ -105,6 +105,17 @@ describe('imagePipeline', () => {
 		).toThrow('below the site root');
 	});
 
+	test.each([
+		[{ encoding: { jpeg: { quality: 85 } } }, 'Unrecognized key: "jpeg"\n  → at encoding'],
+		[{ placeholder: { pixels: 250, quality: 10 } }, 'Unrecognized key: "placeholder"'],
+		[{ sources: { find: vi.fn() } }, 'resolve(stem) function\n  → at sources'],
+	])('refuses %j when the config loads', (override, message) => {
+		expect(() =>
+			// @ts-expect-error options an untyped astro.config.mjs would pass through
+			imagePipeline({ mediaPath: 'media', storePath: 'cache', ...override }),
+		).toThrow(message);
+	});
+
 	test('without a base URL, records cards and serves nothing in dev', async () => {
 		const { hooks } = imagePipeline({ mediaPath: path.join(root, 'media'), storePath: root });
 		const use = vi.fn();

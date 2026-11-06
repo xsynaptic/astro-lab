@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.12.0
+
+### Minor Changes
+
+- Options are validated when the config loads: unknown keys fail, including `encoding.jpeg` (the key is `jpg`), which was silently ignored
+
 ## 0.11.3
 
 ### Patch Changes
