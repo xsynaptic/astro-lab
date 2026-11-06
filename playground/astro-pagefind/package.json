@@ -1,0 +1,17 @@
+{
+	"name": "@playground/astro-pagefind",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview"
+	},
+	"dependencies": {
+		"@pagefind/component-ui": "^1.6.0",
+		"@xsynaptic/astro-pagefind": "*",
+		"astro": "^7.4.5",
+		"pagefind": "^1.6.0"
+	}
+}

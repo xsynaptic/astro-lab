@@ -1,0 +1,66 @@
+{
+	"name": "@xsynaptic/astro-pagefind",
+	"version": "0.1.0",
+	"description": "Pagefind search for Astro, with a versioned bundle",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/astro-pagefind"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/astro-pagefind#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"astro",
+		"astro-integration",
+		"withastro",
+		"pagefind",
+		"search"
+	],
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./bundle": {
+			"types": "./dist/bundle.d.mts",
+			"import": "./dist/bundle.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"sirv": "^3.0.2"
+	},
+	"peerDependencies": {
+		"@pagefind/component-ui": "^1.6.0",
+		"astro": "^7.4.2",
+		"pagefind": "^1.6.0"
+	},
+	"peerDependenciesMeta": {
+		"@pagefind/component-ui": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@types/node": "^24.19.2",
+		"astro": "^7.4.5",
+		"pagefind": "^1.6.0"
+	}
+}

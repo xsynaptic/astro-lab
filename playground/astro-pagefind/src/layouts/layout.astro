@@ -1,0 +1,48 @@
+---
+import { getBundlePath } from '@xsynaptic/astro-pagefind/bundle';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>{title} · astro-pagefind playground</title>
+		<style>
+			body {
+				font-family: system-ui, sans-serif;
+				max-width: 42rem;
+				margin: 4rem auto;
+				padding: 0 1.5rem;
+				line-height: 1.6;
+			}
+		</style>
+	</head>
+	<body>
+		<nav data-pagefind-ignore>
+			<a href={`${base}/`}>Home</a> · <a href={`${base}/lighthouses/`}>Lighthouses</a> ·
+			<a href={`${base}/tide-pools/`}>Tide pools</a>
+		</nav>
+		<search data-pagefind-ignore>
+			<pagefind-config bundle-path={getBundlePath(base)}></pagefind-config>
+			<pagefind-input></pagefind-input>
+			<pagefind-summary></pagefind-summary>
+			<pagefind-results></pagefind-results>
+		</search>
+		<main data-pagefind-body>
+			<h1>{title}</h1>
+			<slot />
+		</main>
+		<script>
+			import '@pagefind/component-ui';
+			import '@pagefind/component-ui/css';
+		</script>
+	</body>
+</html>
