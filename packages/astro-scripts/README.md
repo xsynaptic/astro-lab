@@ -30,7 +30,9 @@ await runCommand({
 
 Output renders `pretty` on a TTY, `plain` elsewhere, and NDJSON events on stdout with `--json`, each `log.data` value as a `data` event. Run a `--json` command through `pnpm --silent -C <scripts package>` so pnpm's own lines stay out of the stream.
 
-`withAstroContent` needs a content store written by `astro sync`, and the project's `cacheDir` set to `'./.astro/'`: `astro sync` writes the store to `cacheDir`, while the bridge runs Astro in dev mode, which reads it from `.astro/`.
+`withAstroContent` needs a content store written by `astro sync`, and the project's `cacheDir` set to `'./.astro/'`: `astro sync` writes the store to `cacheDir`, while the bridge runs Astro in dev mode, which reads it from `.astro/`. With no store there, it fails before starting Astro.
+
+`getCollectionEntries` warns when an entry's file was edited or deleted since the last sync; a file touched without an edit stays quiet. It misses new files and content config changes, and a custom loader's touched files warn until the store next changes.
 
 `runSubprocess` runs a subprocess as a step, and `withStep` runs in-process work as one; `describe(result)` sets a step's closing text, and its task can call `step.warn(detail)` or `step.skip(reason)`, which the run lists before its footer. The subprocess writes straight to stderr, except under `--json` or with `onLine`, where each line becomes an `output` event; `onLine` returning `false` hides a line. Each nested event carries `parent: { command, id }`, the step it ran under. `readSubprocess` runs a subprocess with no step and returns its `stdout`, `stderr` and `exitCode`. Both pass the whole parent environment to the subprocess, with `env` merged over it; set a key to `undefined` to keep it from the subprocess (`env: { NODE_ENV: undefined }`).
 

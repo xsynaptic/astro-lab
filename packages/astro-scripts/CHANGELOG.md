@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.16.0
+
+### Minor Changes
+
+- `withAstroContent` fails early when `.astro/` has no content store, and `getCollectionEntries` warns about entries edited or deleted since the last sync.
+
 ## 0.15.1
 
 ### Patch Changes

@@ -1,10 +1,11 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { withAstroContent } from '../src/astro.js';
 import { createCommandRunner } from '../src/command.js';
+import { UserError } from '../src/user-error.js';
 
 const vite = vi.hoisted(() => {
 	const servers: Array<{ close: ReturnType<typeof vi.fn> }> = [];
@@ -31,7 +32,7 @@ const vite = vi.hoisted(() => {
 	};
 });
 
-vi.mock('../src/vite.js', () => ({ importVite: () => Promise.resolve(vite) }));
+vi.mock('../src/astro-dependency.js', () => ({ importVite: () => Promise.resolve(vite) }));
 vi.mock('astro/config', () => ({ getViteConfig: () => () => Promise.resolve({}) }));
 
 const originalArgv = process.argv;
@@ -43,6 +44,8 @@ beforeEach(() => {
 	astroRoot = mkdtempSync(path.join(os.tmpdir(), 'astro-scripts-server-test-'));
 	writeFileSync(path.join(astroRoot, 'astro.config.mjs'), '');
 	writeFileSync(path.join(astroRoot, 'pnpm-workspace.yaml'), '');
+	mkdirSync(path.join(astroRoot, '.astro'));
+	writeFileSync(path.join(astroRoot, '.astro/data-store.json'), '[]');
 	vi.spyOn(process, 'cwd').mockReturnValue(astroRoot);
 	vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 	process.argv = ['node', 'script.ts'];
@@ -126,5 +129,12 @@ describe('withAstroContent', () => {
 
 		expect(vite.createServer).toHaveBeenCalledTimes(2);
 		expect(vite.servers.every((server) => server.close.mock.calls.length === 1)).toBe(true);
+	});
+
+	test('fails before starting a server when there is no content store', async () => {
+		rmSync(path.join(astroRoot, '.astro'), { recursive: true });
+
+		await expect(withAstroContent(resolveNothing)).rejects.toThrow(UserError);
+		expect(vite.createServer).not.toHaveBeenCalled();
 	});
 });

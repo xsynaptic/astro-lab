@@ -8,9 +8,12 @@ import path from 'node:path';
 
 import type { CommandScope } from './command.js';
 
+import { importVite } from './astro-dependency.js';
 import { getCommandScope } from './command.js';
+import { findContentStore, findStaleFiles } from './content-store.js';
+import { formatCount } from './output/format.js';
+import { log } from './output/output.js';
 import { UserError } from './user-error.js';
-import { importVite } from './vite.js';
 
 type AstroContent = typeof AstroContentModule;
 
@@ -47,6 +50,21 @@ export function findAstroRoot(startDir = process.cwd()) {
 	throw new UserError(`Could not locate an Astro config above ${startDir}`);
 }
 
+const listedStaleFiles = 3;
+
+async function warnIfStale(entries: Array<ContentEntry>) {
+	const root = findAstroRoot();
+	const staleFiles = await findStaleFiles(root, findContentStore(root), entries);
+
+	if (staleFiles.length === 0) return;
+
+	const listed = staleFiles.slice(0, listedStaleFiles).join(', ');
+	const unlisted = staleFiles.length - listedStaleFiles;
+	const more = unlisted > 0 ? ` and ${formatCount(unlisted)} more` : '';
+
+	log.warn(`The content store predates changes to ${listed}${more}; run \`astro sync\``);
+}
+
 // Annotated so the declaration keeps the consumer's `CollectionEntry`; inferred, it bakes in the unsynced `any`
 export async function getCollectionEntries<C extends CollectionKey>(
 	{ getCollection }: AstroContent,
@@ -60,9 +78,12 @@ export async function getCollectionEntries<C extends CollectionKey>(
 
 	if (flattened.length === 0) {
 		throw new UserError(
-			`No entries found in: ${collections.join(', ')}. Run \`astro sync\` to write the content store.`,
+			`No entries found in: ${collections.join(', ')}. Check the collection names, or run \`astro sync\` if one is new.`,
 		);
 	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- unsynced here, entries are the stub's `any`; a consumer's are typed
+	await warnIfStale(flattened);
 
 	return flattened;
 }
@@ -70,6 +91,9 @@ export async function getCollectionEntries<C extends CollectionKey>(
 async function startAstroServer() {
 	// An unrooted config resolves against `process.cwd()`, finds none, and reads every collection back empty
 	const root = findAstroRoot();
+
+	findContentStore(root);
+
 	const [{ getViteConfig }, { createLogger, createServer }] = await Promise.all([
 		import('astro/config'),
 		importVite(),
