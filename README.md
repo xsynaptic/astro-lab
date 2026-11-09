@@ -10,6 +10,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 - [`@xsynaptic/astro-image-pipeline`](packages/astro-image-pipeline): Astro integration that records the images each build uses and renders them with sharp outside the bundler
 - [`@xsynaptic/astro-pagefind`](packages/astro-pagefind): Pagefind search for Astro, with a versioned bundle
 - [`@xsynaptic/astro-sitemap-lastmod`](packages/astro-sitemap-lastmod): Astro integration that adds `lastmod` dates to the sitemap from `@astrojs/sitemap`, recorded by a script or your content loaders
+- [`@xsynaptic/astro-syndication`](packages/astro-syndication): Helpers for standardizing syndication: a shared item model, off-page rendering, feed-safe HTML, and an RSS writer
 
 ## Sätteri
 

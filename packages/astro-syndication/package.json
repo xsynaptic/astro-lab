@@ -1,0 +1,77 @@
+{
+	"name": "@xsynaptic/astro-syndication",
+	"version": "0.1.0",
+	"description": "Helpers for standardizing syndication in Astro: a shared item model, off-page rendering, feed-safe HTML, and an RSS writer",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/astro-syndication"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/astro-syndication#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"astro",
+		"withastro",
+		"syndication",
+		"rss",
+		"feed",
+		"mrss"
+	],
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./html": {
+			"types": "./dist/html.d.mts",
+			"import": "./dist/html.mjs"
+		},
+		"./render": {
+			"types": "./dist/render.d.mts",
+			"import": "./dist/render.mjs"
+		},
+		"./rss": {
+			"types": "./dist/rss.d.mts",
+			"import": "./dist/rss.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"hast-util-from-html": "^2.0.3",
+		"hast-util-sanitize": "^5.0.2",
+		"hast-util-to-html": "^9.0.5",
+		"unist-util-visit": "^5.2.0"
+	},
+	"peerDependencies": {
+		"@astrojs/rss": "^4.0.19",
+		"astro": "^7.4.2"
+	},
+	"peerDependenciesMeta": {
+		"@astrojs/rss": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@astrojs/rss": "^4.0.19",
+		"@types/hast": "^3.0.5",
+		"astro": "^7.4.5"
+	}
+}
