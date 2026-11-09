@@ -1,6 +1,8 @@
+import chalk from 'chalk';
 import { stripVTControlCharacters } from 'node:util';
 
 import type { OutputEvent, Reporter, ReporterStreams } from './events.js';
+import type { Palette } from './human-format.js';
 
 import { formatProgressText } from './format.js';
 import {
@@ -15,6 +17,7 @@ import {
 } from './human-format.js';
 
 interface PlainReporterOptions {
+	isColour?: boolean;
 	isNested?: boolean;
 	now?: () => number;
 }
@@ -33,15 +36,16 @@ function getTenth(done: number, total: number) {
 
 export function createPlainReporter(
 	{ stderr, stdout }: ReporterStreams,
-	{ isNested = false, now = Date.now }: PlainReporterOptions = {},
+	{ isColour = false, isNested = false, now = Date.now }: PlainReporterOptions = {},
 ): Reporter {
 	type StatusEvent = Extract<OutputEvent, { type: 'status' }>;
 
+	const palette: Palette = isColour ? chalk : plainPalette;
 	const statuses = new Map<number, OpenStatus>();
 	const openIds: Array<number> = [];
 
 	function writeLine(line: string) {
-		stderr.write(`${stripVTControlCharacters(line)}\n`);
+		stderr.write(`${isColour ? line : stripVTControlCharacters(line)}\n`);
 	}
 
 	function closeStatus(id: number) {
@@ -69,7 +73,7 @@ export function createPlainReporter(
 		}
 
 		if (isClosingStatus(event)) {
-			for (const line of formatStatusClose(event, plainPalette)) writeLine(line);
+			for (const line of formatStatusClose(event, palette)) writeLine(line);
 		}
 
 		closeStatus(id);
@@ -92,7 +96,7 @@ export function createPlainReporter(
 					const active = activeId === undefined ? undefined : statuses.get(activeId);
 
 					if (active && event.status !== 'ok') {
-						writeLine(`${getStateSymbol('fail', plainPalette)} ${active.text}`);
+						writeLine(`${getStateSymbol('fail', palette)} ${active.text}`);
 					}
 
 					statuses.clear();
@@ -100,11 +104,11 @@ export function createPlainReporter(
 
 					if (isNested && event.status === 'ok') break;
 
-					for (const line of formatEnd(event, plainPalette)) writeLine(line);
+					for (const line of formatEnd(event, palette)) writeLine(line);
 					break;
 				}
 				case 'message': {
-					writeLine(formatMessage(event.level, event.text, plainPalette));
+					writeLine(formatMessage(event.level, event.text, palette));
 					break;
 				}
 				case 'nested': {
@@ -133,7 +137,7 @@ export function createPlainReporter(
 				case 'start': {
 					if (isNested) break;
 
-					writeLine(formatMessage('title', event.title, plainPalette));
+					writeLine(formatMessage('title', event.title, palette));
 					break;
 				}
 				case 'status': {
@@ -141,7 +145,7 @@ export function createPlainReporter(
 					break;
 				}
 				case 'summary': {
-					for (const line of formatSummaryRows(event.rows, plainPalette)) writeLine(line);
+					for (const line of formatSummaryRows(event.rows, palette)) writeLine(line);
 					break;
 				}
 			}

@@ -18,6 +18,12 @@ function detectOutputMode(): OutputMode {
 	return process.stderr.isTTY && process.stderr.columns > 0 ? 'pretty' : 'plain';
 }
 
+function isColourForced() {
+	const value = process.env.FORCE_COLOR;
+
+	return value !== undefined && value !== '0' && value !== 'false';
+}
+
 function createReporter(mode: OutputMode, command?: string) {
 	const streams = { stderr: process.stderr, stdout: process.stdout };
 
@@ -25,7 +31,9 @@ function createReporter(mode: OutputMode, command?: string) {
 
 	const isNested = process.env.XSYNAPTIC_SCRIPTS_NESTED === '1';
 
-	if (mode === 'plain') return createPlainReporter(streams, { isNested });
+	if (mode === 'plain') {
+		return createPlainReporter(streams, { isColour: isColourForced(), isNested });
+	}
 
 	return createPrettyReporter(streams, { isNested });
 }

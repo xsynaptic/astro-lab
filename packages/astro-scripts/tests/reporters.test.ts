@@ -384,6 +384,24 @@ describe('plain reporter', () => {
 		expect(harness.stderr()).toEqual(['Building', 'built', '✓ Building · 3.0s']);
 	});
 
+	test('keeps subprocess colour when colour is forced', () => {
+		const chunks: Array<string> = [];
+		const stderr = new Writable({
+			write(chunk: Buffer, _encoding, callback) {
+				chunks.push(chunk.toString());
+				callback();
+			},
+		});
+		const reporter = createPlainReporter(
+			{ stderr, stdout: createCollector().stream },
+			{ isColour: true },
+		);
+
+		reporter.emit({ id: 1, stream: 'stdout', text: '\u{1B}[32mbuilt\u{1B}[39m', type: 'output' });
+
+		expect(chunks.join('')).toBe('\u{1B}[32mbuilt\u{1B}[39m\n');
+	});
+
 	test('prints a status on start and end, not on update', () => {
 		const harness = createHarness(createPlainReporter);
 

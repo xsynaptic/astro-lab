@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.16.1
+
+### Patch Changes
+
+- Plain output keeps colour when `FORCE_COLOR` is set, so a script run over SSH without a terminal still prints in colour
+
 ## 0.16.0
 
 ### Minor Changes
