@@ -10,9 +10,11 @@ pnpm add @xsynaptic/astro-syndication @astrojs/rss
 
 ## Items
 
-A `SyndicationItem` has a `title`, an absolute `url`, a `dateCreated`, `tags`, and optionally `dateUpdated`, `description`, `contentHtml` and an `image` (`url`, `alt`, `type`, `width`, `height`).
+A `SyndicationItem` has a `title`, an absolute `url`, a `dateCreated`, `tags`, and optionally `dateUpdated`, `description`, `contentHtml`, `authors` (`name`, optional `url`) and an `image` (`url`, `alt`, `type`, `width`, `height`). Image URLs may be root-relative.
 
-Date-only values parse to midnight UTC. `anchorDateOnly(date, { utcOffsetHours: 8 })` moves them to midnight in your timezone, so today's entries aren't dated in the future.
+Date-only values parse to midnight UTC. `anchorDateOnly(date, { utcOffsetHours: 8 })` moves values at exactly midnight UTC to midnight in your timezone, so today's entries aren't dated in the future.
+
+`toSyndicationImage(await getImage({ format: 'jpg', src, width: 1200 }), { alt })` builds an item image from a `getImage()` result.
 
 ## Rendering content
 
@@ -56,6 +58,7 @@ export const GET = (async (context) =>
 		publication: {
 			copyright: '© 2026 Example',
 			description: 'Notes and photographs',
+			image: { height: 144, url: '/feed-logo.png', width: 144 },
 			language: 'en-us',
 			site: context.site,
 			title: 'Example',
@@ -64,7 +67,9 @@ export const GET = (async (context) =>
 	})) satisfies APIRoute;
 ```
 
-Each item gets a link, categories from `tags`, full content, and its image as MRSS `media:content`. Its date is `dateUpdated` when there is one, `dateCreated` otherwise. The channel's `lastBuildDate` is the newest item date. Item links are written as you give them, so include the trailing slash your routes use.
+Each item gets a link, categories from `tags`, a `dc:creator` per author, full content, and its image as MRSS `media:content`. Its date is `dateUpdated` when there is one, `dateCreated` otherwise. The channel's `lastBuildDate` is the newest item date. Item links are written as you give them, so include the trailing slash your routes use.
+
+The publication `image` becomes the channel `<image>`; the writer warns when it is over 144 × 400 px or an SVG.
 
 ## License
 

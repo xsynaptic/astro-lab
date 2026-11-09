@@ -6,7 +6,16 @@ import { defaultSchema, sanitize } from 'hast-util-sanitize';
 import { toHtml } from 'hast-util-to-html';
 import { visit } from 'unist-util-visit';
 
-export const syndicationSchema: Schema = {
+import { resolveUrl } from './url.js';
+
+// Not `satisfies Schema`: the inferred type names an unexported hast-util-sanitize type
+interface SyndicationSchema extends Schema {
+	clobber: Array<string>;
+	protocols: NonNullable<Schema['protocols']>;
+	tagNames: Array<string>;
+}
+
+export const syndicationSchema: SyndicationSchema = {
 	...defaultSchema,
 	clobber: [],
 	protocols: {
@@ -16,18 +25,10 @@ export const syndicationSchema: Schema = {
 	tagNames: [...(defaultSchema.tagNames ?? []), 'figcaption', 'figure'],
 };
 
-const selfContainedUrl = /^(?:[a-z][\d+.a-z-]*:|\/\/|#)/i;
-
 const urlProperties = ['href', 'poster', 'src'] as const;
 
 // Not a split on commas, which would break data URLs
 const srcSetUrl = /(^|,)(\s*)(\S*?[^\s,])(?=,*(?:\s|$))/g;
-
-function resolveUrl(value: string, site: URL) {
-	if (value === '' || selfContainedUrl.test(value)) return value;
-
-	return URL.parse(value, site)?.href ?? value;
-}
 
 function resolveSrcSet(srcSet: string, site: URL) {
 	return srcSet.replaceAll(

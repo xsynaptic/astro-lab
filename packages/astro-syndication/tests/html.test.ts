@@ -172,7 +172,7 @@ describe('prepareSyndicationHtml', () => {
 		(runs) => {
 			const schema = {
 				...syndicationSchema,
-				tagNames: (syndicationSchema.tagNames ?? []).filter((tagName) => tagName !== 'span'),
+				tagNames: syndicationSchema.tagNames.filter((tagName) => tagName !== 'span'),
 			};
 
 			const html = toHtml(

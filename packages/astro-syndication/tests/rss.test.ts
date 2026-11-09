@@ -1,5 +1,5 @@
 import { fc, test } from '@fast-check/vitest';
-import { describe, expect } from 'vitest';
+import { afterEach, describe, expect, vi } from 'vitest';
 
 import type { SyndicationItem, SyndicationPublication } from '../src/index.js';
 
@@ -103,6 +103,27 @@ describe('getRssResponse items', () => {
 		expect(await renderItem(itemBare)).toContain(`<pubDate>${dateCreated.toUTCString()}</pubDate>`);
 	});
 
+	test('a root-relative image url resolves against the site', async () => {
+		const item = await renderItem({
+			...itemFull,
+			image: { ...itemFull.image, url: '/_astro/lukang.hash.jpg' },
+		});
+
+		expect(item).toContain('<media:content url="https://example.com/_astro/lukang.hash.jpg"');
+	});
+
+	test('each author becomes an escaped creator in order', async () => {
+		const item = await renderItem({
+			...itemFull,
+			authors: [{ name: 'Lin & Chen' }, { name: 'Wu', url: 'https://example.com/wu/' }],
+		});
+
+		expect(
+			[...item.matchAll(/<dc:creator>([^<]*)<\/dc:creator>/g)].map(([, name]) => name),
+		).toStrictEqual(['Lin &amp; Chen', 'Wu']);
+		expect(item).toContain('<media:content ');
+	});
+
 	test('the absolute url is both link and guid', async () => {
 		const item = await renderItem(itemBare);
 
@@ -150,6 +171,13 @@ describe('getRssResponse channel', () => {
 		);
 	});
 
+	test('the Dublin Core namespace is declared only when some item has an author', async () => {
+		expect(await renderFeed([itemBare, { ...itemBare, authors: [] }])).not.toContain('xmlns:dc');
+		expect(await renderFeed([itemBare, { ...itemBare, authors: [{ name: 'Wu' }] }])).toContain(
+			'xmlns:dc="http://purl.org/dc/elements/1.1/"',
+		);
+	});
+
 	test('the channel carries its language and self link', async () => {
 		const xml = await renderFeed([itemBare]);
 
@@ -172,5 +200,56 @@ describe('getRssResponse channel', () => {
 		await expect(renderFeed([itemBare], { site: undefined })).rejects.toThrow(
 			'needs `site` set in the Astro config',
 		);
+	});
+});
+
+function getChannelImage(xml: string) {
+	return /<image>[\s\S]*<\/image>/.exec(xml)?.[0];
+}
+
+describe('getRssResponse channel image', () => {
+	const warn = vi.spyOn(console, 'warn').mockReturnValue();
+
+	afterEach(() => {
+		warn.mockClear();
+	});
+
+	test('carries a resolved url plus the channel title and link', async () => {
+		const xml = await renderFeed([itemBare], {
+			image: { height: 144, url: '/logo.png', width: 144 },
+			title: 'Lanterns & Incense',
+		});
+
+		expect(getChannelImage(xml)).toBe(
+			'<image><url>https://example.com/logo.png</url><title>Lanterns &amp; Incense</title><link>https://example.com/</link><width>144</width><height>144</height></image>',
+		);
+		expect(warn).not.toHaveBeenCalled();
+	});
+
+	test('leaves out dimensions it is not given', async () => {
+		const image = getChannelImage(
+			await renderFeed([], { image: { url: 'https://cdn.example.com/a.gif' } }),
+		);
+
+		expect(image).toContain('<url>https://cdn.example.com/a.gif</url>');
+		expect(image).not.toContain('<width>');
+		expect(image).not.toContain('<height>');
+	});
+
+	test('a publication without an image emits none', async () => {
+		expect(getChannelImage(await renderFeed([itemBare]))).toBeUndefined();
+	});
+
+	test('warns about each way an image breaks the spec', async () => {
+		await renderFeed([], { image: { height: 401, url: '/logo.svg?v=2', width: 180 } });
+
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn.mock.calls[0]?.[0]).toMatch(/width 180 .*; .*height 401 .*; .*SVG/);
+	});
+
+	test('warns about an SVG data URL', async () => {
+		await renderFeed([], { image: { url: 'data:image/svg+xml;base64,PHN2Zy8+' } });
+
+		expect(warn.mock.calls[0]?.[0]).toContain('SVG');
 	});
 });

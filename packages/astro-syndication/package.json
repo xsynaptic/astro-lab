@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-syndication",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Helpers for standardizing syndication in Astro: a shared item model, off-page rendering, feed-safe HTML, and an RSS writer",
 	"type": "module",
 	"license": "MIT",
@@ -49,6 +49,9 @@
 		"dist"
 	],
 	"sideEffects": false,
+	"astro": {
+		"external": true
+	},
 	"scripts": {
 		"build": "tsdown",
 		"dev": "tsdown --watch",
