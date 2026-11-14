@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.13.0
+
+### Minor Changes
+
+- `prepareCardRender` accepts a function for `templateVersion`, called with each card's input, so editing one template no longer renders every other card again
+
 ## 0.12.0
 
 ### Minor Changes

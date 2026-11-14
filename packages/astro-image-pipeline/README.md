@@ -45,3 +45,4 @@ Only names made with `getRenditionName` (or `getCardName` for OpenGraph cards) d
 - Make image URLs while pages render, or in prerendered endpoints.
 - Don't make them in content loaders (a cached run records nothing) or in on-demand routes.
 - `prepareRenditionRender({ storePath, distPath })` reads the manifest of the build in `distPath` and returns its `total` and a `run` function that renders it. It refuses a manifest from another version, so rebuild first.
+- `prepareCardRender({ storePath, distPath, decode, render, templateVersion })` does the same for OpenGraph cards. Pass `templateVersion` as a function of the card input to version templates separately; only cards whose version changes render again.

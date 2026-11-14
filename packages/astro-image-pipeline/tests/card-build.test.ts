@@ -5,7 +5,7 @@ import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { CardRenderOptions, CardSource } from '../src/card-build.js';
-import type { Card } from '../src/card-name.js';
+import type { Card, CardInput } from '../src/card-name.js';
 
 import { getCardKey, prepareCardRender } from '../src/card-build.js';
 import { resolveImageEncoding } from '../src/image-encoding.js';
@@ -47,6 +47,10 @@ function createDecode() {
 	return vi.fn((source: CardSource) =>
 		Promise.resolve(`${source.path}:${source.treatment ?? 'plain'}`),
 	);
+}
+
+function versionStoryCards(story: string) {
+	return (input: CardInput) => (input.title === 'A' ? story : 'landscape-1');
 }
 
 function prepare(options: Partial<CardRenderOptions<string>> = {}) {
@@ -171,6 +175,14 @@ describe('prepareCardRender', () => {
 		const counts = await render({ templateVersion: 'template-2' });
 
 		expect(counts).toMatchObject({ fresh: 0, rendered: 4, written: 0 });
+	});
+
+	test('a template version per card renders again only the cards whose version changed', async () => {
+		await render({ templateVersion: versionStoryCards('story-1') });
+
+		const counts = await render({ templateVersion: versionStoryCards('story-2') });
+
+		expect(counts).toMatchObject({ fresh: 3, rendered: 1 });
 	});
 
 	test('a replaced photo renders its cards again', async () => {

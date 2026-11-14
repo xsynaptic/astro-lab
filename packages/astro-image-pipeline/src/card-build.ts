@@ -26,7 +26,7 @@ export interface CardRenderOptions<Decoded> extends ImageRenderTarget {
 	decode: (source: CardSource) => Promise<Decoded>;
 	missingImage?: MissingImagePolicy;
 	render: (input: CardInput, decoded?: Decoded) => Promise<Uint8Array>;
-	templateVersion: string;
+	templateVersion: ((input: CardInput) => string) | string;
 }
 
 interface CardGroup {
@@ -144,7 +144,8 @@ async function createCardJobs<Decoded>({
 						engine: engineId,
 						image,
 						input,
-						templateVersion,
+						templateVersion:
+							typeof templateVersion === 'string' ? templateVersion : templateVersion(input),
 					}),
 					name,
 					render: async () => render(input, state ? await getDecoded(state) : undefined),
