@@ -58,9 +58,9 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"hast-util-from-html": "^2.0.3",
+		"hast-util-from-html": "^2.1.0",
 		"hast-util-sanitize": "^5.0.2",
-		"hast-util-to-html": "^9.0.5",
+		"hast-util-to-html": "^9.0.6",
 		"unist-util-visit": "^5.2.0"
 	},
 	"peerDependencies": {
@@ -75,6 +75,6 @@
 	"devDependencies": {
 		"@astrojs/rss": "^4.0.19",
 		"@types/hast": "^3.0.5",
-		"astro": "^7.4.5"
+		"astro": "^7.4.11"
 	}
 }
