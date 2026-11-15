@@ -1,4 +1,7 @@
 # Git hooks; `pnpm install` syncs them into .git/hooks via lefthook's postinstall
+# Passing jobs print one summary line each, so a passing gate costs an agent few tokens
+output: [failure, summary]
+
 pre-push:
   jobs:
     - name: quality-gate
@@ -17,6 +20,8 @@ check:
       run: knip
     - name: test
       run: vitest run
+    - name: size
+      run: size-limit --silent
 
 fix:
   piped: true
@@ -37,3 +42,5 @@ fix:
             run: pnpm check-types
           - name: unused
             run: knip
+          - name: size
+            run: size-limit --silent

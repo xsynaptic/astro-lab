@@ -42,8 +42,7 @@
 	"sideEffects": false,
 	"scripts": {
 		"build": "tsdown",
-		"dev": "tsdown --watch",
-		"check-types": "tsc --noEmit"
+		"dev": "tsdown --watch"
 	},
 	"dependencies": {
 		"sirv": "^3.0.2",

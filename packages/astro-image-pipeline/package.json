@@ -47,8 +47,7 @@
 	"sideEffects": false,
 	"scripts": {
 		"build": "tsdown",
-		"dev": "tsdown --watch",
-		"check-types": "tsc --noEmit"
+		"dev": "tsdown --watch"
 	},
 	"dependencies": {
 		"p-limit": "^7.3.3",

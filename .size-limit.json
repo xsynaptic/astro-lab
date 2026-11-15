@@ -1,0 +1,29 @@
+[
+	{
+		"name": "share-kit",
+		"path": "packages/share-kit/src/index.ts",
+		"entry": ["index"],
+		"limit": "13000 B"
+	},
+	{
+		"name": "share-kit, with QR on demand",
+		"path": "packages/share-kit/src/index.ts",
+		"limit": "17500 B"
+	},
+	{
+		"name": "share-kit/styles.css",
+		"path": "packages/share-kit/src/styles.css",
+		"rolldown": false,
+		"limit": "2100 B"
+	},
+	{
+		"name": "path-suggestions/element",
+		"path": "packages/path-suggestions/src/element.ts",
+		"limit": "2000 B"
+	},
+	{
+		"name": "path-suggestions",
+		"path": "packages/path-suggestions/src/index.ts",
+		"limit": "1100 B"
+	}
+]

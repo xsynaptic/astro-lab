@@ -33,8 +33,7 @@
 	"sideEffects": false,
 	"scripts": {
 		"build": "tsdown",
-		"dev": "tsdown --watch",
-		"check-types": "tsc --noEmit"
+		"dev": "tsdown --watch"
 	},
 	"dependencies": {
 		"@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",

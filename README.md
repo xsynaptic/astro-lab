@@ -48,7 +48,8 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 pnpm install      # install dependencies and build every package
 pnpm build        # rebuild packages (tsdown -> dist)
 pnpm test         # run all tests (vitest)
-pnpm check        # report-only: prettier check, lint, type-check, knip
+pnpm check        # report-only: prettier check, lint, type-check, knip, tests, size budgets
+pnpm size         # size budgets alone; add --why for a treemap of what makes up each bundle
 pnpm fix          # auto-fix: prettier write + eslint --fix, then type-check + knip
 ```
 

@@ -7,5 +7,5 @@
 		"checkJs": false,
 		"types": ["node"]
 	},
-	"include": ["*.ts", "*.mjs", "scripts/*.ts"]
+	"include": ["*.ts", "*.mjs", "scripts/*.ts", "packages/*/src", "packages/*/tests"]
 }

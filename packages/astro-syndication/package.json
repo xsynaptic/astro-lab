@@ -54,8 +54,7 @@
 	},
 	"scripts": {
 		"build": "tsdown",
-		"dev": "tsdown --watch",
-		"check-types": "tsc --noEmit"
+		"dev": "tsdown --watch"
 	},
 	"dependencies": {
 		"hast-util-from-html": "^2.1.0",

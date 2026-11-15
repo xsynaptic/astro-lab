@@ -2,7 +2,7 @@
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
 		"outDir": "dist",
-		"types": ["node", "astro/client"]
+		"types": ["node"]
 	},
 	"include": ["src", "tests"],
 	"exclude": ["dist"]
