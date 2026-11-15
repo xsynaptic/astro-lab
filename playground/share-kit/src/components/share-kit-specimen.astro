@@ -1,0 +1,27 @@
+---
+import type { ShareKitPayload } from '@xsynaptic/share-kit';
+
+import { serializeShareKitPayload } from '@xsynaptic/share-kit';
+
+interface Props {
+	can?: string | undefined;
+	class?: string | undefined;
+	id: string;
+	label: string;
+	note: string;
+	payload: ShareKitPayload;
+}
+
+const { can, class: className, id, label, note, payload } = Astro.props;
+---
+
+<article class:list={['specimen', className]} id={id}>
+	<h2>{label}</h2>
+	<p>{note}</p>
+	<share-kit data-can={can}>
+		<button class="trigger" data-share-kit-trigger disabled={true} type="button">
+			Share
+		</button>
+		<script is:inline set:html={serializeShareKitPayload(payload)} type="application/json" />
+	</share-kit>
+</article>

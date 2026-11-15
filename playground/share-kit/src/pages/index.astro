@@ -1,0 +1,41 @@
+---
+import '../styles/playground.css';
+import ShareKitSpecimen from '../components/share-kit-specimen.astro';
+import { getSpecimens } from '../lib/specimens.js';
+
+const specimens = getSpecimens();
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>share-kit playground</title>
+	</head>
+	<body>
+		<h1>share-kit playground</h1>
+		<p>
+			Each button opens the dialog as it would look in one situation. Last action:{' '}
+			<output data-event-log>none</output>
+		</p>
+		<ul class="specimens">
+			{specimens.map((specimen) => (
+				<li>
+					<ShareKitSpecimen {...specimen} />
+				</li>
+			))}
+		</ul>
+		<script>
+			import { defineShareKit, shareKitActionEventName } from '@xsynaptic/share-kit';
+
+			const eventLog = document.querySelector('[data-event-log]');
+
+			document.addEventListener(shareKitActionEventName, ({ detail }) => {
+				if (eventLog) eventLog.textContent = JSON.stringify(detail);
+			});
+
+			defineShareKit();
+		</script>
+	</body>
+</html>

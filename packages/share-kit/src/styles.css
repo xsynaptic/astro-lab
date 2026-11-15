@@ -1,0 +1,371 @@
+share-kit {
+	display: block;
+}
+
+/* Zero specificity, so a host sets any of these on `share-kit` without a fight */
+:where(share-kit) {
+	--share-kit-surface: Canvas;
+	--share-kit-text: CanvasText;
+	--share-kit-muted: GrayText;
+	--share-kit-border: color-mix(in srgb, currentcolor 20%, transparent);
+	--share-kit-field: color-mix(in srgb, currentcolor 5%, transparent);
+	--share-kit-accent: LinkText;
+	--share-kit-accent-text: Canvas;
+	--share-kit-hover: color-mix(in srgb, var(--share-kit-accent) 8%, transparent);
+	--share-kit-hover-border: color-mix(in srgb, var(--share-kit-accent) 45%, transparent);
+	--share-kit-danger: #c2410c;
+	--share-kit-radius: 0.5rem;
+	--share-kit-gap: 1rem;
+	--share-kit-shadow: 0 20px 25px -5px rgb(0 0 0 / 20%);
+	--share-kit-font-mono: ui-monospace, monospace;
+}
+
+/* Class-level, so a host's bare element rules don't reach the dialog, and a host without a reset still gets bare controls */
+:is(.share-kit-dialog, .share-kit-qr-dialog) {
+	& :where(*, *::before, *::after) {
+		box-sizing: border-box;
+	}
+
+	& :where(h2, h3, p, ul, form) {
+		padding: 0;
+		margin: 0;
+	}
+
+	& :where(ul) {
+		list-style: none;
+	}
+
+	/* A host class that sets `display` would otherwise reveal hidden controls */
+	& [hidden] {
+		display: none !important;
+	}
+
+	& :where(button, textarea) {
+		margin: 0;
+		font: inherit;
+		color: inherit;
+		background: none;
+		border: 0;
+	}
+}
+
+.share-kit-dialog {
+	width: 100%;
+	max-width: 100%;
+	height: 100dvh;
+	max-height: 100dvh;
+	padding: 0;
+	margin: 0;
+	color: var(--share-kit-text);
+	background-color: var(--share-kit-surface);
+	border: 0;
+	box-shadow: var(--share-kit-shadow);
+
+	&[open] {
+		display: flex;
+	}
+
+	&::backdrop {
+		background-color: rgb(0 0 0 / 50%);
+	}
+
+	@media (width >= 40rem) {
+		width: min(40rem, 100% - 2rem);
+		height: auto;
+		max-height: min(90dvh, 52rem);
+		margin: auto;
+		border-radius: var(--share-kit-radius);
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		&[open] {
+			animation: share-kit-rise 200ms ease-out;
+		}
+	}
+}
+
+@keyframes share-kit-rise {
+	from {
+		opacity: 0;
+		translate: 0 2rem;
+	}
+}
+
+.share-kit-body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+	container: share-kit / inline-size;
+}
+
+.share-kit-header,
+.share-kit-footer {
+	display: flex;
+	gap: var(--share-kit-gap);
+	align-items: center;
+	justify-content: space-between;
+	padding: calc(var(--share-kit-gap) * 0.75) var(--share-kit-gap);
+}
+
+.share-kit-header {
+	border-bottom: 1px solid var(--share-kit-border);
+}
+
+.share-kit-footer {
+	padding-bottom: max(calc(var(--share-kit-gap) * 0.75), env(safe-area-inset-bottom));
+	border-top: 1px solid var(--share-kit-border);
+}
+
+.share-kit-title {
+	font-size: 1.125rem;
+	font-weight: 600;
+	outline: none;
+}
+
+.share-kit-header-actions {
+	display: flex;
+	gap: 0.5rem;
+	margin: -0.25rem;
+}
+
+.share-kit-icon-button {
+	display: inline-flex;
+	padding: 0.25rem;
+	color: inherit;
+	cursor: pointer;
+	border-radius: calc(var(--share-kit-radius) * 0.5);
+}
+
+.share-kit-scroll {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: calc(var(--share-kit-gap) * 1.5);
+	min-height: 0;
+	padding: var(--share-kit-gap);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.share-kit-heading {
+	margin-bottom: 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--share-kit-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+/* Bleeds to the dialog's edges so the row scrolls under them; scroll padding keeps snapped and focused items inside the gutter */
+.share-kit-destinations-row {
+	display: flex;
+	gap: 0.25rem;
+	padding: 0.25rem var(--share-kit-gap);
+	margin: -0.25rem calc(var(--share-kit-gap) * -1);
+	overflow-x: auto;
+	scroll-snap-type: x proximity;
+	scroll-padding-inline: var(--share-kit-gap);
+	scrollbar-width: none;
+}
+
+.share-kit-destinations {
+	display: flex;
+	gap: 0.25rem;
+}
+
+.share-kit-destination {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	gap: 0.375rem;
+	align-items: center;
+	min-width: 4.5rem;
+	padding: 0.625rem 0.5rem;
+	font-size: 0.75rem;
+	cursor: pointer;
+	scroll-snap-align: start;
+	border: 1px solid transparent;
+	border-radius: var(--share-kit-radius);
+
+	&[aria-checked='true'] {
+		color: var(--share-kit-accent);
+		background-color: var(--share-kit-hover);
+		border-color: var(--share-kit-hover-border);
+	}
+}
+
+/* iOS zooms into any field under 16px */
+.share-kit-caption {
+	display: block;
+	width: 100%;
+	padding: 0.5rem;
+	font-size: 1rem;
+	color: inherit;
+	resize: vertical;
+	background-color: var(--share-kit-field);
+	border: 1px solid var(--share-kit-border);
+	border-radius: calc(var(--share-kit-radius) * 0.5);
+
+	&[aria-invalid='true'] {
+		border-color: var(--share-kit-danger);
+	}
+}
+
+.share-kit-caption-meta,
+.share-kit-tile-label,
+.share-kit-link-row {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.share-kit-caption-meta {
+	margin-top: 0.5rem;
+}
+
+.share-kit-count {
+	font-size: 0.75rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--share-kit-muted);
+
+	&[data-share-kit-over] {
+		font-weight: 600;
+		color: var(--share-kit-danger);
+	}
+}
+
+.share-kit-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.375rem;
+}
+
+.share-kit-action {
+	padding: 0.25rem 0.625rem;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	line-height: 1.25;
+	color: var(--share-kit-accent);
+	cursor: pointer;
+	border: 1px solid var(--share-kit-border);
+	border-radius: calc(var(--share-kit-radius) * 0.5);
+	transition:
+		background-color 150ms linear,
+		border-color 150ms linear;
+
+	&:focus-visible {
+		background-color: var(--share-kit-hover);
+		border-color: var(--share-kit-hover-border);
+	}
+
+	@media (hover: hover) {
+		&:hover {
+			background-color: var(--share-kit-hover);
+			border-color: var(--share-kit-hover-border);
+		}
+	}
+}
+
+.share-kit-hint {
+	margin-top: 0.5rem;
+	font-size: 0.875rem;
+	color: var(--share-kit-muted);
+}
+
+.share-kit-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--share-kit-gap);
+
+	@container share-kit (width >= 32rem) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+.share-kit-tile {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	font-size: 0.75rem;
+
+	&[data-share-kit-state='failed'] {
+		display: none;
+	}
+}
+
+/* Cards come in three shapes, so a shared box keeps the rows level */
+.share-kit-preview {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 4 / 5;
+	object-fit: contain;
+	background-color: var(--share-kit-field);
+	border-radius: calc(var(--share-kit-radius) * 0.5);
+}
+
+.share-kit-tile-label {
+	min-height: 1.25rem;
+	color: var(--share-kit-muted);
+}
+
+.share-kit-badge {
+	padding: 0 0.375rem;
+	font-size: 0.6875rem;
+	color: var(--share-kit-accent);
+	border: 1px solid var(--share-kit-hover-border);
+	border-radius: 999px;
+}
+
+.share-kit-link {
+	min-width: 0;
+	font-family: var(--share-kit-font-mono);
+	font-size: 0.8125rem;
+	color: var(--share-kit-muted);
+	overflow-wrap: anywhere;
+}
+
+.share-kit-qr-dialog {
+	padding: 0;
+	margin: auto;
+	color: var(--share-kit-text);
+	background-color: var(--share-kit-surface);
+	border: 0;
+	border-radius: var(--share-kit-radius);
+	box-shadow: var(--share-kit-shadow);
+
+	&::backdrop {
+		background-color: rgb(0 0 0 / 50%);
+	}
+}
+
+.share-kit-qr-image {
+	display: block;
+	width: 12.5rem;
+	height: auto;
+	margin: var(--share-kit-gap) auto;
+	background-color: #fff;
+}
+
+.share-kit-status {
+	min-width: 0;
+	font-size: 0.875rem;
+}
+
+.share-kit-primary {
+	flex: none;
+	padding: 0.5rem 1rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--share-kit-accent-text);
+	cursor: pointer;
+	background-color: var(--share-kit-accent);
+	border-radius: calc(var(--share-kit-radius) * 0.5);
+}
+
+.share-kit-dialog :is(button, textarea):focus-visible {
+	outline: 2px solid var(--share-kit-accent);
+	outline-offset: 2px;
+}

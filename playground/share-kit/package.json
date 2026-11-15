@@ -1,0 +1,21 @@
+{
+	"name": "@playground/share-kit",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview",
+		"generate-fixtures": "node scripts/generate-fixtures.ts"
+	},
+	"dependencies": {
+		"@xsynaptic/astro-image-pipeline": "*",
+		"@xsynaptic/share-kit": "*",
+		"astro": "^7.4.11",
+		"sharp": "^0.35.5"
+	},
+	"devDependencies": {
+		"takumi-js": "^2.20.0"
+	}
+}

@@ -1,0 +1,55 @@
+{
+	"name": "@xsynaptic/share-kit",
+	"version": "0.1.0",
+	"description": "A share dialog custom element for posting a page to social platforms",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/share-kit"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/share-kit#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"share",
+		"social",
+		"web-components",
+		"custom-element",
+		"web-share",
+		"bluesky",
+		"mastodon"
+	],
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./styles.css": "./dist/styles.css"
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": [
+		"**/*.css"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"check-types": "tsc --noEmit",
+		"test:e2e": "playwright test"
+	},
+	"dependencies": {
+		"lean-qr": "^2.7.4"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.65.0",
+		"@types/twitter-text": "^3.1.10",
+		"twitter-text": "^3.1.0"
+	}
+}

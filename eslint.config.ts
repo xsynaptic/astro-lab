@@ -1,4 +1,4 @@
-import { getAstroConfig, getConfig } from '@xsynaptic/eslint-config';
+import { getAstroConfig, getBrowserConfig, getConfig } from '@xsynaptic/eslint-config';
 import tseslint from 'typescript-eslint';
 
 export default getConfig([
@@ -6,6 +6,7 @@ export default getConfig([
 		ignores: ['**/dist/**', '**/node_modules/**', '**/.astro/**', '.claude/**'],
 	},
 	...getAstroConfig(),
+	getBrowserConfig(['packages/share-kit/src/**/*.ts']),
 	{
 		files: ['**/*.config.{ts,mts,mjs,js}', '**/test/**', '**/tests/**', '**/__tests__/**'],
 		...tseslint.configs.disableTypeChecked,

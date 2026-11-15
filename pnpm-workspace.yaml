@@ -13,6 +13,8 @@ verifyDepsBeforeRun: error
 strictDepBuilds: true
 
 allowBuilds:
+  # twitter-text pulls core-js in, whose postinstall only prints a funding banner
+  core-js: false
   esbuild: true
   lefthook: true
   sharp: true
