@@ -27,7 +27,13 @@ const specimens = getSpecimens();
 			))}
 		</ul>
 		<script>
-			import { defineShareKit, shareKitActionEventName } from '@xsynaptic/share-kit';
+			import {
+				defineShareKit,
+				shareKitActionEventName,
+				shareKitInterfaceIcons,
+			} from '@xsynaptic/share-kit';
+
+			import { brandIcons } from '../lib/icons.js';
 
 			const eventLog = document.querySelector('[data-event-log]');
 
@@ -35,7 +41,7 @@ const specimens = getSpecimens();
 				if (eventLog) eventLog.textContent = JSON.stringify(detail);
 			});
 
-			defineShareKit();
+			defineShareKit({ icons: { ...shareKitInterfaceIcons, ...brandIcons } });
 		</script>
 	</body>
 </html>

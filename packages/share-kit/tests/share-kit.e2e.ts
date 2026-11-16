@@ -63,6 +63,12 @@ test('arrow keys move between destinations', async ({ page }) => {
 	await expect(anywhere).toHaveAttribute('aria-checked', 'false');
 });
 
+test('destination buttons show the icons the host passed', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await expect(dialog.getByRole('radio', { name: 'Bluesky' }).locator('svg')).toBeVisible();
+});
+
 test('a caption over the limit is counted and announced', async ({ page }) => {
 	const dialog = await openSpecimen(page, 'over-limit');
 

@@ -3,12 +3,12 @@
 		"name": "share-kit",
 		"path": "packages/share-kit/src/index.ts",
 		"entry": ["index"],
-		"limit": "13000 B"
+		"limit": "9400 B"
 	},
 	{
 		"name": "share-kit, with QR on demand",
 		"path": "packages/share-kit/src/index.ts",
-		"limit": "17500 B"
+		"limit": "13850 B"
 	},
 	{
 		"name": "share-kit/styles.css",

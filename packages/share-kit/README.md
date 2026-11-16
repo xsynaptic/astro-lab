@@ -2,8 +2,6 @@
 
 A `<share-kit>` custom element that opens a share dialog for the current page. Pick a destination like Bluesky, Threads or Instagram, and the dialog trims your caption to that platform's length limit, suggests an image in the right shape, and opens the platform's composer or your device's share sheet. It works without a framework.
 
-This is an early release, and the API will change.
-
 ## Usage
 
 ```sh
@@ -34,18 +32,33 @@ const payload: ShareKitPayload = {
 </share-kit>
 
 <script>
-	import { defineShareKit, shareKitActionEventName } from '@xsynaptic/share-kit';
+	import {
+		defineShareKit,
+		shareKitActionEventName,
+		shareKitInterfaceIcons,
+	} from '@xsynaptic/share-kit';
+	import { siBluesky, siThreads } from 'simple-icons';
 
 	document.addEventListener(shareKitActionEventName, ({ detail }) => console.log(detail));
-	defineShareKit();
+	defineShareKit({
+		icons: {
+			...shareKitInterfaceIcons,
+			bluesky: siBluesky.path,
+			threads: siThreads.path,
+		},
+	});
 </script>
 ```
 
 Every action in the dialog fires a `share-kit:action` event. Add your listeners before calling `defineShareKit()`. If `settings.openHash` matches the URL hash, the dialog opens straight away and you would miss that first event.
 
-`defineShareKit({ icons })` swaps in your own icons as 24×24 SVG path data. Only the first call counts.
-
 The dialog downloads the images in `assets` to save, copy or share them, so serve them from the same origin or with CORS headers.
+
+## Icons
+
+The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close`, `more` and `qr`. A missing icon falls back to text. Only the first call counts.
+
+`shareKitInterfaceIcons` holds the five drawn for this package: `any`, `close`, `messages`, `more` and `qr`. For brand marks, [Simple Icons](https://simpleicons.org) exports each one as `si<Name>` with its path on `.path`, and its current release has every destination but LinkedIn.
 
 ## Styles
 
@@ -67,4 +80,4 @@ Chrome 120, Safari 17.2 and Firefox 125 or later.
 
 ## License
 
-MIT. The brand icons come from [Simple Icons](https://simpleicons.org) and are in the public domain (CC0). The LinkedIn and Threads icons are from Simple Icons 13.0.0, since newer releases removed LinkedIn and redrew Threads.
+MIT.

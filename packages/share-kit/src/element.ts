@@ -18,7 +18,6 @@ import {
 } from './destinations.js';
 import { polyfillLightDismiss, radioKeys } from './dom.js';
 import { ShareFeedback } from './feedback.js';
-import { shareKitIcons } from './icons.js';
 import { getDestinationLists, getShareStrings, readSharePayload } from './payload.js';
 import { createShareQr } from './qr.js';
 import { renderShareKit } from './render.js';
@@ -44,7 +43,7 @@ const BaseElement =
 	typeof HTMLElement === 'undefined' ? (Object as unknown as typeof HTMLElement) : HTMLElement;
 
 export class ShareKitElement extends BaseElement {
-	protected readonly icons: ShareKitIcons = shareKitIcons;
+	protected readonly icons: ShareKitIcons = {};
 
 	#abortController: AbortController | undefined;
 	#actions = {
