@@ -1,7 +1,7 @@
 import type { RehypeWrapCjkOptions } from '@xsynaptic/rehype-wrap-cjk';
 import type { Options as RehypeSanitizeOptions } from 'rehype-sanitize';
 
-import { rehypeWrapCjk } from '@xsynaptic/rehype-wrap-cjk';
+import { rehypeWrapCjk, resolveWrapper } from '@xsynaptic/rehype-wrap-cjk';
 import { hash } from 'ohash';
 import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
@@ -11,12 +11,8 @@ import { unified } from 'unified';
 // Cache frozen processors by options hash
 const processorCache = new Map<string, unknown>();
 
-function createWrapperSchema({
-	attribute = 'class',
-	element = 'span',
-	value = 'cjk',
-}: Partial<RehypeWrapCjkOptions>) {
-	const property = attribute === 'class' ? 'className' : attribute;
+function createWrapperSchema(wrapCjkOptions: Partial<RehypeWrapCjkOptions>) {
+	const { element, property, value } = resolveWrapper(wrapCjkOptions);
 	const elementAttributes = defaultSchema.attributes?.[element] ?? [];
 
 	return {

@@ -1,5 +1,13 @@
 # @xsynaptic/unified-tools
 
+## 5.1.5
+
+### Patch Changes
+
+- `wrapCjk` keeps an existing wrapper whose attribute is hyphenated, such as `data-lang`, instead of stripping it and wrapping again
+- Updated dependencies
+  - @xsynaptic/rehype-wrap-cjk@3.1.0
+
 ## 5.1.4
 
 ### Patch Changes

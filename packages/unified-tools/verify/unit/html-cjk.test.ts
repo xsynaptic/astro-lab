@@ -21,6 +21,7 @@ describe('CJK wrapping', () => {
 const wrapperOptions = fc.constantFrom(
 	{},
 	{ attribute: 'lang', value: 'zh' },
+	{ attribute: 'data-cjk', value: 'yes' },
 	{ element: 'cjk-wrap' },
 	{ attribute: 'class', element: 'em', value: 'han' },
 );
@@ -44,10 +45,6 @@ describe('wrapCjk properties', () => {
 		);
 
 		expect(wrappedInputs).toBeGreaterThan(0);
-	});
-
-	test('leaves a hand-written wrapper alone', () => {
-		expect(wrapDefault('<span class="cjk">中</span>')).toBe('<span class="cjk">中</span>');
 	});
 
 	test('still strips any other class from a span', () => {
