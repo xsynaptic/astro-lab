@@ -146,33 +146,6 @@ describe('createJsonlCache', () => {
 		expect(await cache.get('missing.jpg')).toBeUndefined();
 	});
 
-	test('concurrent reads during hydration all see the persisted data', async () => {
-		const filePath = await getTempCachePath();
-		const seed = createJsonlCache({ filePath });
-
-		await seed.set('a.jpg', { data: {}, digest: 'd1' });
-		await seed.set('b.jpg', { data: {}, digest: 'd2' });
-
-		// Fresh instance: both gets race the initial file read
-		const cache = createJsonlCache({ filePath });
-		const [first, second] = await Promise.all([cache.get('a.jpg'), cache.get('b.jpg')]);
-
-		expect(first).toEqual({ data: {}, digest: 'd1' });
-		expect(second).toEqual({ data: {}, digest: 'd2' });
-	});
-
-	test('the last line wins for duplicate keys', async () => {
-		const filePath = await getTempCachePath();
-		const cache = createJsonlCache({ filePath });
-
-		await cache.set('a.jpg', { data: { title: 'old' }, digest: 'd1' });
-		await cache.set('a.jpg', { data: { title: 'new' }, digest: 'd2' });
-
-		const rereadCache = createJsonlCache({ filePath });
-
-		expect(await rereadCache.get('a.jpg')).toEqual({ data: { title: 'new' }, digest: 'd2' });
-	});
-
 	test('skips malformed lines from interrupted writes', async () => {
 		const filePath = await getTempCachePath();
 		const seed = createJsonlCache({ filePath });

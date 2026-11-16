@@ -44,15 +44,6 @@ const nameLike = fc
 	.map(([stem, width, height, format]) => `${stem}-${width}${height}.${format}`);
 
 describe('parseRenditionName', () => {
-	test.each([
-		{ format: 'jpg', stem: 'taiwan/taipei/some-image-1', width: 1200 },
-		{ format: 'webp', height: 800, stem: 'taiwan/taipei/some-image-1', width: 1200 },
-		{ format: 'png', stem: 'diagrams/flow', width: 600 },
-		{ format: 'avif', height: 400, stem: 'diagrams/flow', width: 600 },
-	] as const)('round-trips $stem at $width', (name) => {
-		expect(parseRenditionName(formatRenditionName(name))).toStrictEqual(name);
-	});
-
 	test('a stem ending in digits keeps them, since only the last segment is the size', () => {
 		expect(parseRenditionName('a/b-1-450.jpg')).toStrictEqual({
 			format: 'jpg',

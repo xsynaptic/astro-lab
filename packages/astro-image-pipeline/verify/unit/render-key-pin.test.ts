@@ -31,6 +31,7 @@ afterEach(async () => {
 	await fs.rm(root, { force: true, recursive: true });
 });
 
+// A new key re-renders the whole library (about an hour), so these only change on purpose
 describe('render keys', () => {
 	test.each(pinned)('$name keeps its key under default encoding', (rendition) => {
 		const key = getRenditionKey({
@@ -43,6 +44,19 @@ describe('render keys', () => {
 		});
 
 		expect(key).toBe(rendition.key);
+	});
+
+	test('a custom encoding keeps its own key', () => {
+		const key = getRenditionKey({
+			digest: 'a'.repeat(64),
+			encoding: resolveImageEncoding({ jpg: { quality: 85 } }).jpg,
+			engine: 'engine',
+			format: 'jpg',
+			height: 800,
+			width: 1200,
+		});
+
+		expect(key).toBe('9544a2e15263848d');
 	});
 
 	test('keeping the colour profile changes the key, and leaving it off does not', () => {

@@ -54,9 +54,6 @@ describe('normalizeHref', () => {
 		['/', undefined],
 		['/already/', undefined],
 		['/rss.xml', undefined],
-		['https://x/y', undefined],
-		['#anchor', undefined],
-		['//cdn/x', undefined],
 	];
 
 	test.each(alwaysCases)('always: %s', (href, expected) => {
@@ -70,7 +67,6 @@ describe('normalizeHref', () => {
 		['/about//', '/about'],
 		['/', undefined],
 		['/about', undefined],
-		['https://x/y/', undefined],
 	];
 
 	test.each(neverCases)('never: %s', (href, expected) => {

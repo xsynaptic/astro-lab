@@ -280,9 +280,9 @@ describe('primary action', () => {
 		expect(getPrimaryAction({ ...desktop, hasComposerUrl: false, id: 'any' })).toBe('copy-caption');
 	});
 
-	test('Mastodon has no composer, so a desktop copies the caption', () => {
-		expect(getPrimaryAction({ ...desktop, hasComposerUrl: false, id: 'mastodon' })).toBe(
-			'copy-caption',
-		);
+	test('a desktop hands Messages to the share sheet when it can share text', () => {
+		expect(
+			getPrimaryAction({ ...desktop, canShareText: true, hasComposerUrl: false, id: 'messages' }),
+		).toBe('share-text');
 	});
 });

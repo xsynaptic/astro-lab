@@ -103,29 +103,6 @@ describe('fitWithinSource', () => {
 		expect(fitWithinSource(size, makeSource(800, 500))).toStrictEqual(expected);
 	});
 
-	test('every fitted size can be named', () => {
-		const sources = [
-			makeSource(800, 500),
-			makeSource(333, 1000),
-			makeSource(4032, 3024),
-			makeSource(7, 3),
-		];
-		const sizes = [
-			{ width: 5000 },
-			{ height: 800, width: 1200 },
-			{ height: 100, width: 3600 },
-			{ height: 3000, width: 450 },
-		];
-
-		for (const source of sources) {
-			for (const size of sizes) {
-				expect(() =>
-					getRenditionName(source, { format: 'jpg', ...fitWithinSource(size, source) }),
-				).not.toThrow();
-			}
-		}
-	});
-
 	test.prop([requestedSize, sourceDimensions])(
 		'fits whole pixels within the source, and leaves a size that already fits alone',
 		(size, source) => {

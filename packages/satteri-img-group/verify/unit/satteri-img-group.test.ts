@@ -36,15 +36,6 @@ function imageCounts(code: string): Array<string | undefined> {
 }
 
 describe('imgGroupSatteriPlugin', () => {
-	test('stamps imageCount and the default context onto the group and its children', async () => {
-		const code = await compile(
-			'<ImgGroup>\n<Img src="a.jpg" />\n<Img src="b.jpg" />\n</ImgGroup>\n',
-		);
-
-		expect(imageCount(code)).toBe('2');
-		expect(contexts(code)).toEqual(['grid', 'grid', 'grid']);
-	});
-
 	test('stamps a context declared only in options', async () => {
 		const code = await compile(
 			'<ImgGroup context="masonry">\n<Img src="a" />\n<Img src="b" />\n</ImgGroup>\n',

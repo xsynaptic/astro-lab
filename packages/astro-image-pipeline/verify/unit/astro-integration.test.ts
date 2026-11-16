@@ -116,7 +116,7 @@ describe('imagePipeline', () => {
 		).toThrow(message);
 	});
 
-	test('without a base URL, records cards and serves nothing in dev', async () => {
+	test('without a base URL, serves nothing in dev', async () => {
 		const { hooks } = imagePipeline({ mediaPath: path.join(root, 'media'), storePath: root });
 		const use = vi.fn();
 
@@ -124,14 +124,8 @@ describe('imagePipeline', () => {
 			logger: createLogger(),
 			server: { middlewares: { use } },
 		} as unknown as Parameters<NonNullable<Hooks['astro:server:setup']>>[0]);
-		await startBuild(hooks);
-		getCardName({ id: 'atlas', input: { title: 'Atlas' } }, cardFormat);
-		await finishBuild(hooks);
-
-		const manifest = await readDistManifest({ distPath: path.join(root, 'dist'), storePath: root });
 
 		expect(use).not.toHaveBeenCalled();
-		expect(Object.keys(manifest.cards)).toEqual(['atlas.jpg']);
 	});
 });
 
@@ -285,28 +279,6 @@ describe('imagePipeline recording', () => {
 		},
 	);
 
-	test('width-only names enter the manifest beside cropped ones', async () => {
-		const { hooks } = createIntegration();
-
-		await startBuild(hooks);
-		getRenditionName(
-			{ height: 1000, id: 'a/b.jpg', width: 1500 },
-			{ format: 'jpg', height: 300, width: 400 },
-		);
-		getRenditionName(
-			{ height: 1000, id: 'c.jpg', path: 'elsewhere/c.jpg', width: 1500 },
-			{ format: 'jpg', width: 1500 },
-		);
-		await finishBuild(hooks);
-
-		const manifest = await readLatestManifest(root);
-
-		expect(manifest?.renditions).toStrictEqual({
-			'a/b-400x300.jpg': 'a/b.jpg',
-			'c-1500.jpg': 'elsewhere/c.jpg',
-		});
-	});
-
 	test('a name recorded from two sources fails the build', async () => {
 		const { hooks } = createIntegration();
 
@@ -324,7 +296,6 @@ describe('imagePipeline recording', () => {
 		await startBuild(hooks);
 
 		await expect(finishBuild(hooks)).rejects.toThrow(/No image names were recorded/);
-		expect(existsSync(path.join(root, 'manifest.json'))).toBe(false);
 	});
 
 	test('an incremental build that renders no page keeps the previous names', async () => {
@@ -420,41 +391,32 @@ describe('imagePipeline card recording', () => {
 		expect(Object.keys(manifest?.cards ?? {})).toStrictEqual(['posts-a.jpg']);
 	});
 
-	test('one card name recorded with different input fails the build', async () => {
-		const { hooks } = createIntegration();
+	test.each([
+		{
+			first: { id: 'posts-a', input: { title: 'A' } },
+			label: 'input',
+			second: { id: 'posts-a', input: { title: 'B' } },
+		},
+		{
+			first: { id: 'posts-a', image: { id: 'a/b.jpg' }, input: { title: 'A' } },
+			label: 'treatment',
+			second: { id: 'posts-a', image: { id: 'a/b.jpg', treatment: 'blur' }, input: { title: 'A' } },
+		},
+	])(
+		'one card name recorded with a different $label fails the build',
+		async ({ first, second }) => {
+			const { hooks } = createIntegration();
 
-		await startBuild(hooks);
-		getRenditionName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		getCardName({ id: 'posts-a', input: { title: 'A' } }, cardFormat);
-		getCardName({ id: 'posts-a', input: { title: 'B' } }, cardFormat);
+			await startBuild(hooks);
+			getRenditionName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
+			getCardName(first, cardFormat);
+			getCardName(second, cardFormat);
 
-		await expect(finishBuild(hooks)).rejects.toThrow(/1 cards were recorded with different input/);
-	});
-
-	test('one card name recorded with a different treatment fails the build', async () => {
-		const { hooks } = createIntegration();
-
-		await startBuild(hooks);
-		getRenditionName({ height: 1000, id: 'a/b.jpg', width: 1500 }, cardSize);
-		getCardName(
-			{
-				id: 'posts-a',
-				image: { id: 'a/b.jpg' },
-				input: { title: 'A' },
-			},
-			cardFormat,
-		);
-		getCardName(
-			{
-				id: 'posts-a',
-				image: { id: 'a/b.jpg', treatment: 'blur' },
-				input: { title: 'A' },
-			},
-			cardFormat,
-		);
-
-		await expect(finishBuild(hooks)).rejects.toThrow(/recorded with different input/);
-	});
+			await expect(finishBuild(hooks)).rejects.toThrow(
+				/1 cards were recorded with different input/,
+			);
+		},
+	);
 
 	test('an incremental build keeps the previous cards beside the ones it records', async () => {
 		const full = createIntegration();

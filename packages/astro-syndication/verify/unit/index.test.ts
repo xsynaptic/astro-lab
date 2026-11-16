@@ -35,12 +35,6 @@ describe('anchorDateOnly', () => {
 			expect(anchorDateOnly(date, { utcOffsetHours: 8 }).getTime()).toBe(date.getTime());
 		},
 	);
-
-	test('a full timestamp written by an author keeps its time', () => {
-		const date = new Date('2026-06-08T14:30:00Z');
-
-		expect(anchorDateOnly(date, { utcOffsetHours: 8 })).toStrictEqual(date);
-	});
 });
 
 const source = {

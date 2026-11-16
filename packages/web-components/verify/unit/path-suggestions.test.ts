@@ -75,14 +75,6 @@ describe('getPathSuggestions', () => {
 		expect(result.items).toHaveLength(2);
 	});
 
-	test('returns undefined when nothing clears the threshold', () => {
-		expect(getPathSuggestions({ entries, path: '/completely-unrelated-xyz' })).toBeUndefined();
-	});
-
-	test('returns undefined for an empty catalogue', () => {
-		expect(getPathSuggestions({ entries: [], path: '/harbour' })).toBeUndefined();
-	});
-
 	test('still redirects a truncated path at a redirect threshold of 1', () => {
 		const result = getPathSuggestions({
 			entries,

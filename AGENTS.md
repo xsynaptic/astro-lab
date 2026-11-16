@@ -23,5 +23,5 @@ A pnpm monorepo of Astro integrations, markdown plugins, lint configs, web compo
 ## Releases
 
 - Pre-1.0: break APIs freely, with no concern for compatibility shims, migration notes or staged releases
-- Every package change takes a minimal changeset, except a README-only change, which ships with the package's next release
+- Every package change takes a minimal changeset, except a change confined to the README, which ships with the package's next release, or to `verify/`, which never ships
 - The operator commits the version bump and publishes. Publishing goes through `pnpm release` only, since pnpm rewrites `workspace:` ranges and plain `npm publish` ships them literally

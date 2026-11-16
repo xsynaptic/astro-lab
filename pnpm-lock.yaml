@@ -465,6 +465,9 @@ importers:
       hastscript:
         specifier: ^9.0.3
         version: 9.0.3
+      property-information:
+        specifier: ^7.2.0
+        version: 7.2.0
       unist-util-visit-parents:
         specifier: ^6.1.0
         version: 6.1.0

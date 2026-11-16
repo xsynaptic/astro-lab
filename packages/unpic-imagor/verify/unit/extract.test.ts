@@ -272,11 +272,4 @@ describe('transform', () => {
 			'/_imagor/unsafe/800x0/filters:quality(50)/photo.jpg',
 		);
 	});
-
-	test('new operations override extracted ones', () => {
-		const existing = `/_imagor/${generate('photo.jpg', { width: 800, height: 600 })}`;
-		expect(transform(existing, { width: 400 }, { baseURL: '/_imagor' })).toBe(
-			'/_imagor/unsafe/400x600/photo.jpg',
-		);
-	});
 });

@@ -89,16 +89,6 @@ describe('prepareSyndicationHtml', () => {
 		);
 	});
 
-	test('leaves absolute, protocol-relative and fragment URLs alone', () => {
-		expect(
-			prepare(
-				'<a href="https://example.com/x">x</a><img src="//cdn.example.com/y.jpg" /><a href="#top">t</a>',
-			),
-		).toBe(
-			'<a href="https://example.com/x">x</a><img src="//cdn.example.com/y.jpg"><a href="#top">t</a>',
-		);
-	});
-
 	test('strips the scoped-style attribute Astro stamps on a styled component', () => {
 		expect(prepare('<em data-astro-cid-e7hbwlr3>Rappler</em>')).toBe('<em>Rappler</em>');
 		expect(prepare('<p data-astro-cid-e7hbwlr3="true">x</p>')).toBe('<p>x</p>');

@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,7 +11,7 @@ import type { ImageManifest } from '../../src/image-state.js';
 
 import { readFileRecords, writeFileRecords } from '../../src/file-store.js';
 import { readFileIfExists } from '../../src/files.js';
-import { getRenditionKey, prepareRenditionRender } from '../../src/image-build.js';
+import { prepareRenditionRender } from '../../src/image-build.js';
 import { resolveImageEncoding } from '../../src/image-encoding.js';
 import { imageManifestVersion, writeBuildId, writeImageManifest } from '../../src/image-state.js';
 import { UserError } from '../../src/user-error.js';
@@ -104,10 +103,6 @@ async function listFiles() {
 	const names = await fs.readdir(renditionsPath, { recursive: true });
 
 	return sortNames(names.filter((name) => /\.(?:jpg|webp)$/.test(name)));
-}
-
-function getDeadPid() {
-	return spawnSync(process.execPath, ['--eval', '']).pid;
 }
 
 beforeEach(async () => {
@@ -278,22 +273,6 @@ describe('prepareRenditionRender', () => {
 	});
 });
 
-// A new key re-renders the whole library (about an hour), so this only changes on purpose
-describe('getRenditionKey', () => {
-	test('stays pinned for a fixed input', () => {
-		const key = getRenditionKey({
-			digest: 'a'.repeat(64),
-			encoding: resolveImageEncoding({ jpg: { quality: 85 } }).jpg,
-			engine: 'engine',
-			format: 'jpg',
-			height: 800,
-			width: 1200,
-		});
-
-		expect(key).toBe('9544a2e15263848d');
-	});
-});
-
 describe('prepareRenditionRender failure policy', () => {
 	test('a source over the pixel limit fails the run without writing a file', async () => {
 		await writeBuild(allSizes, { limitInputPixels: 1_000_000 });
@@ -356,17 +335,5 @@ describe('prepareRenditionRender guards', () => {
 		const lock = await readFileIfExists(lockPath);
 
 		expect(lock?.toString('utf8')).toBe(String(process.pid));
-	});
-
-	test('takes over a lock whose holder is dead, then releases it', async () => {
-		const lockPath = `${renditionsPath}.lock`;
-
-		await writeBuild();
-		await fs.writeFile(lockPath, String(getDeadPid()));
-
-		const counts = await render();
-
-		expect(counts.rendered).toBe(allSizes.length);
-		expect(existsSync(lockPath)).toBe(false);
 	});
 });

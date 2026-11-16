@@ -12,47 +12,16 @@ import { describe, expect } from 'vitest';
 
 import { rehypeWrapCjk } from '../../src/index.js';
 
-const chineseProcessor = unified()
-	.use(remarkParse)
-	.use(remarkRehype)
-	.use(rehypeWrapCjk, { attribute: 'lang', value: 'zh' })
-	.use(rehypeStringify);
-
-const japaneseProcessor = unified()
-	.use(remarkParse)
-	.use(remarkRehype)
-	.use(rehypeWrapCjk, { attribute: 'lang', value: 'ja' })
-	.use(rehypeStringify);
-
-const koreanProcessor = unified()
-	.use(remarkParse)
-	.use(remarkRehype)
-	.use(rehypeWrapCjk, { attribute: 'lang', value: 'ko' })
-	.use(rehypeStringify);
-
-const cjkProcessor = unified()
-	.use(remarkParse)
-	.use(remarkRehype)
-	.use(rehypeWrapCjk, { attribute: 'class', value: 'cjk' })
-	.use(rehypeStringify);
-
-const processChinese = async (contents: VFileCompatible): Promise<VFileCompatible> => {
-	const { value } = await chineseProcessor.process(contents);
-	return value;
-};
-
-const processJapanese = async (contents: VFileCompatible): Promise<VFileCompatible> => {
-	const { value } = await japaneseProcessor.process(contents);
-	return value;
-};
-
-const processKorean = async (contents: VFileCompatible): Promise<VFileCompatible> => {
-	const { value } = await koreanProcessor.process(contents);
-	return value;
-};
-
-const processCjk = async (contents: VFileCompatible): Promise<VFileCompatible> => {
-	const { value } = await cjkProcessor.process(contents);
+const processWith = async (
+	options: NonNullable<Parameters<typeof rehypeWrapCjk>[0]>,
+	input: string,
+): Promise<VFileCompatible> => {
+	const { value } = await unified()
+		.use(remarkParse)
+		.use(remarkRehype)
+		.use(rehypeWrapCjk, options)
+		.use(rehypeStringify)
+		.process(input);
 	return value;
 };
 
@@ -103,36 +72,21 @@ const cjkMarkdownText: Array<[string, string]> = [
 	],
 ];
 
-describe('rehype wrap CJK plugin for Chinese characters', () => {
-	for (const [input, output] of chineseMarkdownText) {
-		test(`Chinese: ${String(input)}`, async () => {
-			await expect(processChinese(input)).resolves.toEqual(output);
-		});
-	}
-});
+function toCases(attribute: string, value: string, rows: Array<[string, string]>) {
+	return rows.map(([input, expected]) => ({ attribute, expected, input, value }));
+}
 
-describe('rehype wrap CJK plugin for Japanese characters', () => {
-	for (const [input, output] of japaneseMarkdownText) {
-		test(`Japanese: ${String(input)}`, async () => {
-			await expect(processJapanese(input)).resolves.toEqual(output);
-		});
-	}
-});
+const markdownCases = [
+	...toCases('lang', 'zh', chineseMarkdownText),
+	...toCases('lang', 'ja', japaneseMarkdownText),
+	...toCases('lang', 'ko', koreanMarkdownText),
+	...toCases('class', 'cjk', cjkMarkdownText),
+];
 
-describe('rehype wrap CJK plugin for Korean characters', () => {
-	for (const [input, output] of koreanMarkdownText) {
-		test(`Korean: ${String(input)}`, async () => {
-			await expect(processKorean(input)).resolves.toEqual(output);
-		});
-	}
-});
-
-describe('rehype wrap CJK plugin for CJK characters', () => {
-	for (const [input, output] of cjkMarkdownText) {
-		test(`CJK: ${String(input)}`, async () => {
-			await expect(processCjk(input)).resolves.toEqual(output);
-		});
-	}
+describe('rehype wrap CJK plugin for markdown', () => {
+	test.each(markdownCases)('$value: $input', async ({ attribute, expected, input, value }) => {
+		await expect(processWith({ attribute, value }, input)).resolves.toEqual(expected);
+	});
 });
 
 const chineseHtmlProcessor = unified()
@@ -162,19 +116,6 @@ describe('rehype wrap CJK plugin for HTML inputs', () => {
 		});
 	}
 });
-
-const processWith = async (
-	options: NonNullable<Parameters<typeof rehypeWrapCjk>[0]>,
-	input: string,
-): Promise<VFileCompatible> => {
-	const { value } = await unified()
-		.use(remarkParse)
-		.use(remarkRehype)
-		.use(rehypeWrapCjk, options)
-		.use(rehypeStringify)
-		.process(input);
-	return value;
-};
 
 describe('rehype wrap CJK plugin option configuration', () => {
 	test('custom element, attribute, and value', async () => {
@@ -219,6 +160,12 @@ describe('rehype wrap CJK plugin skip behavior', () => {
 		await expect(
 			processHtmlWith({ attribute: 'class', value: 'cjk' }, '<span class="cjk">中文</span>'),
 		).resolves.toEqual('<span class="cjk">中文</span>');
+	});
+
+	test('data attribute: does not re-wrap own output', async () => {
+		await expect(
+			processHtmlWith({ attribute: 'data-cjk', value: 'yes' }, '<span data-cjk="yes">中文</span>'),
+		).resolves.toEqual('<span data-cjk="yes">中文</span>');
 	});
 
 	test('class attribute: does not skip on unrelated class', async () => {
@@ -322,5 +269,23 @@ describe('rehype wrap CJK properties', () => {
 		);
 
 		expect(wrapped).not.toMatch(splitRun);
+	});
+
+	test.prop([
+		htmlFragment,
+		fc.constantFrom(
+			{},
+			{ attribute: 'lang', value: 'zh' },
+			{ attribute: 'data-cjk', value: 'yes' },
+			{ attribute: 'class', element: 'em', value: 'han' },
+		),
+	])('is idempotent for any wrapper', (input, options) => {
+		const processor = unified()
+			.use(rehypeParse, { fragment: true })
+			.use(rehypeWrapCjk, options)
+			.use(rehypeStringify);
+		const once = String(processor.processSync(input));
+
+		expect(String(processor.processSync(once))).toBe(once);
 	});
 });
