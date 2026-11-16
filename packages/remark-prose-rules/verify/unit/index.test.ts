@@ -460,6 +460,12 @@ function findMarkGroup(char: string) {
 	return diacriticsMarks.find((group) => group.slice(0, -1).includes(char.toLowerCase()));
 }
 
+function foldMarks(text: string) {
+	return [...text.toLowerCase()].map((char) => findMarkGroup(char)?.at(-1) ?? char).join('');
+}
+
+const foldedListedWords = new Set(diacriticsWords.map((word) => foldMarks(word)));
+
 const listedWord = fc.constantFrom(...diacriticsWords);
 
 const misspelling = listedWord.chain((word) =>
@@ -536,6 +542,7 @@ describe('properties', () => {
 		'never rewrites a listed word inside a longer word',
 		async ({ typed }, before, after) => {
 			fc.pre(before !== '' || after !== '');
+			fc.pre(!foldedListedWords.has(foldMarks(`${before}${typed}${after}`)));
 
 			const { messages } = await run(`Visit ${before}${typed}${after} today.`, {
 				words: diacriticsWords,
