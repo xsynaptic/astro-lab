@@ -1,5 +1,11 @@
 # @xsynaptic/astro-pagefind
 
+## 0.2.1
+
+### Patch Changes
+
+- Clear the search input when the modal closes in WebKit, where Pagefind's own reset skipped the still-focused input
+
 ## 0.2.0
 
 ### Minor Changes

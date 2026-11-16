@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-pagefind",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Pagefind search for Astro, with a versioned bundle",
 	"type": "module",
 	"license": "MIT",

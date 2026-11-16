@@ -3,11 +3,14 @@
 export interface PagefindInstance {
 	components: Array<unknown>;
 	deregisterAllShortcuts: (owner: Element) => void;
-	getUtilities: (subtype: 'modal') => Array<{ isOpen: boolean; open: () => void }>;
+	getUtilities: (
+		subtype: 'modal',
+	) => Array<{ isOpen: boolean; open: () => void; resetOnClose: boolean }>;
 	on: (event: 'results', callback: (result: unknown) => void) => void;
 	registerShortcut: (shortcut: { description: string; label: string }, owner: Element) => void;
 	registerUtility: (component: HTMLElement, subtype: 'modal-trigger') => void;
 	searchTerm: string;
+	triggerSearch: (term: string) => void;
 	unregisterComponent: (component: HTMLElement) => void;
 }
 

@@ -283,6 +283,18 @@ test('reopening and closing without a new search reports nothing more', async ({
 	expect(await getSearches(page)).toEqual([{ clicked: false, query: onePageQuery, results: 1 }]);
 });
 
+// WebKit keeps focus on the closed modal's input, which ignores Pagefind's reset while focused
+test('closing the modal clears the input', { tag: '@webkit' }, async ({ page }) => {
+	const searchInput = getSearchInput(page);
+
+	await page.goto(paths.home);
+	await searchFor(page, onePageQuery);
+	await page.keyboard.press('Escape');
+	await expect(getToggle(page)).toBeFocused();
+
+	await expect(searchInput).toHaveValue('');
+});
+
 test('a search landing after the modal closes is not reported', async ({ baseURL, page }) => {
 	const summary = page.locator('pagefind-summary');
 
