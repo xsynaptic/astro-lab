@@ -1,4 +1,5 @@
 import { getAstroConfig, getBrowserConfig, getConfig } from '@xsynaptic/eslint-config';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default getConfig([
@@ -6,10 +7,27 @@ export default getConfig([
 		ignores: ['**/dist/**', '**/node_modules/**', '**/.astro/**', '.claude/**'],
 	},
 	...getAstroConfig(),
-	getBrowserConfig(['packages/share-kit/src/**/*.ts']),
+	getBrowserConfig(['packages/share-kit/src/**/*.ts', 'packages/web-components/src/**/*.ts']),
+	getBrowserConfig(['packages/astro-pagefind/src/search-{session,toggle}.ts']),
 	{
 		files: ['**/*.config.{ts,mts,mjs,js}', '**/test/**', '**/tests/**', '**/__tests__/**'],
 		...tseslint.configs.disableTypeChecked,
+	},
+	{
+		files: ['packages/*/tests/**/*.e2e.ts'],
+		languageOptions: {
+			globals: { ...globals.node, ...globals.browser },
+		},
+		rules: {
+			'unicorn/no-late-event-control': 'off',
+			'unicorn/prefer-global-this': 'off',
+		},
+	},
+	{
+		files: ['packages/web-components/src/top-button/element.ts'],
+		rules: {
+			'unicorn/no-null': 'off',
+		},
 	},
 	{
 		// Code complexity rules promoting higher quality agentic coding output
