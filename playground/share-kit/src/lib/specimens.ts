@@ -10,6 +10,15 @@ const capabilities = {
 	phoneLinkOnly: 'link handheld',
 } as const;
 
+// Short sentences let each destination's fit land close to its limit, where composers show a number
+const pasteTestSentences = [
+	'The cat climbs the tower.',
+	'貓爬上燈塔。',
+	'Con mèo leo lên ngọn hải đăng.'.normalize('NFD'),
+	'👨‍👩‍👧‍👦 A family waves from the shore.',
+	'The beam sweeps the water.',
+];
+
 export interface Specimen {
 	can?: string;
 	class?: string;
@@ -24,6 +33,12 @@ export function getSpecimens(): Array<Specimen> {
 	const cards = payload.assets.filter((asset) => asset.role !== 'photo');
 
 	return [
+		{
+			id: 'this-device',
+			label: 'This device',
+			note: 'No data-can, so the dialog shows what this browser can actually do.',
+			payload,
+		},
 		{
 			can: capabilities.desktop,
 			id: 'desktop',
@@ -113,6 +128,17 @@ export function getSpecimens(): Array<Specimen> {
 				...payload,
 				settings: { ...sampleSettings, destinations: ['threads', 'x', 'bluesky'] },
 				url: `https://example.com/${'a-very-long-path-segment/'.repeat(24)}`,
+			},
+		},
+		{
+			can: capabilities.desktop,
+			id: 'paste-test',
+			label: 'Paste test',
+			note: 'CJK, decomposed Vietnamese and a family emoji in short sentences, so each caption fills close to its limit; compare the count here with each composer.',
+			payload: {
+				...payload,
+				description: Array.from({ length: 16 }, () => pasteTestSentences.join(' ')).join(' '),
+				title: `${'Người giữ hải đăng'.normalize('NFD')} 燈塔守護者 👨‍👩‍👧‍👦`,
 			},
 		},
 		{

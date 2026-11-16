@@ -1,9 +1,11 @@
 import type { ImageSource } from '@xsynaptic/astro-image-pipeline/names';
 import type { ShareKitAsset, ShareKitPayload, ShareKitSettings } from '@xsynaptic/share-kit';
 
-import { getRenditionName } from '@xsynaptic/astro-image-pipeline/names';
+import { getCardName, getRenditionName } from '@xsynaptic/astro-image-pipeline/names';
 
 const imageBaseUrl = '/images';
+
+const cardBaseUrl = '/og';
 
 const photoFileWidth = 1800;
 
@@ -15,7 +17,7 @@ const photoSources: Array<ImageSource & { alt: string }> = [
 	{ alt: 'The tower from the rocks below', height: 1875, id: 'lighthouse-tower.jpg', width: 1500 },
 ];
 
-const cardSizes = {
+export const cardSizes = {
 	landscape: { height: 630, width: 1200 },
 	portrait: { height: 1350, width: 1080 },
 	story: { height: 1920, width: 1080 },
@@ -40,7 +42,11 @@ export const sampleSettings = {
 } as const satisfies ShareKitSettings;
 
 function getCardAsset(variant: (typeof cardVariants)[number]): ShareKitAsset {
-	const src = `/cards/${filenamePrefix}-${variant}.jpg`;
+	const name = getCardName(
+		{ id: `${filenamePrefix}-${variant}`, input: { title, variant } },
+		{ format: 'jpg' },
+	);
+	const src = `${cardBaseUrl}/${name}`;
 
 	return {
 		...cardSizes[variant],

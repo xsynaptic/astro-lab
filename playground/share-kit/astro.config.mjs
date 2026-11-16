@@ -5,6 +5,7 @@ export default defineConfig({
 	integrations: [
 		imagePipeline({
 			baseUrl: '/images',
+			cards: { renderer: './src/og/card-renderer.ts', route: '/og/' },
 			mediaPath: 'media',
 			storePath: 'image-store',
 		}),
