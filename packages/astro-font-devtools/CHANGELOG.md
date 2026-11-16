@@ -1,5 +1,11 @@
 # @xsynaptic/astro-font-devtools
 
+## 1.1.1
+
+### Patch Changes
+
+- The resolve endpoint escapes the family, `local()` name and `url()` it writes into `@font-face`, so a family holding a quote or backslash no longer breaks the rule
+
 ## 1.1.0
 
 ### Minor Changes

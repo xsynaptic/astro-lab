@@ -16,6 +16,14 @@ const providerFactories = {
 	google: unifontProviders.google,
 } satisfies Record<ProviderName, () => Provider>;
 
+const cssStringEscapes: Record<string, string> = {
+	'\n': String.raw`\a `,
+	'\f': String.raw`\c `,
+	'\r': String.raw`\d `,
+	'"': String.raw`\"`,
+	'\\': String.raw`\\`,
+};
+
 const fontStyles = new Set<string>(['italic', 'normal', 'oblique'] satisfies Array<FontStyles>);
 
 const getUnifont = memoizeByProviders((providers) => {
@@ -86,18 +94,27 @@ export function renderFontFace(family: string, data: FontFaceData): string {
 	const src = data.src
 		.map((source) =>
 			'name' in source
-				? `local("${source.name}")`
-				: `url("${source.url}")${source.format ? ` format("${source.format}")` : ''}`,
+				? `local(${cssString(source.name)})`
+				: `url(${cssString(source.url)})${source.format ? ` format(${cssString(source.format)})` : ''}`,
 		)
 		.join(', ');
 	const weight = Array.isArray(data.weight) ? data.weight.join(' ') : data.weight;
-	const lines = [`font-family: "${family}"`, `src: ${src}`, 'font-display: swap'];
+	const lines = [`font-family: ${cssString(family)}`, `src: ${src}`, 'font-display: swap'];
 
 	if (weight !== undefined) lines.push(`font-weight: ${String(weight)}`);
 	if (data.style) lines.push(`font-style: ${data.style}`);
 	if (data.unicodeRange) lines.push(`unicode-range: ${data.unicodeRange.join(', ')}`);
 
 	return `@font-face { ${lines.join('; ')}; }`;
+}
+
+function cssString(value: string) {
+	const escaped = value.replaceAll(
+		/["\\\n\r\f]/g,
+		(character) => cssStringEscapes[character] ?? character,
+	);
+
+	return `"${escaped}"`;
 }
 
 function isProviderName(value: string): value is ProviderName {
