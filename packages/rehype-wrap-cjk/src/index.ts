@@ -2,6 +2,7 @@ import type { Element, Root, Text } from 'hast';
 import type { Plugin, Transformer } from 'unified';
 
 import { h } from 'hastscript';
+import { find, html } from 'property-information';
 import { visitParents } from 'unist-util-visit-parents';
 
 export interface RehypeWrapCjkOptions {
@@ -14,13 +15,18 @@ export interface RehypeWrapCjkOptions {
 
 const defaultSkipTags = ['code', 'pre', 'kbd', 'samp', 'script', 'style'];
 
-function isAncestorWrapped(ancestor: Element, attribute: string, value: string): boolean {
-	if (attribute === 'class' || attribute === 'className') {
-		const classes = ancestor.properties.className;
+export function resolveWrapper(options?: RehypeWrapCjkOptions) {
+	return {
+		element: options?.element ?? 'span',
+		property: find(html, options?.attribute ?? 'class').property,
+		value: options?.value ?? 'cjk',
+	};
+}
 
-		return Array.isArray(classes) && classes.includes(value);
-	}
-	return ancestor.properties[attribute] === value;
+function isAncestorWrapped(ancestor: Element, property: string, value: string): boolean {
+	const current = ancestor.properties[property];
+
+	return Array.isArray(current) ? current.includes(value) : current === value;
 }
 
 /**
@@ -55,11 +61,9 @@ function presetFor(value: string): RegExp | undefined {
 
 export const rehypeWrapCjk: Plugin<[RehypeWrapCjkOptions?], Root> = (options) => {
 	const settings = {
-		attribute: options?.attribute ?? 'class',
-		element: options?.element ?? 'span',
+		...resolveWrapper(options),
 		regex: options?.regex,
 		skipTags: options?.skipTags ?? defaultSkipTags,
-		value: options?.value ?? 'cjk',
 	};
 
 	const baseRegex = settings.regex ?? presetFor(settings.value) ?? cjkRegexPresets.cjk;
@@ -86,7 +90,7 @@ export const rehypeWrapCjk: Plugin<[RehypeWrapCjkOptions?], Root> = (options) =>
 				ancestors.some(
 					(ancestor) =>
 						ancestor.type === 'element' &&
-						isAncestorWrapped(ancestor, settings.attribute, settings.value),
+						isAncestorWrapped(ancestor, settings.property, settings.value),
 				)
 			)
 				return;
@@ -106,7 +110,7 @@ export const rehypeWrapCjk: Plugin<[RehypeWrapCjkOptions?], Root> = (options) =>
 						value: node.value.slice(lastIndex, matchIndex),
 					});
 				}
-				parts.push(h(settings.element, { [settings.attribute]: settings.value }, [match[0]]));
+				parts.push(h(settings.element, { [settings.property]: settings.value }, [match[0]]));
 				lastIndex = matchIndex + match[0].length;
 			}
 

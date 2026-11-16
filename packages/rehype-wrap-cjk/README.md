@@ -72,6 +72,8 @@ Pass options as the second argument to `.use(rehypeWrapCjk, { ... })`.
 
 Text inside any ancestor that already carries the target `attribute`/`value` is not re-wrapped.
 
+`resolveWrapper(options)` returns the wrapper's `element`, `value` and hast `property` (`'className'` for `class`, `'dataLang'` for `data-lang`) with the defaults applied, for a sanitize schema that should keep existing wrappers.
+
 ## Reference
 
 - [CJK Unified Ideographs][cjk-unified-ideographs]

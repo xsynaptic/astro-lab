@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/rehype-wrap-cjk",
-	"version": "3.0.3",
+	"version": "3.1.0",
 	"description": "Rehype plugin for wrapping CJK character sequences in an HTML element with a configurable attribute for styling or language tagging.",
 	"type": "module",
 	"license": "MIT",
@@ -39,6 +39,7 @@
 	"dependencies": {
 		"@types/hast": "^3.0.5",
 		"hastscript": "^9.0.3",
+		"property-information": "^7.2.0",
 		"unist-util-visit-parents": "^6.1.0"
 	},
 	"peerDependencies": {

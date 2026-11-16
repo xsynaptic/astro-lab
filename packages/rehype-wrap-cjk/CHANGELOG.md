@@ -1,5 +1,11 @@
 # @xsynaptic/rehype-wrap-cjk
 
+## 3.1.0
+
+### Minor Changes
+
+- A wrapper with a hyphenated attribute such as `data-lang` counts as already wrapped instead of being wrapped again. New `resolveWrapper(options)` export returns the wrapper's element, value and hast property with defaults applied
+
 ## 3.0.3
 
 ### Patch Changes
