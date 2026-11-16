@@ -189,7 +189,7 @@ export function getConfig(
 
 	// After the project's config, so a repo's own length ceilings still skip tests
 	const testConfig = {
-		files: ['**/*.test.{ts,tsx}'],
+		files: ['**/*.{test,spec}.{ts,tsx}'],
 		rules: {
 			'max-lines-per-function': 'off',
 			'max-statements': 'off',

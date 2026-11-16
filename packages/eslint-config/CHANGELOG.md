@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.8.1
+
+### Patch Changes
+
+- The test relaxations (`max-lines-per-function`, `max-statements`, `unicorn/no-unnecessary-parameters`) also cover `*.spec.{ts,tsx}`, so Playwright specs get them too
+
 ## 6.8.0
 
 ### Minor Changes
