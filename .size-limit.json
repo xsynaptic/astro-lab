@@ -1,5 +1,17 @@
 [
 	{
+		"name": "astro-pagefind/search-toggle",
+		"path": "packages/astro-pagefind/src/search-toggle.ts",
+		"entry": ["search-toggle"],
+		"limit": "1350 B"
+	},
+	{
+		"name": "astro-pagefind/search-toggle.css",
+		"path": "packages/astro-pagefind/src/search-toggle.css",
+		"rolldown": false,
+		"limit": "250 B"
+	},
+	{
 		"name": "share-kit",
 		"path": "packages/share-kit/src/index.ts",
 		"entry": ["index"],
@@ -17,13 +29,23 @@
 		"limit": "2100 B"
 	},
 	{
-		"name": "path-suggestions/element",
-		"path": "packages/path-suggestions/src/element.ts",
+		"name": "web-components/path-suggestions",
+		"path": "packages/web-components/src/path-suggestions/index.ts",
 		"limit": "2000 B"
 	},
 	{
-		"name": "path-suggestions",
-		"path": "packages/path-suggestions/src/index.ts",
-		"limit": "1100 B"
+		"name": "web-components/progress-loading",
+		"path": "packages/web-components/src/progress-loading/index.ts",
+		"limit": "700 B"
+	},
+	{
+		"name": "web-components/progress-reading",
+		"path": "packages/web-components/src/progress-reading/index.ts",
+		"limit": "675 B"
+	},
+	{
+		"name": "web-components/top-button",
+		"path": "packages/web-components/src/top-button/index.ts",
+		"limit": "850 B"
 	}
 ]

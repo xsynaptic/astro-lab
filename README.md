@@ -35,10 +35,13 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 - [`@xsynaptic/mdxlint-config`](packages/mdxlint-config): shared mdxlint config and a conditional-write CLI for formatting and linting MDX content
 - [`@xsynaptic/stylelint-config`](packages/stylelint-config): shared Stylelint config for Astro projects using Tailwind CSS v4
 
+## Web components
+
+- [`@xsynaptic/share-kit`](packages/share-kit): share dialog custom element for posting a page to social platforms
+- [`@xsynaptic/web-components`](packages/web-components): small light-DOM custom elements: 404 path suggestions, a back-to-top button, and loading and reading progress bars
+
 ## Other
 
-- [`@xsynaptic/path-suggestions`](packages/path-suggestions): did-you-mean for 404 pages, scoring a bad path against the ones that exist, with an optional custom element
-- [`@xsynaptic/share-kit`](packages/share-kit): share dialog custom element for posting a page to social platforms
 - [`@xsynaptic/unpic-imagor`](packages/unpic-imagor): unpic URL provider for the imagor image server
 - [`@xsynaptic/word-count`](packages/word-count): fast, dependency-free multilingual word counter
 
