@@ -18,6 +18,13 @@ describe('CJK wrapping', () => {
 	});
 });
 
+const wrapperOptions = fc.constantFrom(
+	{},
+	{ attribute: 'lang', value: 'zh' },
+	{ element: 'cjk-wrap' },
+	{ attribute: 'class', element: 'em', value: 'han' },
+);
+
 function wrapDefault(input: string) {
 	return wrapCjk({ input, wrapCjkOptions: {} });
 }
@@ -39,13 +46,17 @@ describe('wrapCjk properties', () => {
 		expect(wrappedInputs).toBeGreaterThan(0);
 	});
 
-	test.fails('is idempotent on a wrapped run', () => {
-		expect(wrapDefault(wrapDefault('中'))).toBe('<span class="cjk">中</span>');
+	test('leaves a hand-written wrapper alone', () => {
+		expect(wrapDefault('<span class="cjk">中</span>')).toBe('<span class="cjk">中</span>');
 	});
 
-	test.fails.prop([htmlFragment])('is idempotent', (input) => {
-		const once = wrapDefault(input);
+	test('still strips any other class from a span', () => {
+		expect(wrapDefault('<span class="note cjk">中</span>')).toBe('<span class="cjk">中</span>');
+	});
 
-		expect(wrapDefault(once)).toBe(once);
+	test.prop([htmlFragment, wrapperOptions])('is idempotent', (input, wrapCjkOptions) => {
+		const once = wrapCjk({ input, wrapCjkOptions });
+
+		expect(wrapCjk({ input: once, wrapCjkOptions })).toBe(once);
 	});
 });

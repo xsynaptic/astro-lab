@@ -1,5 +1,11 @@
 # @xsynaptic/unified-tools
 
+## 5.1.4
+
+### Patch Changes
+
+- `wrapCjk` keeps a wrapper already in its input, such as a hand-written `<span class="cjk">` or its own earlier output, instead of stripping its class and wrapping the text again
+
 ## 5.1.3
 
 ### Patch Changes
