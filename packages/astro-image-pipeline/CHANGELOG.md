@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.14.0
+
+### Minor Changes
+
+- `prepareCardRender` returns `cards` as records of each card's name, input and image instead of names
+
 ## 0.13.0
 
 ### Minor Changes
