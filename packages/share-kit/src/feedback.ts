@@ -9,10 +9,10 @@ const flashDurationMs = 2000;
 export class ShareFeedback {
 	#flashing = new WeakSet<HTMLElement>();
 	#getStatus: () => HTMLElement | undefined;
-	#strings: ShareKitStrings;
+	#strings: ShareKitStrings<string>;
 	#timeout: ReturnType<typeof setTimeout> | undefined;
 
-	constructor(getStatus: () => HTMLElement | undefined, strings: ShareKitStrings) {
+	constructor(getStatus: () => HTMLElement | undefined, strings: ShareKitStrings<string>) {
 		this.#getStatus = getStatus;
 		this.#strings = strings;
 	}

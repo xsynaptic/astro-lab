@@ -24,19 +24,35 @@ export function joinClasses(...classes: Array<string | undefined>) {
 
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
-export function createIcon(path: string, size: number) {
+const iconSize = 24;
+
+function createIcon(path: string) {
 	const svg = document.createElementNS(svgNamespace, 'svg');
 	const shape = document.createElementNS(svgNamespace, 'path');
 
 	svg.setAttribute('aria-hidden', 'true');
-	svg.setAttribute('height', String(size));
+	svg.setAttribute('height', String(iconSize));
 	svg.setAttribute('viewBox', '0 0 24 24');
-	svg.setAttribute('width', String(size));
+	svg.setAttribute('width', String(iconSize));
 	shape.setAttribute('d', path);
 	shape.setAttribute('fill', 'currentColor');
 	svg.append(shape);
 
 	return svg;
+}
+
+export function createIconSlot(name: string, path: string | undefined, fallback?: string) {
+	return createElement('span', { class: 'share-kit-icon', 'data-share-kit-icon': name }, [
+		path ? createIcon(path) : fallback,
+	]);
+}
+
+export function patchIcons(root: Element, icons: Partial<Record<string, string>>) {
+	for (const slot of root.querySelectorAll<HTMLElement>('[data-share-kit-icon]')) {
+		const path = slot.dataset.shareKitIcon ? icons[slot.dataset.shareKitIcon] : undefined;
+
+		if (path && !slot.querySelector('svg')) slot.replaceChildren(createIcon(path));
+	}
 }
 
 function isOnBackdrop(dialog: HTMLDialogElement, event: PointerEvent) {

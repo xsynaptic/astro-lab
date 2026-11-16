@@ -33,11 +33,18 @@ const specimens = getSpecimens();
 				shareKitInterfaceIcons,
 			} from '@xsynaptic/share-kit';
 
-			import { brandIcons } from '../lib/icons.js';
+			import { destinations } from '../lib/destinations.js';
 
 			const eventLog = document.querySelector('[data-event-log]');
 
-			defineShareKit({ icons: { ...shareKitInterfaceIcons, ...brandIcons } });
+			defineShareKit({
+				destinations,
+				icons: async () => {
+					const { brandIcons } = await import('../lib/icons.js');
+
+					return { ...shareKitInterfaceIcons, ...brandIcons };
+				},
+			});
 
 			document.addEventListener(shareKitActionEventName, ({ detail }) => {
 				if (eventLog) eventLog.textContent = JSON.stringify(detail);

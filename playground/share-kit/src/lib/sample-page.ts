@@ -1,7 +1,17 @@
 import type { ImageSource } from '@xsynaptic/astro-image-pipeline/names';
-import type { ShareKitAsset, ShareKitPayload, ShareKitSettings } from '@xsynaptic/share-kit';
+import type {
+	ShareKitAsset,
+	ShareKitImageFormat,
+	ShareKitPayload,
+	ShareKitSettings,
+} from '@xsynaptic/share-kit';
 
 import { getCardName, getRenditionName } from '@xsynaptic/astro-image-pipeline/names';
+import { getShareKitImageFormats } from '@xsynaptic/share-kit';
+
+import type { Destination } from './destinations.js';
+
+import { destinations } from './destinations.js';
 
 const imageBaseUrl = '/images';
 
@@ -17,19 +27,7 @@ const photoSources: Array<ImageSource & { alt: string }> = [
 	{ alt: 'The tower from the rocks below', height: 1875, id: 'lighthouse-tower.jpg', width: 1500 },
 ];
 
-export const cardSizes = {
-	landscape: { height: 630, width: 1200 },
-	portrait: { height: 1350, width: 1080 },
-	story: { height: 1920, width: 1080 },
-} as const;
-
-const cardVariants = ['portrait', 'story', 'landscape'] as const;
-
-const cardLabels = {
-	landscape: 'Landscape',
-	portrait: 'Portrait',
-	story: 'Story',
-} as const;
+export const cardFormats = getShareKitImageFormats(destinations);
 
 const title = "The Lighthouse Keeper's Cat";
 
@@ -37,24 +35,34 @@ const filenamePrefix = 'lighthouse-cat';
 
 export const sampleSettings = {
 	destinations: ['any', 'bluesky', 'instagram', 'instagram-story', 'threads'],
-	destinationsMore: ['mastodon', 'x', 'facebook', 'pinterest', 'reddit', 'linkedin', 'messages'],
+	destinationsMore: [
+		'mastodon',
+		'x',
+		'facebook',
+		'pinterest',
+		'reddit',
+		'linkedin',
+		'messages',
+		'line',
+		'email',
+	],
 	utmMedium: 'share',
-} as const satisfies ShareKitSettings;
+} as const satisfies ShareKitSettings<Destination>;
 
-function getCardAsset(variant: (typeof cardVariants)[number]): ShareKitAsset {
+function getCardAsset(format: ShareKitImageFormat): ShareKitAsset {
 	const name = getCardName(
-		{ id: `${filenamePrefix}-${variant}`, input: { title, variant } },
+		{ id: `${filenamePrefix}-${format.id}`, input: { title, variant: format.id } },
 		{ format: 'jpg' },
 	);
 	const src = `${cardBaseUrl}/${name}`;
+	const label = `${format.id.charAt(0).toUpperCase()}${format.id.slice(1)}`;
 
 	return {
-		...cardSizes[variant],
-		alt: `${title}, ${cardLabels[variant].toLowerCase()} card`,
-		filename: `${filenamePrefix}-${variant}.jpg`,
-		label: cardLabels[variant],
+		...format,
+		alt: `${title}, ${format.id} card`,
+		filename: `${filenamePrefix}-${format.id}.jpg`,
+		label,
 		previewSrc: src,
-		role: variant,
 		src,
 		type: 'image/jpeg',
 	};
@@ -71,18 +79,19 @@ function getPhotoAsset(source: ImageSource & { alt: string }, index: number): Sh
 		alt: source.alt,
 		filename: `${filenamePrefix}-${number}.jpg`,
 		height: Math.round((photoPreviewWidth * source.height) / source.width),
+		id: `photo-${number}`,
+		isSuggestable: false,
 		label: `Photo ${number}`,
 		previewSrc: `${imageBaseUrl}/${previewName}`,
-		role: 'photo',
 		src: `${imageBaseUrl}/${fileName}`,
 		type: 'image/jpeg',
 		width: photoPreviewWidth,
 	};
 }
 
-export function getSamplePayload(): ShareKitPayload {
+export function getSamplePayload(): ShareKitPayload<Destination> {
 	return {
-		assets: [...cardVariants.map(getCardAsset), ...photoSources.map(getPhotoAsset)],
+		assets: [...cardFormats.map(getCardAsset), ...photoSources.map(getPhotoAsset)],
 		description:
 			'On foggy nights the keeper climbs the tower to trim the wick, and the cat climbs after. Nobody taught her the way up. She waits at the top, watching the beam sweep across the water, until the last boat is safely past.',
 		locale: 'en',

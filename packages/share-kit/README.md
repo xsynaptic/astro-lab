@@ -8,13 +8,40 @@ A `<share-kit>` custom element that opens a share dialog for the current page. P
 npm install @xsynaptic/share-kit
 ```
 
+List your destinations in a module that server and client code both import:
+
+```ts
+// src/lib/share-destinations.ts
+import type { ShareKitDestinationIdOf } from '@xsynaptic/share-kit';
+
+import {
+	shareKitAnywhere,
+	shareKitBluesky,
+	shareKitMastodon,
+	shareKitThreads,
+	shareKitX,
+} from '@xsynaptic/share-kit';
+
+export const destinations = [
+	shareKitAnywhere,
+	shareKitBluesky,
+	shareKitThreads,
+	shareKitX,
+	shareKitMastodon,
+] as const;
+
+export type Destination = ShareKitDestinationIdOf<typeof destinations>;
+```
+
 Put a trigger button and a JSON payload inside the element. The button starts out `disabled`, and the element enables it once its script loads. Write the payload with `serializeShareKitPayload`, which escapes `<` so a title can't break out of the script tag.
 
 ```astro
 ---
 import { serializeShareKitPayload, type ShareKitPayload } from '@xsynaptic/share-kit';
 
-const payload: ShareKitPayload = {
+import type { Destination } from '../lib/share-destinations';
+
+const payload: ShareKitPayload<Destination> = {
 	assets: [],
 	description: 'On foggy nights the cat follows the keeper up the tower.',
 	locale: 'en',
@@ -39,8 +66,11 @@ const payload: ShareKitPayload = {
 	} from '@xsynaptic/share-kit';
 	import { siBluesky, siThreads } from 'simple-icons';
 
+	import { destinations } from '../lib/share-destinations';
+
 	document.addEventListener(shareKitActionEventName, ({ detail }) => console.log(detail));
 	defineShareKit({
+		destinations,
 		icons: {
 			...shareKitInterfaceIcons,
 			bluesky: siBluesky.path,
@@ -54,15 +84,35 @@ Every action in the dialog fires a `share-kit:action` event. Listen in the same 
 
 If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fragment that no element id on the page uses, or the page also scrolls there.
 
-`strings` in the payload overrides the dialog's wording by key (`ShareKitStringKey`).
+`strings` in the payload overrides the dialog's wording by key, including `destination.<id>` and `hint.<id>`.
+
+## Destinations
+
+The built-ins are `shareKitAnywhere`, `shareKitBluesky`, `shareKitFacebook`, `shareKitInstagram`, `shareKitInstagramStory`, `shareKitLinkedin`, `shareKitMastodon`, `shareKitMessages`, `shareKitPinterest`, `shareKitReddit`, `shareKitThreads` and `shareKitX`. Adjust one by spreading it (`{ ...shareKitMastodon, limit: 1000 }`), or write your own with `defineShareKitDestination`:
+
+```ts
+export const line = defineShareKitDestination({
+	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
+	composer: ({ text }) => `https://line.me/R/share?text=${encodeURIComponent(text)}`,
+	count: shareKitCountLength,
+	id: 'line',
+	images: [shareKitLandscapeFormat],
+	label: 'LINE',
+	shape: 'full',
+});
+```
+
+`actions` is what the main button tries on each device, in order, before falling back to copying the caption. `images` lists the formats the destination takes, best first.
+
+## Images
+
+Each entry in `assets` has an `id`, `width` and `height`; spread a preset such as `shareKitPortraitFormat` into a card to get all three. Photos set `isSuggestable: false`. `getShareKitImageFormats(destinations)` lists the card formats worth rendering.
 
 The dialog downloads the images in `assets` to save, copy or share them, so serve them from the same origin or with CORS headers.
 
 ## Icons
 
-The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close`, `more` and `qr`. A missing icon falls back to text. Only the first call counts.
-
-`shareKitInterfaceIcons` holds the five drawn for this package: `any`, `close`, `messages`, `more` and `qr`. For brand marks, [Simple Icons](https://simpleicons.org) exports each one as `si<Name>` with its path on `.path`, and its current release has every destination but LinkedIn.
+The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close`, `more` and `qr`, or pass a function that returns a promise of that map to load them lazily. `shareKitInterfaceIcons` holds the five drawn for this package. For brand marks, [Simple Icons](https://simpleicons.org) has every built-in but LinkedIn.
 
 ## Styles
 
@@ -76,7 +126,7 @@ To change colours and spacing, set custom properties on `share-kit` or a parent.
 
 ## Testing
 
-The element checks what the browser supports: sharing files (`files`), sharing links (`link`), copying images (`copy-image`) and touch input (`handheld`). To preview another device, list the features you want in `data-can`, for example `<share-kit data-can="files link handheld">` for a phone.
+The element checks what the browser supports: sharing files (`files`), sharing links (`link`), copying images (`copy-image`) and whether it is a phone or tablet, whose share sheet reaches installed apps (`mobile`, from touch input). To preview another device, list the features you want in `data-can`, for example `<share-kit data-can="files link mobile">` for a phone.
 
 ## Browser support
 

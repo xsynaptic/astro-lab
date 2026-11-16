@@ -1,14 +1,11 @@
-import type { ShareKitDestinationId } from './destinations.js';
-import type { ShareKitStrings } from './strings.js';
-import type { ShareKitPayload, ShareKitSettings } from './types.js';
+import type { ShareKitDestination } from './destinations.js';
+import type { ShareKitAsset, ShareKitPayload, ShareKitSettings } from './types.js';
 
-import { isShareDestinationId, shareDestinationAny } from './destinations.js';
-import { isShareStringKey, shareKitStringDefaults } from './strings.js';
-
-function isPayload(value: unknown): value is ShareKitPayload {
+function isPayload(value: unknown): value is ShareKitPayload<string> {
 	if (typeof value !== 'object' || value === null) return false;
 
-	const { assets, settings, title, url }: Partial<Record<keyof ShareKitPayload, unknown>> = value;
+	const { assets, settings, title, url }: Partial<Record<keyof ShareKitPayload<string>, unknown>> =
+		value;
 
 	return (
 		typeof title === 'string' &&
@@ -20,7 +17,7 @@ function isPayload(value: unknown): value is ShareKitPayload {
 }
 
 // `<` is escaped so a title or description can't close the script element early
-export function serializeShareKitPayload(payload: ShareKitPayload) {
+export function serializeShareKitPayload(payload: ShareKitPayload<string>) {
 	return JSON.stringify(payload).replaceAll('<', String.raw`\u003c`);
 }
 
@@ -38,29 +35,60 @@ export function readSharePayload(host: HTMLElement) {
 	}
 }
 
-export function getShareStrings(overrides: Partial<Record<string, string>> = {}): ShareKitStrings {
-	const strings: ShareKitStrings = { ...shareKitStringDefaults };
-
-	for (const [key, value] of Object.entries(overrides)) {
-		if (value !== undefined && isShareStringKey(key)) strings[key] = value;
-	}
-
-	return strings;
-}
+type Catalogue = ReadonlyMap<string, ShareKitDestination<string>>;
 
 function getIds(value: unknown) {
 	if (!Array.isArray(value)) return [];
 
-	return [...new Set<unknown>(value)].filter(
-		(id): id is ShareKitDestinationId => typeof id === 'string' && isShareDestinationId(id),
-	);
+	return [...new Set<unknown>(value)];
 }
 
 // The payload arrives as JSON, so ids are checked again; an empty row would leave the radio group unreachable
-export function getDestinationLists({ destinations, destinationsMore }: ShareKitSettings) {
-	const shown = getIds(destinations);
-	const main: Array<ShareKitDestinationId> = shown.length > 0 ? shown : [shareDestinationAny];
-	const more = getIds(destinationsMore).filter((id) => !main.includes(id));
+export function getDestinationLists(
+	{ destinations, destinationsMore }: ShareKitSettings<string>,
+	catalogue: Catalogue,
+) {
+	const unknown: Array<string> = [];
+	const resolve = (ids: Array<unknown>) =>
+		ids.flatMap((id) => {
+			const destination = typeof id === 'string' ? catalogue.get(id) : undefined;
 
-	return { main, more };
+			if (!destination) unknown.push(String(id));
+
+			return destination ? [destination] : [];
+		});
+	const shown = resolve(getIds(destinations));
+	const rest = resolve(getIds(destinationsMore)).filter(
+		(destination) => !shown.includes(destination),
+	);
+
+	if (unknown.length > 0) {
+		console.warn(`share-kit: unregistered destinations dropped: ${unknown.join(', ')}`);
+	}
+
+	if (shown.length > 0) return { main: shown, more: rest };
+	if (rest.length > 0) return { main: rest, more: [] };
+
+	console.warn('share-kit: no registered destinations to show');
+
+	return;
+}
+
+export function getShareAssets(assets: ReadonlyArray<ShareKitAsset>) {
+	const seen = new Set<string>();
+	const kept = assets.filter((asset) => {
+		const id: unknown = asset.id;
+
+		if (typeof id !== 'string' || id === '' || seen.has(id)) return false;
+
+		seen.add(id);
+
+		return true;
+	});
+
+	if (kept.length < assets.length) {
+		console.warn('share-kit: images with an empty or repeated id dropped');
+	}
+
+	return kept;
 }

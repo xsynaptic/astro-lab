@@ -1,10 +1,8 @@
-import type { ShareKitDestinationId, SharePrimaryAction } from './destinations.js';
+import type { ShareKitActionKind, ShareKitDestination } from './destinations.js';
 import type { ShareKitParts } from './render.js';
 import type { ShareKitStrings } from './strings.js';
 
-import { countCaption } from './caption.js';
-import { getShareDestination } from './destinations.js';
-import { formatShareString, isShareStringKey } from './strings.js';
+import { formatShareString, getDestinationHint, getDestinationLabel } from './strings.js';
 
 const primaryLabels = {
 	'copy-caption': 'primaryCopy',
@@ -12,33 +10,23 @@ const primaryLabels = {
 	'share-image': 'primaryShareImage',
 	'share-link': 'primaryShareLink',
 	'share-text': 'primaryShareText',
-} as const satisfies Record<SharePrimaryAction, keyof ShareKitStrings>;
-
-export function getSuggestedAsset(assets: Array<HTMLElement>, destination: ShareKitDestinationId) {
-	const { assetRole } = getShareDestination(destination);
-
-	return (
-		assets.find((asset) => asset.dataset.shareKitRole === assetRole) ??
-		assets.find((asset) => asset.dataset.shareKitRole === 'landscape') ??
-		assets[0]
-	);
-}
+} as const satisfies Record<ShareKitActionKind, keyof ShareKitStrings<string>>;
 
 interface SyncInput {
-	destination: ShareKitDestinationId;
+	destination: ShareKitDestination<string>;
 	parts: ShareKitParts;
-	strings: ShareKitStrings;
+	strings: ShareKitStrings<string>;
 }
 
 interface SyncCaptionInput extends SyncInput {
-	primaryAction: SharePrimaryAction;
+	primaryAction: ShareKitActionKind;
 }
 
 export function syncCaptionView({ destination, parts, primaryAction, strings }: SyncCaptionInput) {
-	const { limit } = getShareDestination(destination);
-	const count = countCaption(parts.caption.value, destination);
+	const { limit } = destination;
+	const count = destination.count(parts.caption.value);
 	const isOver = limit !== undefined && count > limit;
-	const label = strings[`destination.${destination}`];
+	const label = getDestinationLabel(strings, destination);
 
 	parts.count.textContent =
 		limit === undefined ? String(count) : `${String(count)} / ${String(limit)}`;
@@ -71,15 +59,13 @@ export function syncDestinationView({
 	suggested,
 }: SyncDestinationInput) {
 	for (const radio of parts.dialog.querySelectorAll<HTMLElement>('[role="radio"]')) {
-		const isSelected = radio.dataset.shareKitDestination === destination;
+		const isSelected = radio.dataset.shareKitDestination === destination.id;
 
 		radio.setAttribute('aria-checked', String(isSelected));
 		radio.tabIndex = isSelected ? 0 : -1;
 	}
 
-	const hintKey = `hint.${destination}`;
-
-	parts.hint.textContent = isShareStringKey(hintKey) ? strings[hintKey] : '';
+	parts.hint.textContent = getDestinationHint(strings, destination) ?? '';
 	parts.hint.hidden = parts.hint.textContent === '';
 
 	for (const asset of assets) {

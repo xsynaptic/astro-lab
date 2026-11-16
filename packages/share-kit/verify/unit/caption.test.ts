@@ -2,14 +2,23 @@ import { fc, test } from '@fast-check/vitest';
 import twitter from 'twitter-text';
 import { describe, expect } from 'vitest';
 
-import type { ShareKitDestinationId } from '../../src/destinations.js';
+import type { ShareKitDestination } from '../../src/destinations.js';
 
-import { countCaption, fitCaption } from '../../src/caption.js';
+import { fitCaption } from '../../src/caption.js';
 import {
 	getDestinationUrl,
-	getPrimaryAction,
-	getShareDestination,
-	shareDestinations,
+	shareKitAnywhere,
+	shareKitBluesky,
+	shareKitFacebook,
+	shareKitInstagram,
+	shareKitInstagramStory,
+	shareKitLinkedin,
+	shareKitMastodon,
+	shareKitMessages,
+	shareKitPinterest,
+	shareKitReddit,
+	shareKitThreads,
+	shareKitX,
 } from '../../src/destinations.js';
 import { countLikeBluesky, countLikeMastodon } from './reference-counters.js';
 
@@ -23,9 +32,22 @@ function isGraphemePrefix(cut: string, source: string) {
 	return toGraphemes(source).slice(0, toGraphemes(cut).length).join('') === cut;
 }
 
-const destinationIds = Object.keys(shareDestinations) as Array<ShareKitDestinationId>;
+const builtIns: Array<ShareKitDestination<string>> = [
+	shareKitAnywhere,
+	shareKitBluesky,
+	shareKitFacebook,
+	shareKitInstagram,
+	shareKitInstagramStory,
+	shareKitLinkedin,
+	shareKitMastodon,
+	shareKitMessages,
+	shareKitPinterest,
+	shareKitReddit,
+	shareKitThreads,
+	shareKitX,
+];
 
-const limitedIds = destinationIds.filter((id) => getShareDestination(id).limit !== undefined);
+const limited = builtIns.filter((destination) => destination.limit !== undefined);
 
 // Real words, since segmenters and twitter-text both behave differently on random code points
 // Emoji predate 2020: twitter-text pins an old emoji table and would charge newer ones per code point
@@ -85,17 +107,17 @@ const fieldsArbitrary = fc.record({
 });
 
 describe('fitCaption', () => {
-	test.prop([fieldsArbitrary, fc.constantFrom(...limitedIds)])(
+	test.prop([fieldsArbitrary, fc.constantFrom(...limited)])(
 		'stays inside the limit',
-		(fields, id) => {
-			const { limit, text } = fitCaption(fields, id);
+		(fields, destination) => {
+			const { limit, text } = fitCaption(fields, destination);
 
-			expect(countCaption(text, id)).toBeLessThanOrEqual(limit ?? Infinity);
+			expect(destination.count(text)).toBeLessThanOrEqual(limit ?? Infinity);
 		},
 	);
 
 	test.prop([fieldsArbitrary])('X accepts every caption fitted for it', (fields) => {
-		const { count, text } = fitCaption(fields, 'x');
+		const { count, text } = fitCaption(fields, shareKitX);
 		const parsed = twitter.parseTweet(text);
 
 		expect(parsed.valid).toBe(true);
@@ -105,7 +127,7 @@ describe('fitCaption', () => {
 	test.prop([fieldsArbitrary])(
 		"Bluesky's composer counts every caption as the dialog does",
 		(fields) => {
-			const { count, text } = fitCaption(fields, 'bluesky');
+			const { count, text } = fitCaption(fields, shareKitBluesky);
 
 			expect(count).toBe(countLikeBluesky(text));
 		},
@@ -114,17 +136,17 @@ describe('fitCaption', () => {
 	test.prop([fieldsArbitrary])(
 		"Mastodon's composer counts every caption as the dialog does",
 		(fields) => {
-			const { count, text } = fitCaption(fields, 'mastodon');
+			const { count, text } = fitCaption(fields, shareKitMastodon);
 
 			expect(count).toBe(countLikeMastodon(text));
 		},
 	);
 
-	test.prop([fieldsArbitrary, fc.constantFrom(...destinationIds)])(
+	test.prop([fieldsArbitrary, fc.constantFrom(...builtIns)])(
 		'keeps the link whole, once, at the end',
-		(fields, id) => {
-			const { text } = fitCaption(fields, id);
-			const { shape } = getShareDestination(id);
+		(fields, destination) => {
+			const { text } = fitCaption(fields, destination);
+			const { shape } = destination;
 
 			if (shape === 'full' || shape === 'url') {
 				expect(text.endsWith(fields.url)).toBe(true);
@@ -135,10 +157,10 @@ describe('fitCaption', () => {
 		},
 	);
 
-	test.prop([fieldsArbitrary, fc.constantFrom(...limitedIds)])(
+	test.prop([fieldsArbitrary, fc.constantFrom(...limited)])(
 		'keeps each part a grapheme-aligned prefix of its source, in order',
-		(fields, id) => {
-			const { text } = fitCaption(fields, id);
+		(fields, destination) => {
+			const { text } = fitCaption(fields, destination);
 			const sources = [fields.title, fields.description?.trim(), fields.url].filter(
 				(source): source is string => Boolean(source),
 			);
@@ -159,7 +181,7 @@ describe('fitCaption', () => {
 	test('falls back to the default segmenter for a malformed locale', () => {
 		const { count, limit } = fitCaption(
 			{ description: 'A sentence. '.repeat(60), title: 'Title', url: 'https://example.com/' },
-			'x',
+			shareKitX,
 			'en_US',
 		);
 
@@ -173,7 +195,7 @@ describe('fitCaption', () => {
 				title: "The Lighthouse Keeper's Cat",
 				url: 'https://example.com/lighthouse-keepers-cat/',
 			},
-			'x',
+			shareKitX,
 		);
 
 		expect(text).toMatch(/lighthouse\.\n\nhttps:\/\/example\.com\/lighthouse-keepers-cat\/$/u);
@@ -184,7 +206,7 @@ describe('fitCaption', () => {
 		const description = 'เรือใบลำเล็กแล่นผ่านประภาคารริมทะเล'.repeat(12);
 		const { text } = fitCaption(
 			{ description, title: 'ประภาคาร', url: 'https://example.com/' },
-			'x',
+			shareKitX,
 		);
 		const cut = text.split('\n\n', 2)[1]?.replace('…', '') ?? '';
 		const wordEnds = new Set(
@@ -199,7 +221,7 @@ describe('fitCaption', () => {
 	});
 });
 
-describe('countCaption', () => {
+describe('built-in counters', () => {
 	test.each([
 		['plain Latin', 'lighthouse', 10],
 		['CJK weighs double', '燈塔海港', 8],
@@ -210,7 +232,7 @@ describe('countCaption', () => {
 		['any link is 23', 'https://example.com/a/very/long/path/that/goes/on/and/on/', 23],
 		['punctuation after a link is not part of it', 'https://example.com/a.', 24],
 	])('X: %s', (_label, text, expected) => {
-		expect(countCaption(text, 'x')).toBe(expected);
+		expect(shareKitX.count(text)).toBe(expected);
 		expect(twitter.parseTweet(text).weightedLength).toBe(expected);
 	});
 
@@ -223,7 +245,7 @@ describe('countCaption', () => {
 		],
 		['an emoji sequence is one grapheme', '👨‍👩‍👧 燈塔', 4],
 	])('Bluesky: %s', (_label, text, expected) => {
-		expect(countCaption(text, 'bluesky')).toBe(expected);
+		expect(shareKitBluesky.count(text)).toBe(expected);
 		expect(countLikeBluesky(text)).toBe(expected);
 	});
 
@@ -233,56 +255,30 @@ describe('countCaption', () => {
 		['Latin combining marks fold into their letter', 'ệ'.normalize('NFD'), 1],
 		['an emoji sequence is one', '👨‍👩‍👧‍👦 👍🏽 🇹🇼 ❤️', 7],
 	])('Mastodon: %s', (_label, text, expected) => {
-		expect(countCaption(text, 'mastodon')).toBe(expected);
+		expect(shareKitMastodon.count(text)).toBe(expected);
 		expect(countLikeMastodon(text)).toBe(expected);
 	});
 });
 
 describe('destination links', () => {
 	test('tags a link bound for a destination and leaves the rest of it alone', () => {
-		expect(getDestinationUrl('https://example.com/a/?page=2#share', 'bluesky', 'share')).toBe(
+		expect(getDestinationUrl('https://example.com/a/?page=2#share', shareKitBluesky, 'share')).toBe(
 			'https://example.com/a/?page=2&utm_medium=share&utm_source=bluesky#share',
 		);
 	});
 
 	test('leaves a link bare without a medium, or with nowhere in particular to go', () => {
-		expect(getDestinationUrl('https://example.com/a/', 'bluesky', undefined)).toBe(
+		expect(getDestinationUrl('https://example.com/a/', shareKitBluesky, undefined)).toBe(
 			'https://example.com/a/',
 		);
-		expect(getDestinationUrl('https://example.com/a/', 'any', 'share')).toBe(
+		expect(getDestinationUrl('https://example.com/a/', shareKitAnywhere, 'share')).toBe(
 			'https://example.com/a/',
 		);
 	});
-});
 
-describe('primary action', () => {
-	const phone = { canShareFiles: true, canShareText: true, hasComposerUrl: true, isHandheld: true };
-	const desktop = { ...phone, canShareFiles: false, canShareText: false, isHandheld: false };
-
-	test('a phone hands a link-only destination to the share sheet, where its app is', () => {
-		expect(getPrimaryAction({ ...phone, id: 'facebook' })).toBe('share-link');
-		expect(getPrimaryAction({ ...phone, id: 'linkedin' })).toBe('share-link');
-	});
-
-	test('a desktop, or a phone without the share sheet, opens the web composer', () => {
-		expect(getPrimaryAction({ ...desktop, id: 'facebook' })).toBe('open-composer');
-		expect(getPrimaryAction({ ...phone, canShareText: false, id: 'facebook' })).toBe(
-			'open-composer',
-		);
-	});
-
-	test('an image post on a phone still shares the image first', () => {
-		expect(getPrimaryAction({ ...phone, id: 'bluesky' })).toBe('share-image');
-	});
-
-	test('a phone hands Anywhere to the share sheet; a desktop copies the caption', () => {
-		expect(getPrimaryAction({ ...phone, hasComposerUrl: false, id: 'any' })).toBe('share-text');
-		expect(getPrimaryAction({ ...desktop, hasComposerUrl: false, id: 'any' })).toBe('copy-caption');
-	});
-
-	test('a desktop hands Messages to the share sheet when it can share text', () => {
+	test('tags a host-chosen source in place of the id', () => {
 		expect(
-			getPrimaryAction({ ...desktop, canShareText: true, hasComposerUrl: false, id: 'messages' }),
-		).toBe('share-text');
+			getDestinationUrl('https://example.com/a/', { id: 'line', utmSource: 'line-app' }, 'share'),
+		).toBe('https://example.com/a/?utm_medium=share&utm_source=line-app');
 	});
 });

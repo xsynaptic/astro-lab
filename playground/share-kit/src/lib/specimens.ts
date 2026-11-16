@@ -1,13 +1,15 @@
 import type { ShareKitPayload } from '@xsynaptic/share-kit';
 
+import type { Destination } from './destinations.js';
+
 import { getSamplePayload, sampleSettings } from './sample-page.js';
 
 // `data-can` stands in for the device, so each specimen opens the real dialog in one state
 const capabilities = {
 	desktop: 'copy-image',
 	none: '',
-	phone: 'files link handheld',
-	phoneLinkOnly: 'link handheld',
+	phone: 'files link mobile',
+	phoneLinkOnly: 'link mobile',
 } as const;
 
 // Short sentences let each destination's fit land close to its limit, where composers show a number
@@ -25,12 +27,12 @@ export interface Specimen {
 	id: string;
 	label: string;
 	note: string;
-	payload: ShareKitPayload;
+	payload: ShareKitPayload<Destination>;
 }
 
 export function getSpecimens(): Array<Specimen> {
 	const payload = getSamplePayload();
-	const cards = payload.assets.filter((asset) => asset.role !== 'photo');
+	const cards = payload.assets.filter((asset) => asset.isSuggestable !== false);
 
 	return [
 		{
@@ -65,7 +67,7 @@ export function getSpecimens(): Array<Specimen> {
 			id: 'landscape-only',
 			label: 'Landscape card only',
 			note: 'A page with no photos to offer.',
-			payload: { ...payload, assets: cards.filter((asset) => asset.role === 'landscape') },
+			payload: { ...payload, assets: cards.filter((asset) => asset.id === 'landscape') },
 		},
 		{
 			can: capabilities.desktop,
@@ -75,7 +77,7 @@ export function getSpecimens(): Array<Specimen> {
 			payload: {
 				...payload,
 				assets: payload.assets.map((asset) =>
-					asset.role === 'portrait'
+					asset.id === 'portrait'
 						? { ...asset, previewSrc: `${asset.previewSrc}.missing`, src: `${asset.src}.missing` }
 						: asset,
 				),
@@ -85,7 +87,7 @@ export function getSpecimens(): Array<Specimen> {
 			can: capabilities.desktop,
 			id: 'no-photos',
 			label: 'No photos',
-			note: 'Only the three cards.',
+			note: 'Only the cards, one per ideal format.',
 			payload: { ...payload, assets: cards },
 		},
 		{

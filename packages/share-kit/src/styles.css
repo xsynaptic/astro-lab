@@ -138,6 +138,17 @@ share-kit {
 	border-radius: calc(var(--share-kit-radius) * 0.5);
 }
 
+/* Sized before a lazy icon lands, so it shifts nothing */
+.share-kit-icon {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	line-height: 1;
+}
+
 .share-kit-scroll {
 	display: flex;
 	flex: 1;

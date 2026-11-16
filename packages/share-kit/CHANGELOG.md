@@ -1,5 +1,11 @@
 # @xsynaptic/share-kit
 
+## 0.3.0
+
+### Minor Changes
+
+- Hosts register their destinations, built-in or their own, through `defineShareKit({ destinations })`; images carry an `id` in place of `role`, the `data-can` token `handheld` is now `mobile`, and icons can load lazily
+
 ## 0.2.1
 
 ### Patch Changes

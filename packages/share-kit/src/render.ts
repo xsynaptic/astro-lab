@@ -1,26 +1,33 @@
 import type { ShareCapability } from './actions.js';
-import type { ShareKitDestinationId } from './destinations.js';
+import type { ShareKitDestination } from './destinations.js';
 import type { ShareKitIcons } from './icons.js';
 import type { ShareKitStrings } from './strings.js';
 import type { ShareKitAsset, ShareKitClassRole, ShareKitPayload } from './types.js';
 
-import { createElement, createIcon, joinClasses } from './dom.js';
+import { createElement, createIconSlot, joinClasses } from './dom.js';
+import { getDestinationLabel } from './strings.js';
 
 interface RenderInput {
 	capabilities: ReadonlySet<ShareCapability>;
-	destinations: Array<ShareKitDestinationId>;
-	destinationsMore: Array<ShareKitDestinationId>;
-	icons: ShareKitIcons;
+	destinations: ReadonlyArray<ShareKitDestination<string>>;
+	destinationsMore: ReadonlyArray<ShareKitDestination<string>>;
+	icons: ShareKitIcons<string>;
 	id: string;
-	payload: ShareKitPayload;
-	strings: ShareKitStrings;
+	isIconsLoading: boolean;
+	payload: ShareKitPayload<string>;
+	strings: ShareKitStrings<string>;
 }
 
-type RenderContext = RenderInput & {
+interface RenderContext extends RenderInput {
 	classNames: Partial<Record<ShareKitClassRole, string>>;
-};
+}
 
-const destinationIconSize = 24;
+// No slot for an icon that will never come
+function renderDestinationIcon({ icons, isIconsLoading }: RenderContext, name: string) {
+	const path = icons[name];
+
+	return path || isIconsLoading ? createIconSlot(name, path) : undefined;
+}
 
 interface ActionInput {
 	action: string;
@@ -53,11 +60,14 @@ interface IconButtonInput {
 	action: string;
 	attributes?: Record<string, string>;
 	fallback: string;
-	icon: string | undefined;
+	icon: string;
 	label: string;
 }
 
-function renderIconButton({ action, attributes, fallback, icon, label }: IconButtonInput) {
+function renderIconButton(
+	{ icons }: RenderContext,
+	{ action, attributes, fallback, icon, label }: IconButtonInput,
+) {
 	return createElement(
 		'button',
 		{
@@ -68,30 +78,30 @@ function renderIconButton({ action, attributes, fallback, icon, label }: IconBut
 			title: label,
 			type: 'button',
 		},
-		[icon ? createIcon(icon, destinationIconSize) : fallback],
+		[createIconSlot(icon, icons[icon], fallback)],
 	);
 }
 
 function renderHeader(context: RenderContext) {
-	const { capabilities, icons, id, strings } = context;
+	const { capabilities, id, strings } = context;
 	const heading = createElement(
 		'h2',
 		{ class: 'share-kit-title', id: `${id}-title`, tabindex: '-1' },
 		[strings.title],
 	);
-	const qrToggle = capabilities.has('handheld')
+	const qrToggle = capabilities.has('mobile')
 		? undefined
-		: renderIconButton({
+		: renderIconButton(context, {
 				action: 'qr',
 				attributes: { 'aria-haspopup': 'dialog' },
 				fallback: 'QR',
-				icon: icons.qr,
+				icon: 'qr',
 				label: strings.qrToggle,
 			});
-	const close = renderIconButton({
+	const close = renderIconButton(context, {
 		action: 'close',
 		fallback: '×',
-		icon: icons.close,
+		icon: 'close',
 		label: strings.close,
 	});
 
@@ -104,9 +114,8 @@ function renderHeader(context: RenderContext) {
 	};
 }
 
-function renderDestination(context: RenderContext, destination: ShareKitDestinationId) {
-	const { classNames, icons, strings } = context;
-	const icon = icons[destination];
+function renderDestination(context: RenderContext, destination: ShareKitDestination<string>) {
+	const { classNames, strings } = context;
 
 	return createElement(
 		'button',
@@ -114,20 +123,20 @@ function renderDestination(context: RenderContext, destination: ShareKitDestinat
 			'aria-checked': 'false',
 			class: joinClasses('share-kit-destination', classNames.destination),
 			'data-share-kit-action': 'destination',
-			'data-share-kit-destination': destination,
+			'data-share-kit-destination': destination.id,
 			role: 'radio',
 			tabindex: '-1',
 			type: 'button',
 		},
 		[
-			icon ? createIcon(icon, destinationIconSize) : undefined,
-			createElement('span', {}, [strings[`destination.${destination}`]]),
+			renderDestinationIcon(context, destination.id),
+			createElement('span', {}, [getDestinationLabel(strings, destination)]),
 		],
 	);
 }
 
 function renderDestinations(context: RenderContext) {
-	const { destinations, destinationsMore, icons, id, strings } = context;
+	const { destinations, destinationsMore, id, strings } = context;
 	const headingId = `${id}-destinations`;
 	const more =
 		destinationsMore.length > 0
@@ -139,7 +148,7 @@ function renderDestinations(context: RenderContext) {
 						type: 'button',
 					},
 					[
-						icons.more ? createIcon(icons.more, destinationIconSize) : undefined,
+						renderDestinationIcon(context, 'more'),
 						createElement('span', {}, [strings.destinationsMore]),
 					],
 				)
@@ -206,45 +215,38 @@ function renderCaption(context: RenderContext) {
 interface TileInput {
 	actions: Array<[action: string, label: string]>;
 	asset: ShareKitAsset;
-	key: string;
+	index: number;
 }
 
-function renderTile(context: RenderContext, { actions, asset, key }: TileInput) {
-	const labelId = `${context.id}-asset-${key}`;
+// A host's image id may hold spaces, which would split `aria-describedby`
+function renderTile(context: RenderContext, { actions, asset, index }: TileInput) {
+	const labelId = `${context.id}-asset-${String(index)}`;
 	const badge = createElement('span', { class: 'share-kit-badge' }, [context.strings.suggested]);
 
 	badge.hidden = true;
 
-	return createElement(
-		'li',
-		{
-			class: 'share-kit-tile',
-			'data-share-kit-asset': key,
-			'data-share-kit-role': asset.role,
-		},
-		[
-			createElement('img', {
-				alt: asset.alt,
-				class: 'share-kit-preview',
-				decoding: 'async',
-				height: String(asset.height),
-				loading: 'lazy',
-				src: asset.previewSrc,
-				width: String(asset.width),
-			}),
-			createElement('div', { class: 'share-kit-tile-label' }, [
-				createElement('span', { id: labelId }, [asset.label]),
-				badge,
-			]),
-			createElement(
-				'div',
-				{ class: 'share-kit-actions' },
-				actions.map(([action, label]) =>
-					renderAction(context, { action, describedBy: labelId, label }),
-				),
+	return createElement('li', { class: 'share-kit-tile', 'data-share-kit-asset': asset.id }, [
+		createElement('img', {
+			alt: asset.alt,
+			class: 'share-kit-preview',
+			decoding: 'async',
+			height: String(asset.height),
+			loading: 'lazy',
+			src: asset.previewSrc,
+			width: String(asset.width),
+		}),
+		createElement('div', { class: 'share-kit-tile-label' }, [
+			createElement('span', { id: labelId }, [asset.label]),
+			badge,
+		]),
+		createElement(
+			'div',
+			{ class: 'share-kit-actions' },
+			actions.map(([action, label]) =>
+				renderAction(context, { action, describedBy: labelId, label }),
 			),
-		],
-	);
+		),
+	]);
 }
 
 function getAssetActions({ capabilities, strings }: RenderContext) {
@@ -254,7 +256,7 @@ function getAssetActions({ capabilities, strings }: RenderContext) {
 	if (canShare) actions.push(['share', strings.assetShare]);
 
 	// On a phone the share sheet already offers copying
-	if (capabilities.has('copy-image') && !(canShare && capabilities.has('handheld'))) {
+	if (capabilities.has('copy-image') && !(canShare && capabilities.has('mobile'))) {
 		actions.push(['copy', strings.assetCopy]);
 	}
 
@@ -266,15 +268,10 @@ function getAssetActions({ capabilities, strings }: RenderContext) {
 function renderImages(context: RenderContext) {
 	const { payload, strings } = context;
 	const actions = getAssetActions(context);
-	const counts = new Map<string, number>();
 	const assets = new Map<HTMLElement, ShareKitAsset>();
 
-	for (const asset of payload.assets) {
-		const number = (counts.get(asset.role) ?? 0) + 1;
-		const key = asset.role === 'photo' ? `photo-${String(number)}` : asset.role;
-
-		counts.set(asset.role, number);
-		assets.set(renderTile(context, { actions, asset, key }), asset);
+	for (const [index, asset] of payload.assets.entries()) {
+		assets.set(renderTile(context, { actions, asset, index }), asset);
 	}
 
 	const grid = createElement('ul', { class: 'share-kit-grid' }, [...assets.keys()]);

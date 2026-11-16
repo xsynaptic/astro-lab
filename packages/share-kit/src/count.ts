@@ -1,15 +1,10 @@
-type ShareCounter = 'graphemes' | 'length' | 'stringz' | 'utf8' | 'weighted';
-
-type ShareUrlCost = 'actual' | 'fixed' | 'shortened';
-
-// X and Mastodon both charge 23 for any link, whatever its length
-const urlFixedCost = 23;
-
 const urlPattern = /https?:\/\/[\w!#$%&'()*+,./:;=?@~-]+/giu;
 
 const urlTrailingPunctuation = /[!'),.:;?]+$/u;
 
-const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+	granularity: 'grapheme',
+});
 
 const utf8Encoder = new TextEncoder();
 
@@ -46,7 +41,7 @@ function isLightCodePoint(codePoint: number) {
 	);
 }
 
-function getWeightedLength(text: string) {
+export function shareKitCountWeighted(text: string) {
 	const graphemes = getGraphemes(text.normalize('NFC'));
 	let total = 0;
 
@@ -69,7 +64,7 @@ function isLatinCombiningMark(codePoint: number) {
 }
 
 // Mirrors stringz, Mastodon's web composer counter: an emoji sequence is one, Latin combining marks are free, Thai marks count apart
-function getStringzLength(text: string) {
+export function shareKitCountStringz(text: string) {
 	let total = 0;
 
 	for (const grapheme of getGraphemes(text)) {
@@ -87,7 +82,7 @@ function getStringzLength(text: string) {
 }
 
 // Mirrors `toShortUrl` in bluesky-social/social-app, which the composer applies before it counts
-function getShortenedUrlLength(url: string) {
+export function shareKitShortenedLinkCost(url: string) {
 	if (!URL.canParse(url)) return getGraphemes(url).length;
 
 	const { hash, host, pathname, search } = new URL(url);
@@ -96,13 +91,17 @@ function getShortenedUrlLength(url: string) {
 	return host.length + Math.min(path.length, 16);
 }
 
-const textCounters = {
-	graphemes: (text: string) => getGraphemes(text).length,
-	length: (text: string) => text.length,
-	stringz: getStringzLength,
-	utf8: (text: string) => utf8Encoder.encode(text).length,
-	weighted: getWeightedLength,
-} as const satisfies Record<ShareCounter, (text: string) => number>;
+export function shareKitCountLength(text: string) {
+	return text.length;
+}
+
+export function shareKitCountGraphemes(text: string) {
+	return getGraphemes(text).length;
+}
+
+export function shareKitCountUtf8(text: string) {
+	return utf8Encoder.encode(text).length;
+}
 
 function splitLinks(text: string) {
 	const links: Array<string> = [];
@@ -118,22 +117,18 @@ function splitLinks(text: string) {
 	return { links, rest };
 }
 
-export interface ShareCountRule {
-	counter: ShareCounter;
-	urlCost: ShareUrlCost;
-}
+export type ShareKitCounter = (text: string) => number;
 
-export function countText(text: string, { counter, urlCost }: ShareCountRule) {
-	const count = textCounters[counter];
+export function shareKitWithLinkCost(
+	count: ShareKitCounter,
+	cost: ((link: string) => number) | number,
+): ShareKitCounter {
+	return (text) => {
+		const { links, rest } = splitLinks(text);
+		let total = count(rest);
 
-	if (urlCost === 'actual') return count(text);
+		for (const link of links) total += typeof cost === 'number' ? cost : cost(link);
 
-	const { links, rest } = splitLinks(text);
-	let total = count(rest);
-
-	for (const link of links) {
-		total += urlCost === 'fixed' ? urlFixedCost : getShortenedUrlLength(link);
-	}
-
-	return total;
+		return total;
+	};
 }

@@ -1,36 +1,41 @@
 import type { ShareCapability } from './actions.js';
 import type { ShareOutcome } from './assets.js';
-import type { ShareKitDestinationId, SharePrimaryAction } from './destinations.js';
-import type { ShareKitIcons } from './icons.js';
+import type { ShareKitActionKind, ShareKitDestination } from './destinations.js';
 import type { ShareKitParts } from './render.js';
 import type { ShareKitStrings } from './strings.js';
 import type { ShareKitAction, ShareKitActionDetail, ShareKitPayload } from './types.js';
 
-import { clearOpenHash, getShareCapabilities, isDomError, isOpenHash } from './actions.js';
+import {
+	clearOpenHash,
+	getShareCapabilities,
+	isDomError,
+	isOpenHash,
+	openComposer,
+} from './actions.js';
 import { ShareAssetFiles } from './assets.js';
 import { fitCaption } from './caption.js';
-import {
-	getDestinationUrl,
-	getPrimaryAction,
-	getShareDestination,
-	isShareDestinationId,
-	shareDestinationAny,
-} from './destinations.js';
-import { polyfillLightDismiss, radioKeys } from './dom.js';
+import { getDestinationUrl, getPrimaryAction } from './destinations.js';
+import { patchIcons, polyfillLightDismiss, radioKeys } from './dom.js';
 import { ShareFeedback } from './feedback.js';
-import { getDestinationLists, getShareStrings, readSharePayload } from './payload.js';
+import { getSuggestedImage } from './formats.js';
+import { ShareIconSource } from './icons.js';
+import { getDestinationLists, getShareAssets, readSharePayload } from './payload.js';
 import { createShareQr } from './qr.js';
 import { renderShareKit } from './render.js';
-import { shareKitStringDefaults } from './strings.js';
-import { getSuggestedAsset, syncCaptionView, syncDestinationView } from './sync.js';
+import { getShareStrings, shareKitStringDefaults } from './strings.js';
+import { syncCaptionView, syncDestinationView } from './sync.js';
 import { shareKitActionEventName } from './types.js';
+
+type DestinationLists = NonNullable<ReturnType<typeof getDestinationLists>>;
+
+const iconIntentEvents = ['focusin', 'pointerdown', 'pointerover'] as const;
 
 const outcomeMessages = {
 	error: 'error',
 	retry: 'retry',
 	saved: 'saved',
 	unsaved: 'saveError',
-} as const satisfies Partial<Record<ShareOutcome, keyof ShareKitStrings>>;
+} as const satisfies Partial<Record<ShareOutcome, keyof ShareKitStrings<string>>>;
 
 let dialogCount = 0;
 
@@ -43,7 +48,8 @@ const BaseElement =
 	typeof HTMLElement === 'undefined' ? (Object as unknown as typeof HTMLElement) : HTMLElement;
 
 export class ShareKitElement extends BaseElement {
-	protected readonly icons: ShareKitIcons = {};
+	protected readonly catalogue: ReadonlyMap<string, ShareKitDestination<string>> = new Map();
+	protected readonly iconSource = new ShareIconSource({});
 
 	#abortController: AbortController | undefined;
 	#actions = {
@@ -65,11 +71,11 @@ export class ShareKitElement extends BaseElement {
 			void this.#feedback?.copyText(this.#payload?.url ?? '', button);
 		},
 		destination: (button: HTMLElement) => {
-			const id = button.dataset.shareKitDestination;
+			const destination = this.#getRendered(button.dataset.shareKitDestination);
 
-			if (!id || !isShareDestinationId(id)) return;
+			if (!destination) return;
 
-			this.#selectDestination(id);
+			this.#selectDestination(destination);
 			this.#track('destination');
 		},
 		more: (button: HTMLElement) => {
@@ -93,13 +99,15 @@ export class ShareKitElement extends BaseElement {
 		},
 	};
 	#capabilities = new Set<ShareCapability>();
-	#destination: ShareKitDestinationId = shareDestinationAny;
+	#destination: ShareKitDestination<string> | undefined;
 	#feedback: ShareFeedback | undefined;
 	#files: ShareAssetFiles | undefined;
 	#isCaptionEdited = false;
+	#isIconsRequested = false;
 	#isOver = false;
+	#lists: DestinationLists | undefined;
 	#parts: ShareKitParts | undefined;
-	#payload: ShareKitPayload | undefined;
+	#payload: ShareKitPayload<string> | undefined;
 	#primaryActions = {
 		'copy-caption': () => {
 			this.#track('copy-caption');
@@ -107,13 +115,13 @@ export class ShareKitElement extends BaseElement {
 		},
 		// The composer can't always take the text, so it rides along on the clipboard
 		'open-composer': () => {
-			const url = this.#getComposerUrl();
+			const href = this.#getComposerUrl();
 
-			if (!url) return;
+			if (!href) return;
 
 			this.#track('open-composer');
 			void this.#copyCaption();
-			window.open(url, '_blank', 'noopener');
+			openComposer(href);
 		},
 		// Both start inside the tap, before any await, or the browser refuses one of them
 		'share-image': () => {
@@ -134,9 +142,9 @@ export class ShareKitElement extends BaseElement {
 
 			if (text) void this.#shareData('share-text', { text });
 		},
-	} satisfies Record<SharePrimaryAction, () => void>;
+	} satisfies Record<ShareKitActionKind, () => void>;
 	#qr: ReturnType<typeof createShareQr>;
-	#strings: ShareKitStrings = shareKitStringDefaults;
+	#strings: ShareKitStrings<string> = shareKitStringDefaults;
 
 	connectedCallback() {
 		if (this.#abortController) return;
@@ -148,9 +156,14 @@ export class ShareKitElement extends BaseElement {
 			return;
 		}
 
+		const lists = getDestinationLists(payload.settings, this.catalogue);
+
+		if (!lists) return;
+
 		this.#abortController = new AbortController();
-		this.#payload = payload;
-		this.#strings = getShareStrings(payload.strings);
+		this.#lists = lists;
+		this.#payload = { ...payload, assets: getShareAssets(payload.assets) };
+		this.#strings = getShareStrings(payload.strings ?? {}, new Set(this.catalogue.keys()));
 		this.#feedback = new ShareFeedback(() => this.#parts?.status, this.#strings);
 
 		const { signal } = this.#abortController;
@@ -167,6 +180,10 @@ export class ShareKitElement extends BaseElement {
 		this.addEventListener('keydown', this.#handleKeydown, { signal });
 		this.addEventListener('error', this.#handlePreviewError, { capture: true, signal });
 		this.addEventListener('pointerover', ({ target }) => this.#files?.warm(target), { signal });
+
+		for (const type of iconIntentEvents) {
+			this.addEventListener(type, this.#handleTriggerIntent, { signal });
+		}
 		window.addEventListener('hashchange', this.#handleHashChange, { signal });
 		// The trigger ships disabled so a tap before this runs isn't silently lost
 		this.querySelector('[data-share-kit-trigger]')?.toggleAttribute('disabled', false);
@@ -187,8 +204,10 @@ export class ShareKitElement extends BaseElement {
 		this.#feedback = undefined;
 		this.#files?.dispose();
 		this.#files = undefined;
-		this.#destination = shareDestinationAny;
+		this.#destination = undefined;
+		this.#lists = undefined;
 		this.#isCaptionEdited = false;
+		this.#isIconsRequested = false;
 		this.#isOver = false;
 	}
 
@@ -203,41 +222,72 @@ export class ShareKitElement extends BaseElement {
 		return (this.#parts?.tiles ?? []).filter((tile) => tile.dataset.shareKitState !== 'failed');
 	}
 
+	// `?:` rejects an explicit `undefined`, so the optional fields are spread in only when present
 	#getComposerUrl() {
 		const parts = this.#parts;
+		const payload = this.#payload;
+		const composer = this.#destination?.composer;
 
-		if (!parts) return;
+		if (!parts || !payload || !composer) return;
 
 		const suggested = this.#getSuggestedAsset();
 		const media = suggested ? parts.assets.get(suggested)?.src : undefined;
 
-		return getShareDestination(this.#destination).getComposerUrl?.({
-			media: media ? new URL(media, location.href).href : undefined,
+		return composer({
+			...(payload.description === undefined ? {} : { description: payload.description }),
+			device: this.#getDevice(),
+			...(media === undefined ? {} : { media: new URL(media, location.href).href }),
 			text: parts.caption.value,
+			title: payload.title,
 			url: this.#getUrl(),
 		});
 	}
 
+	#getDevice() {
+		return this.#capabilities.has('mobile') ? 'mobile' : 'desktop';
+	}
+
 	#getPrimaryAction() {
-		return getPrimaryAction({
-			canShareFiles: this.#capabilities.has('files') && this.#getSuggestedAsset() !== undefined,
+		const destination = this.#destination;
+
+		if (!destination) return 'copy-caption';
+
+		return getPrimaryAction(destination.actions[this.#getDevice()], {
+			canShareFiles: this.#capabilities.has('files'),
 			canShareText: this.#capabilities.has('link'),
-			hasComposerUrl: this.#getComposerUrl() !== undefined,
-			id: this.#destination,
-			isHandheld: this.#capabilities.has('handheld'),
+			composerUrl: this.#getComposerUrl(),
+			hasSuggestedImage: this.#getSuggestedAsset() !== undefined,
 		});
 	}
 
+	#getRendered(id: string | undefined) {
+		const lists = this.#lists;
+
+		if (!id || !lists) return;
+
+		return [...lists.main, ...lists.more].find((destination) => destination.id === id);
+	}
+
 	#getSuggestedAsset() {
-		return getSuggestedAsset(this.#getAssets(), this.#destination);
+		const parts = this.#parts;
+		const destination = this.#destination;
+
+		if (!parts || !destination) return;
+
+		const tiles = this.#getAssets();
+		const assets = tiles.flatMap((tile) => parts.assets.get(tile) ?? []);
+		const suggested = getSuggestedImage(assets, destination.images);
+
+		return tiles.find((tile) => parts.assets.get(tile) === suggested);
 	}
 
 	#getUrl() {
 		const payload = this.#payload;
+		const destination = this.#destination;
 
-		if (!payload) return '';
+		if (!payload || !destination) return payload?.url ?? '';
 
-		return getDestinationUrl(payload.url, this.#destination, payload.settings.utmMedium);
+		return getDestinationUrl(payload.url, destination, payload.settings.utmMedium);
 	}
 
 	#handleClick = (event: MouseEvent) => {
@@ -280,12 +330,12 @@ export class ShareKitElement extends BaseElement {
 
 		const radios = [...this.querySelectorAll<HTMLElement>('[role="radio"]:not([hidden])')];
 		const next = radios[move(radios.indexOf(event.target), radios.length)];
-		const id = next?.dataset.shareKitDestination;
+		const destination = this.#getRendered(next?.dataset.shareKitDestination);
 
-		if (!next || !id || !isShareDestinationId(id)) return;
+		if (!next || !destination) return;
 
 		event.preventDefault();
-		this.#selectDestination(id);
+		this.#selectDestination(destination);
 		next.focus();
 	};
 
@@ -300,7 +350,24 @@ export class ShareKitElement extends BaseElement {
 		this.#syncDestination();
 	};
 
+	#handleTriggerIntent = ({ target }: Event) => {
+		if (target instanceof Element && target.closest('[data-share-kit-trigger]')) this.#loadIcons();
+	};
+
+	#loadIcons() {
+		const signal = this.#abortController?.signal;
+
+		if (!signal || this.#isIconsRequested) return;
+
+		this.#isIconsRequested = true;
+		void this.iconSource.load().then((icons) => {
+			if (!signal.aborted && this.#parts) patchIcons(this.#parts.dialog, icons);
+		});
+	}
+
 	#open() {
+		this.#loadIcons();
+
 		const parts = this.#parts ?? this.#render();
 
 		if (!parts || parts.dialog.open) return;
@@ -326,7 +393,7 @@ export class ShareKitElement extends BaseElement {
 
 	// The primary button shares the suggested image on a phone, so only that file is fetched ahead
 	#prefetch() {
-		if (!this.#capabilities.has('files') || !this.#capabilities.has('handheld')) return;
+		if (!this.#capabilities.has('files') || !this.#capabilities.has('mobile')) return;
 
 		const tile = this.#getSuggestedAsset();
 
@@ -335,11 +402,13 @@ export class ShareKitElement extends BaseElement {
 
 	#render() {
 		const payload = this.#payload;
+		const lists = this.#lists;
 		const signal = this.#abortController?.signal;
 
-		if (!payload || !signal) return;
+		if (!payload || !lists || !signal) return;
 
-		const { main, more } = getDestinationLists(payload.settings);
+		const { main, more } = lists;
+		const { icons, isLoading } = this.iconSource;
 
 		dialogCount += 1;
 
@@ -348,15 +417,16 @@ export class ShareKitElement extends BaseElement {
 			capabilities: this.#capabilities,
 			destinations: main,
 			destinationsMore: more,
-			icons: this.icons,
+			icons,
 			id,
+			isIconsLoading: isLoading,
 			payload,
 			strings: this.#strings,
 		});
 
 		this.#qr = createShareQr({
 			capabilities: this.#capabilities,
-			closeIcon: this.icons.close,
+			closeIcon: icons.close,
 			id: `${id}-qr`,
 			payload,
 			signal,
@@ -369,7 +439,7 @@ export class ShareKitElement extends BaseElement {
 		polyfillLightDismiss(parts.dialog, signal);
 		this.append(parts.dialog);
 		this.#parts = parts;
-		this.#destination = main[0] ?? shareDestinationAny;
+		this.#destination = main[0];
 		this.#syncDestination();
 
 		return parts;
@@ -400,11 +470,11 @@ export class ShareKitElement extends BaseElement {
 	}
 
 	// An edited caption keeps the reader's words but swaps in the new destination's tagged link
-	#selectDestination(id: ShareKitDestinationId) {
+	#selectDestination(destination: ShareKitDestination<string>) {
 		const previousUrl = this.#getUrl();
 		const caption = this.#parts?.caption;
 
-		this.#destination = id;
+		this.#destination = destination;
 
 		if (caption && this.#isCaptionEdited) {
 			const url = this.#getUrl();
@@ -445,11 +515,12 @@ export class ShareKitElement extends BaseElement {
 
 	#syncCaption() {
 		const parts = this.#parts;
+		const destination = this.#destination;
 
-		if (!parts) return;
+		if (!parts || !destination) return;
 
 		const { isOver, message } = syncCaptionView({
-			destination: this.#destination,
+			destination,
 			parts,
 			primaryAction: this.#getPrimaryAction(),
 			strings: this.#strings,
@@ -463,12 +534,13 @@ export class ShareKitElement extends BaseElement {
 	#syncDestination() {
 		const parts = this.#parts;
 		const payload = this.#payload;
+		const destination = this.#destination;
 
-		if (!parts || !payload) return;
+		if (!parts || !payload || !destination) return;
 
 		syncDestinationView({
 			assets: this.#getAssets(),
-			destination: this.#destination,
+			destination,
 			parts,
 			strings: this.#strings,
 			suggested: this.#getSuggestedAsset(),
@@ -477,7 +549,7 @@ export class ShareKitElement extends BaseElement {
 		if (!this.#isCaptionEdited) {
 			parts.caption.value = fitCaption(
 				{ description: payload.description, title: payload.title, url: this.#getUrl() },
-				this.#destination,
+				destination,
 				payload.locale,
 			).text;
 		}
@@ -487,7 +559,9 @@ export class ShareKitElement extends BaseElement {
 	}
 
 	#track(action: ShareKitAction, tile?: HTMLElement) {
-		const detail: ShareKitActionDetail = { action, destination: this.#destination };
+		if (!this.#destination) return;
+
+		const detail: ShareKitActionDetail = { action, destination: this.#destination.id };
 
 		if (tile?.dataset.shareKitAsset) detail.asset = tile.dataset.shareKitAsset;
 

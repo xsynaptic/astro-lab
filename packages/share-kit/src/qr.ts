@@ -2,17 +2,15 @@ import type { ShareCapability } from './actions.js';
 import type { ShareKitStrings } from './strings.js';
 import type { ShareKitPayload } from './types.js';
 
-import { createElement, createIcon, polyfillLightDismiss } from './dom.js';
+import { createElement, createIconSlot, polyfillLightDismiss } from './dom.js';
 
 interface ShareQrInput {
 	closeIcon: string | undefined;
 	id: string;
 	signal: AbortSignal;
-	strings: Pick<ShareKitStrings, 'close' | 'qrAlt' | 'qrTitle'>;
+	strings: Pick<ShareKitStrings<string>, 'close' | 'qrAlt' | 'qrTitle'>;
 	url: string;
 }
-
-const iconSize = 24;
 
 const qrSize = 200;
 
@@ -55,7 +53,7 @@ class ShareQrDialog {
 							title: strings.close,
 							type: 'submit',
 						},
-						[closeIcon ? createIcon(closeIcon, iconSize) : '×'],
+						[createIconSlot('close', closeIcon, '×')],
 					),
 				]),
 				this.#image,
@@ -74,7 +72,7 @@ class ShareQrDialog {
 
 interface ShareQrOptions extends Omit<ShareQrInput, 'url'> {
 	capabilities: ReadonlySet<ShareCapability>;
-	payload: ShareKitPayload;
+	payload: ShareKitPayload<string>;
 }
 
 function getQrUrl(url: string, openHash: string | undefined) {
@@ -89,7 +87,7 @@ function getQrUrl(url: string, openHash: string | undefined) {
 
 // A phone is already where the code would lead, so it gets none
 export function createShareQr({ capabilities, payload, ...input }: ShareQrOptions) {
-	if (capabilities.has('handheld')) return;
+	if (capabilities.has('mobile')) return;
 
 	return new ShareQrDialog({ ...input, url: getQrUrl(payload.url, payload.settings.openHash) });
 }

@@ -1,36 +1,32 @@
-import type { ShareKitDestinationId } from './destinations.js';
-import type { ShareKitStringKey } from './strings.js';
+import type { ShareKitImageFormat } from './formats.js';
+import type { ShareKitStrings } from './strings.js';
 
-export type ShareKitAssetRole = 'landscape' | 'photo' | 'portrait' | 'story';
-
-export interface ShareKitAsset {
+export interface ShareKitAsset extends ShareKitImageFormat {
 	alt: string;
 	filename: string;
-	height: number;
+	isSuggestable?: boolean;
 	label: string;
 	previewSrc: string;
-	role: ShareKitAssetRole;
 	src: string;
 	type: string;
-	width: number;
 }
 
 export type ShareKitClassRole = 'action' | 'destination' | 'heading' | 'input' | 'primary';
 
-export interface ShareKitSettings {
+export interface ShareKitSettings<Id extends string> {
 	classNames?: Partial<Record<ShareKitClassRole, string>>;
-	destinations: ReadonlyArray<ShareKitDestinationId>;
-	destinationsMore?: ReadonlyArray<ShareKitDestinationId>;
+	destinations: ReadonlyArray<Id>;
+	destinationsMore?: ReadonlyArray<Id>;
 	openHash?: string;
 	utmMedium?: string;
 }
 
-export interface ShareKitPayload {
+export interface ShareKitPayload<Id extends string> {
 	assets: ReadonlyArray<ShareKitAsset>;
 	description?: string;
 	locale: string;
-	settings: ShareKitSettings;
-	strings?: Partial<Record<ShareKitStringKey, string>>;
+	settings: ShareKitSettings<Id>;
+	strings?: Partial<ShareKitStrings<Id>>;
 	title: string;
 	url: string;
 }
@@ -50,10 +46,11 @@ export type ShareKitAction =
 	| 'share-link'
 	| 'share-text';
 
+// The global event map can't take the host's id type, so the destination is any string
 export interface ShareKitActionDetail {
 	action: ShareKitAction;
 	asset?: string;
-	destination: ShareKitDestinationId;
+	destination: string;
 }
 
 declare global {

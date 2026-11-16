@@ -1,4 +1,4 @@
-import type { BrowserContext, Page } from '@playwright/test';
+import type { BrowserContext, Locator, Page } from '@playwright/test';
 
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -124,6 +124,93 @@ test(
 		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(caption);
 	},
 );
+
+async function selectMore(dialog: Locator, name: string) {
+	await dialog.getByRole('button', { name: 'More' }).click();
+	await dialog.getByRole('radio', { name }).click();
+}
+
+test('a host-defined destination opens its desktop composer', async ({ context, page }) => {
+	await context.route('https://social-plugins.line.me/**', (route) =>
+		route.fulfill({ body: 'composer' }),
+	);
+
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await selectMore(dialog, 'LINE');
+
+	const primary = dialog.locator('.share-kit-primary');
+
+	await expect(primary).toHaveText('Open LINE');
+
+	const [popup] = await Promise.all([page.waitForEvent('popup'), primary.click()]);
+	const composer = new URL(popup.url());
+
+	expect(composer.origin + composer.pathname).toBe('https://social-plugins.line.me/lineit/share');
+	expect(composer.searchParams.get('url')).toContain('utm_source=line');
+	await expect(page.locator('[data-event-log]')).toContainText('"destination":"line"');
+});
+
+test('a host-defined destination opens its mobile composer on a phone', async ({
+	context,
+	page,
+}) => {
+	await context.route('https://line.me/**', (route) => route.fulfill({ body: 'composer' }));
+
+	const dialog = await openSpecimen(page, 'phone');
+
+	await selectMore(dialog, 'LINE');
+
+	const [popup] = await Promise.all([
+		page.waitForEvent('popup'),
+		dialog.locator('.share-kit-primary').click(),
+	]);
+	const composer = new URL(popup.url());
+
+	expect(composer.origin + composer.pathname).toBe('https://line.me/R/share');
+	expect(composer.searchParams.get('text')).toContain("The Lighthouse Keeper's Cat");
+});
+
+test('a mailto: composer hands off without opening a tab', async ({ context, page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+	let popups = 0;
+
+	context.on('page', () => {
+		popups += 1;
+	});
+	await selectMore(dialog, 'Email');
+	await dialog.locator('.share-kit-primary').click();
+
+	await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
+	await expect(page.locator('[data-event-log]')).toContainText('"destination":"email"');
+	expect(popups).toBe(0);
+	await expect(dialog).toBeVisible();
+});
+
+test('icons from a slow loader patch into the open dialog without moving it', async ({ page }) => {
+	const { promise: released, resolve: release } = Promise.withResolvers<undefined>();
+
+	// The dialog's rise animation would move it between the two measurements
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await page.route('**/src/lib/icons.ts*', async (route) => {
+		await released;
+		await route.continue();
+	});
+
+	const dialog = await openSpecimen(page, 'desktop');
+	const bluesky = dialog.getByRole('radio', { name: 'Bluesky' });
+
+	await expect(bluesky.locator('.share-kit-icon')).toBeAttached();
+	await expect(bluesky.locator('svg')).toHaveCount(0);
+
+	const before = await Promise.all([dialog.boundingBox(), bluesky.boundingBox()]);
+
+	release(undefined);
+	await expect(bluesky.locator('svg')).toBeVisible();
+	await expect(dialog.getByRole('button', { name: 'Close' }).locator('svg')).toBeVisible();
+
+	expect(await Promise.all([dialog.boundingBox(), bluesky.boundingBox()])).toEqual(before);
+});
 
 test('copying the caption puts it on the clipboard', async ({ browserName, context, page }) => {
 	await grantClipboard(context, browserName);
@@ -256,7 +343,8 @@ test('More reveals the remaining destinations, and arrow keys reach them', async
 	await expect(mastodon).toHaveAttribute('aria-checked', 'true');
 });
 
-test('a missing image hides its tile, and the next image is suggested instead', async ({
+// The 2:3 pin card is the nearest to Bluesky's 4:5 once the portrait card is gone
+test('a missing image hides its tile, and the nearest card is suggested instead', async ({
 	page,
 }) => {
 	const dialog = await openSpecimen(page, 'failed-preview');
@@ -264,7 +352,7 @@ test('a missing image hides its tile, and the next image is suggested instead', 
 	await dialog.getByRole('radio', { name: 'Bluesky' }).click();
 
 	await expect(dialog.locator('[data-share-kit-asset="portrait"]')).toBeHidden();
-	await expect(dialog.locator('[data-share-kit-asset="landscape"] .share-kit-badge')).toBeVisible();
+	await expect(dialog.locator('[data-share-kit-asset="pin"] .share-kit-badge')).toBeVisible();
 });
 
 test('a phone gets no QR code and hands image posts to the share sheet', async ({ page }) => {

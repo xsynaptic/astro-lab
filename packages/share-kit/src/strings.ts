@@ -9,29 +9,9 @@ export const shareKitStringDefaults = {
 	close: 'Close',
 	copied: 'Copied',
 	copyManual: "Couldn't copy. The caption is selected, so you can copy it yourself.",
-	'destination.any': 'Anywhere',
-	'destination.bluesky': 'Bluesky',
-	'destination.facebook': 'Facebook',
-	'destination.instagram': 'Instagram',
-	'destination.instagram-story': 'Story',
-	'destination.linkedin': 'LinkedIn',
-	'destination.mastodon': 'Mastodon',
-	'destination.messages': 'Messages',
-	'destination.pinterest': 'Pinterest',
-	'destination.reddit': 'Reddit',
-	'destination.threads': 'Threads',
-	'destination.x': 'X',
 	destinationsMore: 'More',
 	destinationsTitle: 'Post to',
 	error: 'Something went wrong. Try saving instead.',
-	'hint.facebook':
-		'Facebook only takes the link. Your caption is copied, so paste it into your post.',
-	'hint.instagram':
-		"Links in Instagram captions aren't clickable. Point people to the link in your bio.",
-	'hint.instagram-story': 'Add the link to your Story with a link sticker.',
-	'hint.linkedin':
-		'LinkedIn only takes the link. Your caption is copied, so paste it into your post.',
-	'hint.reddit': 'Reddit takes a title and the link.',
 	imagesTitle: 'Images',
 	linkCopy: 'Copy link',
 	linkTitle: 'Link',
@@ -52,10 +32,60 @@ export const shareKitStringDefaults = {
 
 export type ShareKitStringKey = keyof typeof shareKitStringDefaults;
 
-export type ShareKitStrings = Record<ShareKitStringKey, string>;
+type ShareKitDestinationStringKey<Id extends string> = `destination.${Id}` | `hint.${Id}`;
 
-export function isShareStringKey(key: string): key is ShareKitStringKey {
+export type ShareKitStrings<Id extends string> = Partial<
+	Record<ShareKitDestinationStringKey<Id>, string>
+> &
+	Record<ShareKitStringKey, string>;
+
+const destinationStringPattern = /^(?:destination|hint)\.(.+)$/u;
+
+function isShareStringKey(key: string): key is ShareKitStringKey {
 	return Object.hasOwn(shareKitStringDefaults, key);
+}
+
+function isDestinationStringKey(
+	key: string,
+	ids: ReadonlySet<string>,
+): key is ShareKitDestinationStringKey<string> {
+	const id = destinationStringPattern.exec(key)?.[1];
+
+	return id !== undefined && ids.has(id);
+}
+
+export function getShareStrings(
+	overrides: Partial<Record<string, unknown>>,
+	ids: ReadonlySet<string>,
+): ShareKitStrings<string> {
+	const strings: ShareKitStrings<string> = { ...shareKitStringDefaults };
+
+	for (const [key, value] of Object.entries(overrides)) {
+		if (typeof value !== 'string') continue;
+		if (isShareStringKey(key) || isDestinationStringKey(key, ids)) strings[key] = value;
+	}
+
+	return strings;
+}
+
+interface LabelledDestination {
+	hint?: string;
+	id: string;
+	label: string;
+}
+
+export function getDestinationLabel(
+	strings: ShareKitStrings<string>,
+	{ id, label }: LabelledDestination,
+) {
+	return strings[`destination.${id}`] ?? label;
+}
+
+export function getDestinationHint(
+	strings: ShareKitStrings<string>,
+	{ hint, id }: LabelledDestination,
+) {
+	return strings[`hint.${id}`] ?? hint;
 }
 
 export function formatShareString(template: string, values: Record<string, string>) {

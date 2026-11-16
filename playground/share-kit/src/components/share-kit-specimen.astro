@@ -3,13 +3,15 @@ import type { ShareKitPayload } from '@xsynaptic/share-kit';
 
 import { serializeShareKitPayload } from '@xsynaptic/share-kit';
 
+import type { Destination } from '../lib/destinations.js';
+
 interface Props {
 	can?: string | undefined;
 	class?: string | undefined;
 	id: string;
 	label: string;
 	note: string;
-	payload: ShareKitPayload;
+	payload: ShareKitPayload<Destination>;
 }
 
 const { can, class: className, id, label, note, payload } = Astro.props;

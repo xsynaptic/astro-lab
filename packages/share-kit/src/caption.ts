@@ -1,7 +1,8 @@
-import type { ShareKitDestinationId } from './destinations.js';
+import type { ShareKitDestination } from './destinations.js';
 
-import { countText, getGraphemes } from './count.js';
-import { getShareDestination } from './destinations.js';
+import { getGraphemes } from './count.js';
+
+type CaptionDestination = Pick<ShareKitDestination<string>, 'count' | 'limit' | 'shape'>;
 
 export interface ShareCaptionFields {
 	description?: string | undefined;
@@ -126,23 +127,18 @@ function fitParts(input: FitInput) {
 	return canFit(bare) ? bare : join([fitTitle(input), link]);
 }
 
-export function countCaption(text: string, id: ShareKitDestinationId) {
-	return countText(text, getShareDestination(id));
-}
-
 // The link is kept whole, then the title; the description takes what is left, cut at a sentence end or failing that a word
 // A link too long to leave room for one grapheme of title comes back over the limit; nothing sensible fits
 export function fitCaption(
 	{ description, title, url }: ShareCaptionFields,
-	id: ShareKitDestinationId,
+	{ count, limit, shape }: CaptionDestination,
 	locale = 'en',
 ): ShareCaption {
-	const { limit, shape } = getShareDestination(id);
 	const link = shape === 'full' ? url : undefined;
 	const body = shape === 'title' ? undefined : description?.trim() || undefined;
 	const whole = shape === 'url' ? url : join([title, body, link]);
-	const canFit = (text: string) => limit === undefined || countCaption(text, id) <= limit;
+	const canFit = (text: string) => limit === undefined || count(text) <= limit;
 	const text = canFit(whole) ? whole : fitParts({ body, canFit, link, locale, title });
 
-	return { count: countCaption(text, id), isTruncated: text !== whole, limit, text };
+	return { count: count(text), isTruncated: text !== whole, limit, text };
 }
