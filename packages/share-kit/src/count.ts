@@ -68,12 +68,19 @@ function isLatinCombiningMark(codePoint: number) {
 	return latinCombiningMarkRanges.some(([start, end]) => codePoint >= start && codePoint <= end);
 }
 
-// Mirrors stringz, which Mastodon's web composer counts with: one per code point, except Latin combining marks; Thai marks count apart
+// Mirrors stringz, Mastodon's web composer counter: an emoji sequence is one, Latin combining marks are free, Thai marks count apart
 function getStringzLength(text: string) {
 	let total = 0;
 
-	for (const character of text) {
-		if (!isLatinCombiningMark(character.codePointAt(0) ?? 0)) total += 1;
+	for (const grapheme of getGraphemes(text)) {
+		if (emojiPattern?.test(grapheme)) {
+			total += 1;
+			continue;
+		}
+
+		for (const character of grapheme) {
+			if (!isLatinCombiningMark(character.codePointAt(0) ?? 0)) total += 1;
+		}
 	}
 
 	return total;

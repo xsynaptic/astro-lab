@@ -1,5 +1,11 @@
 # @xsynaptic/share-kit
 
+## 0.2.1
+
+### Patch Changes
+
+- Mastodon captions count an emoji sequence as one character, as Mastodon's composer does
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,6 +1,21 @@
-import type { Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+// Firefox lets a page read what it wrote and knows neither name; WebKit knows only the read one
+const clipboardPermissions = {
+	chromium: ['clipboard-read', 'clipboard-write'],
+	firefox: [],
+	webkit: ['clipboard-read'],
+} as const;
+
+async function grantClipboard(
+	context: BrowserContext,
+	browserName: keyof typeof clipboardPermissions,
+) {
+	await context.grantPermissions([...clipboardPermissions[browserName]]);
+}
 
 async function openSpecimen(page: Page, id: string) {
 	await page.goto('/');
@@ -77,31 +92,41 @@ test('a caption over the limit is counted and announced', async ({ page }) => {
 	await expect(dialog.getByRole('status')).toContainText('over the limit for Threads');
 });
 
-test("the composer button opens the destination's composer with the caption", async ({
-	context,
-	page,
-}) => {
-	await context.route('https://bsky.app/**', (route) => route.fulfill({ body: 'composer' }));
+// Firefox spends the click's activation on the new tab, so only a write started before it lands
+test(
+	"the composer button opens the destination's composer, with the caption on the clipboard",
+	{
+		tag: '@firefox',
+	},
+	async ({ browserName, context, page }) => {
+		await grantClipboard(context, browserName);
+		await context.route('https://bsky.app/**', (route) => route.fulfill({ body: 'composer' }));
 
-	const dialog = await openSpecimen(page, 'desktop');
+		const dialog = await openSpecimen(page, 'desktop');
 
-	await dialog.getByRole('radio', { name: 'Bluesky' }).click();
+		await dialog.getByRole('radio', { name: 'Bluesky' }).click();
 
-	const primary = dialog.locator('.share-kit-primary');
+		const primary = dialog.locator('.share-kit-primary');
 
-	await expect(primary).toHaveText('Open Bluesky');
+		await expect(primary).toHaveText('Open Bluesky');
 
-	const [popup] = await Promise.all([page.waitForEvent('popup'), primary.click()]);
-	const composer = new URL(popup.url());
+		const [popup] = await Promise.all([page.waitForEvent('popup'), primary.click()]);
+		const composer = new URL(popup.url());
 
-	expect(composer.origin + composer.pathname).toBe('https://bsky.app/intent/compose');
-	expect(composer.searchParams.get('text')).toContain("The Lighthouse Keeper's Cat");
-	expect(composer.searchParams.get('text')).toContain('utm_source=bluesky');
-	await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
-});
+		expect(composer.origin + composer.pathname).toBe('https://bsky.app/intent/compose');
+		expect(composer.searchParams.get('text')).toContain("The Lighthouse Keeper's Cat");
+		expect(composer.searchParams.get('text')).toContain('utm_source=bluesky');
+		await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
+		await expect(dialog.getByRole('status')).toHaveText('Copied');
 
-test('copying the caption puts it on the clipboard', async ({ context, page }) => {
-	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		const caption = await dialog.getByRole('textbox', { name: 'Caption' }).inputValue();
+
+		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(caption);
+	},
+);
+
+test('copying the caption puts it on the clipboard', async ({ browserName, context, page }) => {
+	await grantClipboard(context, browserName);
 
 	const dialog = await openSpecimen(page, 'desktop');
 	const primary = dialog.locator('.share-kit-primary');
@@ -117,19 +142,86 @@ test('copying the caption puts it on the clipboard', async ({ context, page }) =
 	expect(clipboard).toContain('https://example.com/lighthouse-keepers-cat/');
 });
 
-test('the QR code dialog opens over the share dialog', async ({ page }) => {
-	const dialog = await openSpecimen(page, 'desktop');
+test(
+	'copying an image puts a PNG of it on the clipboard',
+	{
+		tag: ['@firefox', '@webkit'],
+	},
+	async ({ browserName, context, page }) => {
+		await grantClipboard(context, browserName);
 
-	await dialog.getByRole('button', { name: 'Continue on your phone' }).click();
+		// No `data-can`, so the copy button is there only if this engine's clipboard takes PNG
+		const dialog = await openSpecimen(page, 'this-device');
+		const tile = dialog.locator('[data-share-kit-asset="landscape"]');
+		const preview = await tile.getByRole('img').evaluate((image) => ({
+			height: Number(image.getAttribute('height')),
+			width: Number(image.getAttribute('width')),
+		}));
 
-	const qrDialog = page.locator('#desktop .share-kit-qr-dialog');
+		await tile.getByRole('button', { exact: true, name: 'Copy' }).click();
+		await expect(dialog.getByRole('status')).toHaveText('Copied');
 
-	await expect(qrDialog).toBeVisible();
-	await expect(qrDialog.getByRole('img', { name: 'QR code for this page' })).toHaveAttribute(
-		'src',
-		/^data:image\/svg\+xml/u,
-	);
-});
+		const copied = await page.evaluate(async () => {
+			const [item] = await navigator.clipboard.read();
+
+			if (!item) return;
+
+			const bitmap = await createImageBitmap(await item.getType('image/png'));
+
+			return { height: bitmap.height, types: item.types, width: bitmap.width };
+		});
+
+		expect(copied).toEqual({ ...preview, types: ['image/png'] });
+	},
+);
+
+test(
+	'saving an image downloads the file itself',
+	{
+		tag: ['@firefox', '@webkit'],
+	},
+	async ({ page }) => {
+		const dialog = await openSpecimen(page, 'this-device');
+		const tile = dialog.locator('[data-share-kit-asset="landscape"]');
+		const source = await tile.getByRole('img').getAttribute('src');
+		const [download] = await Promise.all([
+			page.waitForEvent('download'),
+			tile.getByRole('button', { exact: true, name: 'Save' }).click(),
+		]);
+
+		expect(download.suggestedFilename()).toBe('lighthouse-cat-landscape.jpg');
+		expect(source).not.toBeNull();
+
+		const served = await page.request.get(source ?? '');
+
+		expect(await readFile(await download.path())).toEqual(await served.body());
+	},
+);
+
+test(
+	'the QR code dialog opens over the share dialog, and Escape closes it alone',
+	{
+		tag: ['@firefox', '@webkit'],
+	},
+	async ({ page }) => {
+		const dialog = await openSpecimen(page, 'desktop');
+
+		await dialog.getByRole('button', { name: 'Continue on your phone' }).click();
+
+		const qrDialog = page.locator('#desktop .share-kit-qr-dialog');
+		const qrImage = qrDialog.getByRole('img', { name: 'QR code for this page' });
+
+		await expect(qrDialog).toBeVisible();
+		await expect(qrImage).toHaveAttribute('src', /^data:image\/svg\+xml/u);
+		await expect
+			.poll(() => qrImage.evaluate((image: HTMLImageElement) => image.naturalWidth))
+			.toBeGreaterThan(0);
+
+		await page.keyboard.press('Escape');
+		await expect(qrDialog).toBeHidden();
+		await expect(dialog).toBeVisible();
+	},
+);
 
 test("an edited caption keeps the reader's words and swaps in the new destination's link", async ({
 	page,
@@ -198,4 +290,80 @@ test('an element moved in the page starts over with a fresh caption', async ({ p
 	await expect(dialog.getByRole('textbox', { name: 'Caption' })).toHaveValue(
 		/^The Lighthouse Keeper's Cat/u,
 	);
+});
+
+// Stands in for Safari 26.2: without the property the polyfill runs; without the attribute the engine can't close the dialog itself
+async function withoutNativeLightDismiss(page: Page, { isPolyfilled }: { isPolyfilled: boolean }) {
+	await page.addInitScript((shouldPolyfill) => {
+		if (shouldPolyfill) Reflect.deleteProperty(HTMLDialogElement.prototype, 'closedBy');
+
+		Element.prototype.setAttribute = new Proxy(Element.prototype.setAttribute, {
+			apply(setAttribute, element: Element, [name, value]: [string, string]) {
+				if (name === 'closedby' && element instanceof HTMLDialogElement) return;
+
+				Reflect.apply(setAttribute, element, [name, value]);
+			},
+		});
+	}, isPolyfilled);
+}
+
+async function dragBetween(
+	page: Page,
+	from: { x: number; y: number },
+	to: { x: number; y: number },
+) {
+	await page.mouse.move(from.x, from.y);
+	await page.mouse.down();
+	await page.mouse.move(to.x, to.y);
+	await page.mouse.up();
+}
+
+test.describe('the light dismiss polyfill', { tag: '@webkit' }, () => {
+	const backdrop = { x: 5, y: 5 };
+
+	test('a backdrop click leaves the dialog open without it, so the polyfill is what closes it', async ({
+		page,
+	}) => {
+		await withoutNativeLightDismiss(page, { isPolyfilled: false });
+
+		const dialog = await openSpecimen(page, 'desktop');
+
+		await page.mouse.click(backdrop.x, backdrop.y);
+		await expect(dialog).toBeVisible();
+	});
+
+	test('a backdrop click closes the dialog, but a drag across its edge does not', async ({
+		page,
+	}) => {
+		await withoutNativeLightDismiss(page, { isPolyfilled: true });
+
+		const dialog = await openSpecimen(page, 'desktop');
+		const box = await dialog.boundingBox();
+		const inside = { x: (box?.x ?? 0) + 40, y: (box?.y ?? 0) + 40 };
+
+		await dragBetween(page, inside, backdrop);
+		await expect(dialog).toBeVisible();
+		await dragBetween(page, backdrop, inside);
+		await expect(dialog).toBeVisible();
+
+		await page.mouse.click(backdrop.x, backdrop.y);
+		await expect(dialog).toBeHidden();
+	});
+
+	test('a backdrop click closes the QR code dialog alone', async ({ page }) => {
+		await withoutNativeLightDismiss(page, { isPolyfilled: true });
+
+		const dialog = await openSpecimen(page, 'desktop');
+		const qrDialog = page.locator('#desktop .share-kit-qr-dialog');
+
+		await dialog.getByRole('button', { name: 'Continue on your phone' }).click();
+		await expect(qrDialog).toBeVisible();
+
+		await page.mouse.click(backdrop.x, backdrop.y);
+		await expect(qrDialog).toBeHidden();
+		await expect(dialog).toBeVisible();
+
+		await page.mouse.click(backdrop.x, backdrop.y);
+		await expect(dialog).toBeHidden();
+	});
 });

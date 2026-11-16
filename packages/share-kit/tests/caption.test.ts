@@ -11,6 +11,7 @@ import {
 	getShareDestination,
 	shareDestinations,
 } from '../src/destinations.js';
+import { countLikeBluesky, countLikeMastodon } from './reference-counters.js';
 
 const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
@@ -101,6 +102,24 @@ describe('fitCaption', () => {
 		expect(count).toBeGreaterThanOrEqual(parsed.weightedLength);
 	});
 
+	test.prop([fieldsArbitrary])(
+		"Bluesky's composer counts every caption as the dialog does",
+		(fields) => {
+			const { count, text } = fitCaption(fields, 'bluesky');
+
+			expect(count).toBe(countLikeBluesky(text));
+		},
+	);
+
+	test.prop([fieldsArbitrary])(
+		"Mastodon's composer counts every caption as the dialog does",
+		(fields) => {
+			const { count, text } = fitCaption(fields, 'mastodon');
+
+			expect(count).toBe(countLikeMastodon(text));
+		},
+	);
+
 	test.prop([fieldsArbitrary, fc.constantFrom(...destinationIds)])(
 		'keeps the link whole, once, at the end',
 		(fields, id) => {
@@ -180,7 +199,6 @@ describe('fitCaption', () => {
 	});
 });
 
-// Figures from each platform's own source: twitter-text config v3, social-app `toShortUrl`, Mastodon's web composer (stringz)
 describe('countCaption', () => {
 	test.each([
 		['plain Latin', 'lighthouse', 10],
@@ -206,14 +224,17 @@ describe('countCaption', () => {
 		['an emoji sequence is one grapheme', '👨‍👩‍👧 燈塔', 4],
 	])('Bluesky: %s', (_label, text, expected) => {
 		expect(countCaption(text, 'bluesky')).toBe(expected);
+		expect(countLikeBluesky(text)).toBe(expected);
 	});
 
 	test.each([
 		['any link is 23', 'https://example.com/lighthouse-keepers-cat/', 23],
-		['Thai marks count apart, as the web composer counts them', 'ที่ 👍🏽', 6],
+		['Thai marks count apart, as the web composer counts them', 'ที่', 3],
 		['Latin combining marks fold into their letter', 'ệ'.normalize('NFD'), 1],
+		['an emoji sequence is one', '👨‍👩‍👧‍👦 👍🏽 🇹🇼 ❤️', 7],
 	])('Mastodon: %s', (_label, text, expected) => {
 		expect(countCaption(text, 'mastodon')).toBe(expected);
+		expect(countLikeMastodon(text)).toBe(expected);
 	});
 });
 
