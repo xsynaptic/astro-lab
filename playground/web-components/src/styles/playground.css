@@ -1,0 +1,76 @@
+:root {
+	--page-text: light-dark(#27272a, #e4e4e7);
+	--page-surface: light-dark(#fafafa, #18181b);
+	--page-accent: light-dark(#0369a1, #38bdf8);
+
+	color-scheme: light dark;
+}
+
+body {
+	max-width: 40rem;
+	padding: 0 1rem;
+	margin: 3rem auto;
+	font-family: system-ui, sans-serif;
+	line-height: 1.5;
+	color: var(--page-text);
+	background-color: var(--page-surface);
+}
+
+nav {
+	display: flex;
+	gap: 1rem;
+}
+
+.spacer {
+	block-size: 150vh;
+}
+
+.progress-bar {
+	position: fixed;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	inline-size: 100%;
+	block-size: 3px;
+	pointer-events: none;
+	background-color: var(--page-accent);
+	opacity: 0;
+	transform: scaleX(var(--progress, 0));
+	transform-origin: 0;
+	transition:
+		opacity 150ms ease-in 300ms,
+		transform 300ms ease-out;
+}
+
+.progress-bar[data-active] {
+	opacity: 1;
+	transition-delay: 0s;
+}
+
+top-button {
+	position: fixed;
+	inset-inline-end: 1rem;
+	inset-block-end: 1rem;
+	translate: 0 150%;
+	transition: translate 200ms ease-out;
+}
+
+top-button:not([inert]) {
+	translate: 0 0;
+}
+
+top-button button {
+	padding: 0.75rem 1rem;
+	font-size: 1.25rem;
+	cursor: pointer;
+	border-radius: 999px;
+}
+
+@media (width >= 640px) {
+	top-button {
+		display: none;
+	}
+}
+
+path-suggestions:not([data-state='list']) p {
+	display: none;
+}

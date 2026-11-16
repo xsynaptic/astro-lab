@@ -1,0 +1,6 @@
+[
+	{ "title": "Article", "url": "/" },
+	{ "title": "Second page", "url": "/second/" },
+	{ "title": "Tide pools", "url": "/tide-pools/" },
+	{ "title": "Tide tables", "url": "/tide-tables/" }
+]

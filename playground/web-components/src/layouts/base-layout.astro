@@ -1,0 +1,48 @@
+---
+import { ClientRouter } from 'astro:transitions';
+
+import '../styles/playground.css';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>{title}</title>
+		<ClientRouter />
+	</head>
+	<body>
+		<progress-loading
+			aria-hidden="true"
+			class="progress-bar"
+			transition:persist="progress-loading"
+		></progress-loading>
+		<nav>
+			<a href="/">Article</a>
+			<a href="/second/">Second page</a>
+			<a href="#main-content">Skip to content</a>
+		</nav>
+		<main id="main-content">
+			<slot />
+		</main>
+		<top-button inert={true} target="#main-content">
+			<button aria-label="Back to top" type="button">
+				↑
+			</button>
+		</top-button>
+		<script>
+			import { defineProgressLoading } from '@xsynaptic/web-components/progress-loading';
+			import { defineTopButton } from '@xsynaptic/web-components/top-button';
+
+			defineProgressLoading();
+			defineTopButton();
+		</script>
+	</body>
+</html>

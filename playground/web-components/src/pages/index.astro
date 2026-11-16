@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../layouts/base-layout.astro';
+
+const paragraphs = Array.from(
+	{ length: 80 },
+	(_value, index) =>
+		`Paragraph ${String(index + 1)}. The keeper climbs the tower each evening, trims the wick, and logs the weather. On foggy nights the cat follows, settling on the warm brass rail until the beam has made its first full turn.`,
+);
+---
+
+<BaseLayout title="Article">
+	<progress-reading aria-hidden="true" class="progress-bar"></progress-reading>
+	<article data-reading-frame>
+		<h1>The lighthouse keeper's log</h1>
+		{paragraphs.map((paragraph) => (
+			<p>{paragraph}</p>
+		))}
+	</article>
+	<footer>
+		<p>End of the article.</p>
+		<div class="spacer"></div>
+	</footer>
+	<script>
+		import { defineProgressReading } from '@xsynaptic/web-components/progress-reading';
+
+		defineProgressReading();
+	</script>
+</BaseLayout>

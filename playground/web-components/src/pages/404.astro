@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../layouts/base-layout.astro';
+---
+
+<BaseLayout title="Not found">
+	<h1>Page not found</h1>
+	<path-suggestions
+		aria-live="polite"
+		link-data-astro-history="replace"
+		src="/content-manifest.json"
+	>
+		<p>Did you mean one of these?</p>
+	</path-suggestions>
+	<script>
+		import { definePathSuggestions } from '@xsynaptic/web-components/path-suggestions';
+
+		definePathSuggestions();
+	</script>
+</BaseLayout>

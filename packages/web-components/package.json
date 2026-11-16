@@ -1,0 +1,58 @@
+{
+	"name": "@xsynaptic/web-components",
+	"version": "0.0.0",
+	"description": "Small light-DOM custom elements for Astro sites: path suggestions, a back-to-top button, and loading and reading progress bars",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/web-components"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/web-components#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"404",
+		"custom-element",
+		"did-you-mean",
+		"progress-bar",
+		"scroll-to-top",
+		"web-components"
+	],
+	"exports": {
+		"./path-suggestions": {
+			"types": "./dist/path-suggestions.d.mts",
+			"import": "./dist/path-suggestions.mjs"
+		},
+		"./progress-loading": {
+			"types": "./dist/progress-loading.d.mts",
+			"import": "./dist/progress-loading.mjs"
+		},
+		"./progress-reading": {
+			"types": "./dist/progress-reading.d.mts",
+			"import": "./dist/progress-reading.mjs"
+		},
+		"./top-button": {
+			"types": "./dist/top-button.d.mts",
+			"import": "./dist/top-button.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"test:e2e": "playwright test"
+	},
+	"dependencies": {
+		"fastest-levenshtein": "^1.0.16"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.65.0"
+	}
+}
