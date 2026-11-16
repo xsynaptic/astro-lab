@@ -16,13 +16,8 @@ A did-you-mean for 404 pages. It scores the requested path against a JSON manife
 </path-suggestions>
 
 <script>
-	import { navigate } from 'astro:transitions/client';
 	import { definePathSuggestions } from '@xsynaptic/web-components/path-suggestions';
 
-	document.addEventListener('path-suggestions:redirect', (event) => {
-		event.preventDefault();
-		void navigate(event.detail.url, { history: 'replace' });
-	});
 	definePathSuggestions();
 </script>
 ```
@@ -36,7 +31,7 @@ A did-you-mean for 404 pages. It scores the requested path against a JSON manife
 | `min-length`         | `3`     | Shorter paths are not scored                |
 | `link-*`             |         | Copied to each link without the prefix      |
 
-The element appends a `<ul>` and sets `data-state` to `loading`, then `list`, `empty` or `redirect`. `path-suggestions:redirect` is cancelable and fires before `location.replace`; `path-suggestions:done` fires once settled.
+The element appends a `<ul>` and sets `data-state` to `loading`, then `list`, `empty` or `redirect`. `path-suggestions:redirect` is cancelable and fires before `location.replace`, so a `<ClientRouter />` site can cancel it and call `navigate(event.detail.url, { history: 'replace' })` instead. `path-suggestions:done` fires once settled.
 
 The scorer, `getPathSuggestions()`, is exported from the same subpath and needs no DOM.
 
