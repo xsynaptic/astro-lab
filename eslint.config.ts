@@ -10,11 +10,11 @@ export default getConfig([
 	getBrowserConfig(['packages/share-kit/src/**/*.ts', 'packages/web-components/src/**/*.ts']),
 	getBrowserConfig(['packages/astro-pagefind/src/search-{session,toggle}.ts']),
 	{
-		files: ['**/*.config.{ts,mts,mjs,js}', '**/test/**', '**/tests/**', '**/__tests__/**'],
+		files: ['**/*.config.{ts,mts,mjs,js}', '**/test/**', '**/verify/**', '**/__tests__/**'],
 		...tseslint.configs.disableTypeChecked,
 	},
 	{
-		files: ['packages/*/tests/**/*.e2e.ts'],
+		files: ['packages/*/verify/e2e/**/*.spec.ts'],
 		languageOptions: {
 			globals: { ...globals.node, ...globals.browser },
 		},

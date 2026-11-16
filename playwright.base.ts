@@ -40,8 +40,7 @@ export function definePlaygroundConfig(
 		{
 			projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 			retries: 0,
-			testDir: './tests',
-			testMatch: '**/*.e2e.ts',
+			testDir: './verify/e2e',
 			use: { baseURL, trace: 'retain-on-failure' },
 			webServer: {
 				...webServer,

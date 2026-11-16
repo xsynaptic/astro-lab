@@ -3,10 +3,10 @@
 	"ignoreWorkspaces": ["playground/*"],
 	"workspaces": {
 		"packages/astro-pagefind": {
-			"ignore": ["tests/fixtures/**"]
+			"ignore": ["verify/fixtures/**"]
 		},
 		"packages/astro-scripts": {
-			"ignore": ["tests/fixtures/**"]
+			"ignore": ["verify/fixtures/**"]
 		},
 		"packages/stylelint-config": {
 			"ignoreDependencies": [
