@@ -29,11 +29,11 @@ export function formatDuration(milliseconds: number) {
 
 	if (rounded < 1000) return `${String(rounded)}ms`;
 
-	const seconds = milliseconds / 1000;
+	const tenths = Math.round(milliseconds / 100);
 
-	if (seconds < 60) return `${seconds.toFixed(1)}s`;
+	if (tenths < 600) return `${(tenths / 10).toFixed(1)}s`;
 
-	const totalSeconds = Math.round(seconds);
+	const totalSeconds = Math.round(milliseconds / 1000);
 
 	if (totalSeconds < 3600) {
 		const minutes = Math.floor(totalSeconds / 60);

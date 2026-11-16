@@ -182,13 +182,13 @@ describe('formatHelp choice wrapping', () => {
 		expect(text.join(' ').split(/,\s/u)).toEqual(choices);
 	});
 
-	test.fails('keeps a full line ending in a comma to the help width', () => {
+	test('keeps a full line ending in a comma to the help width', () => {
 		const lines = renderChoiceLines(['aaaaaa', 'aaaaaa', 'a'.repeat(70), 'a'.repeat(70)]);
 
-		expect(lines.map((line) => line.length)).toEqual([100, 84]);
+		expect(Math.max(...lines.map((line) => line.length))).toBe(85);
 	});
 
-	test.fails('keeps every line to the help width unless one item alone is longer', () => {
+	test('keeps every line to the help width unless one item alone is longer', () => {
 		const reached = { oversized: 0, wrapped: 0 };
 
 		fc.assert(

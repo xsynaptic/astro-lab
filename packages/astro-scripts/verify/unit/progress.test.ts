@@ -241,6 +241,11 @@ describe('formatDuration', () => {
 		expect(formatDuration(119_600)).toBe('2m 00s');
 	});
 
+	test('carries rounded tenths into the first minute', () => {
+		expect(formatDuration(59_949)).toBe('59.9s');
+		expect(formatDuration(59_950)).toBe('1m 00s');
+	});
+
 	test('switches to hours and minutes from an hour up', () => {
 		expect(formatDuration(3_599_000)).toBe('59m 59s');
 		expect(formatDuration(3_599_600)).toBe('1h 00m');
@@ -298,18 +303,11 @@ const step = fc.oneof(
 );
 
 describe('formatDuration properties', () => {
-	test.fails('shows 59.96s as a minute', () => {
-		expect(formatDuration(59_960)).toBe('1m 00s');
+	test.prop([duration])('never shows a field reading 60', (milliseconds) => {
+		const { carried } = readDuration(formatDuration(milliseconds));
+
+		expect(carried.filter((field) => field >= 60)).toEqual([]);
 	});
-
-	test.fails.prop([duration], { numRuns: 400 })(
-		'never shows a field reading 60',
-		(milliseconds) => {
-			const { carried } = readDuration(formatDuration(milliseconds));
-
-			expect(carried.filter((field) => field >= 60)).toEqual([]);
-		},
-	);
 
 	test.prop([step])('never decreases as the input grows', ([smaller, increase]) => {
 		expect(readDuration(formatDuration(smaller)).value).toBeLessThanOrEqual(

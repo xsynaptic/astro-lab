@@ -173,7 +173,7 @@ function wrapList(items: ReadonlyArray<string>, width: number) {
 	for (const item of items) {
 		const next = line === '' ? item : `${line}, ${item}`;
 
-		if (line !== '' && next.length > width) {
+		if (line !== '' && `${next},`.length > width) {
 			lines.push(`${line},`);
 			line = item;
 			continue;

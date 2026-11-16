@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.16.2
+
+### Patch Changes
+
+- Durations from 59.95s up to a minute read `1m 00s` rather than `60.0s`, and a wrapped list of positional choices no longer runs one character past the help width
+
 ## 0.16.1
 
 ### Patch Changes
