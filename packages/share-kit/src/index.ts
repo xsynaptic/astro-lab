@@ -6,7 +6,6 @@ export type { ShareKitIconName, ShareKitIcons } from './icons.js';
 export { shareKitInterfaceIcons } from './icons.js';
 export { serializeShareKitPayload } from './payload.js';
 export type { ShareKitStringKey, ShareKitStrings } from './strings.js';
-export { shareKitStringDefaults } from './strings.js';
 export type {
 	ShareKitAction,
 	ShareKitActionDetail,

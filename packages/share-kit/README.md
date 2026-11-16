@@ -50,7 +50,11 @@ const payload: ShareKitPayload = {
 </script>
 ```
 
-Every action in the dialog fires a `share-kit:action` event. Add your listeners before calling `defineShareKit()`. If `settings.openHash` matches the URL hash, the dialog opens straight away and you would miss that first event.
+Every action in the dialog fires a `share-kit:action` event. Listen in the same script as `defineShareKit()`, before or after the call.
+
+If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fragment that no element id on the page uses, or the page also scrolls there.
+
+`strings` in the payload overrides the dialog's wording by key (`ShareKitStringKey`).
 
 The dialog downloads the images in `assets` to save, copy or share them, so serve them from the same origin or with CORS headers.
 

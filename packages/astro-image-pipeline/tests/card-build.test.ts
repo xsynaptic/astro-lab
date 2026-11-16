@@ -94,7 +94,7 @@ describe('prepareCardRender', () => {
 		const prepared = await prepare({ decode });
 
 		expect(prepared).toMatchObject({
-			cards: ['atlas.jpg', 'gone.jpg', 'posts-a.jpg', 'posts-b.jpg', 'posts-c.jpg'],
+			cards: Object.entries(cards).map(([name, card]) => ({ ...card, name })),
 			sources: 3,
 			total: 5,
 		});

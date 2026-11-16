@@ -32,6 +32,7 @@ test('the open hash opens its dialog, and closing clears the hash', async ({ pag
 	const dialog = page.locator('#desktop .share-kit-dialog');
 
 	await expect(dialog).toBeVisible();
+	await expect(page.locator('[data-event-log]')).toContainText('"action":"open"');
 	await page.keyboard.press('Escape');
 	await expect(dialog).toBeHidden();
 	await expect(page).toHaveURL((url) => url.hash === '');

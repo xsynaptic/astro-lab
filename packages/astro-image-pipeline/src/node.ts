@@ -2,6 +2,7 @@ export type {
 	CardRenderOptions,
 	CardRenderRunOptions,
 	CardSource,
+	PreparedCard,
 	PreparedCardRender,
 } from './card-build.js';
 export { prepareCardRender } from './card-build.js';

@@ -171,7 +171,10 @@ export class ShareKitElement extends BaseElement {
 		// The trigger ships disabled so a tap before this runs isn't silently lost
 		this.querySelector('[data-share-kit-trigger]')?.toggleAttribute('disabled', false);
 
-		if (isOpenHash(payload.settings.openHash)) this.#open();
+		// Deferred so a listener added after `defineShareKit()` in the same task still hears `open`
+		queueMicrotask(() => {
+			if (!signal.aborted && isOpenHash(payload.settings.openHash)) this.#open();
+		});
 	}
 
 	disconnectedCallback() {

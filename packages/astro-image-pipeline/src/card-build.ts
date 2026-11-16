@@ -29,8 +29,12 @@ export interface CardRenderOptions<Decoded> extends ImageRenderTarget {
 	templateVersion: ((input: CardInput) => string) | string;
 }
 
+export interface PreparedCard extends Card {
+	name: string;
+}
+
 interface CardGroup {
-	cards: Array<[name: string, input: CardInput]>;
+	cards: Array<PreparedCard>;
 	image?: CardImage;
 }
 
@@ -64,11 +68,12 @@ export function getCardKey({
 function groupByImage(cards: Record<string, Card>) {
 	const groups = new Map<string, CardGroup>();
 
-	for (const [name, { image, input }] of Object.entries(cards)) {
+	for (const [name, card] of Object.entries(cards)) {
+		const { image } = card;
 		const groupKey = image ? JSON.stringify(image) : '';
 		const group = groups.get(groupKey) ?? (image ? { cards: [], image } : { cards: [] });
 
-		group.cards.push([name, input]);
+		group.cards.push({ ...card, name });
 		groups.set(groupKey, group);
 	}
 
@@ -133,11 +138,11 @@ async function createCardJobs<Decoded>({
 			if (state && !state.digest) {
 				const missingCards = missingImages.get(state.source.path) ?? [];
 
-				missingCards.push(...cards.map(([name]) => name));
+				missingCards.push(...cards.map(({ name }) => name));
 				missingImages.set(state.source.path, missingCards);
 			}
 
-			for (const [name, input] of cards) {
+			for (const { input, name } of cards) {
 				jobs.push({
 					key: getCardKey({
 						digest: state?.digest,
@@ -196,7 +201,9 @@ export async function prepareCardRender<Decoded>({
 	}
 
 	return {
-		cards: jobs.map(({ name }) => name).toSorted((first, second) => first.localeCompare(second)),
+		cards: groups
+			.flatMap(({ cards }) => cards)
+			.toSorted((first, second) => first.name.localeCompare(second.name)),
 		directory: cardsPath,
 		missingImages,
 		run,

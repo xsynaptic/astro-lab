@@ -37,11 +37,11 @@ const specimens = getSpecimens();
 
 			const eventLog = document.querySelector('[data-event-log]');
 
+			defineShareKit({ icons: { ...shareKitInterfaceIcons, ...brandIcons } });
+
 			document.addEventListener(shareKitActionEventName, ({ detail }) => {
 				if (eventLog) eventLog.textContent = JSON.stringify(detail);
 			});
-
-			defineShareKit({ icons: { ...shareKitInterfaceIcons, ...brandIcons } });
 		</script>
 	</body>
 </html>
