@@ -1,8 +1,12 @@
 ---
 import Layout from '../layouts/layout.astro';
+
+// Pagefind takes the first image as `image` meta, so the file name matches a search no text on the page does
+const imageSrc = `${import.meta.env.BASE_URL}/periwinkle.svg`;
 ---
 
 <Layout title="Tide pools">
+	<img alt="A snail on the rock shelf" height="64" src={imageSrc} width="64" />
 	<p>
 		At low tide the sea drains off the rock shelf and leaves pools behind. The anemones pull in
 		their tentacles to keep from drying out, then open again when the water comes back over them. On

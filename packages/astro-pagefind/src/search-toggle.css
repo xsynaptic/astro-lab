@@ -1,0 +1,18 @@
+/* Hidden rather than dimmed so the inert button stays out of the tab order until the element upgrades */
+search-toggle:not(:defined) {
+	visibility: hidden;
+}
+
+/* Pagefind's sheet hides it too once loaded; this covers the time before, when it would take a gap in a flex row */
+pagefind-config {
+	display: none;
+}
+
+/* Important so the rules beat the unlayered `all: initial; display: block` in Pagefind's deferred sheet */
+pagefind-modal {
+	display: contents !important;
+}
+
+pagefind-modal:not(:defined) {
+	display: none !important;
+}

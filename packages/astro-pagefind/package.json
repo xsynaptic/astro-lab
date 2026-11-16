@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/astro-pagefind",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Pagefind search for Astro, with a versioned bundle",
 	"type": "module",
 	"license": "MIT",
@@ -19,7 +19,8 @@
 		"astro-integration",
 		"withastro",
 		"pagefind",
-		"search"
+		"search",
+		"web-components"
 	],
 	"engines": {
 		"node": ">=24.0.0"
@@ -34,15 +35,23 @@
 		"./bundle": {
 			"types": "./dist/bundle.d.mts",
 			"import": "./dist/bundle.mjs"
-		}
+		},
+		"./search-toggle": {
+			"types": "./dist/search-toggle.d.mts",
+			"import": "./dist/search-toggle.mjs"
+		},
+		"./search-toggle.css": "./dist/search-toggle.css"
 	},
 	"files": [
 		"dist"
 	],
-	"sideEffects": false,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"scripts": {
 		"build": "tsdown",
-		"dev": "tsdown --watch"
+		"dev": "tsdown --watch",
+		"test:e2e": "playwright test"
 	},
 	"dependencies": {
 		"sirv": "^3.0.2",
@@ -59,6 +68,8 @@
 		}
 	},
 	"devDependencies": {
+		"@pagefind/component-ui": "^1.6.0",
+		"@playwright/test": "^1.65.0",
 		"@types/node": "^24.19.2",
 		"astro": "^7.4.11",
 		"pagefind": "^1.6.0"

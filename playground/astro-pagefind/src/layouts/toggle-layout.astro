@@ -1,0 +1,66 @@
+---
+import { getBundlePath } from '@xsynaptic/astro-pagefind/bundle';
+import { ClientRouter } from 'astro:transitions';
+
+import pagefindCssUrl from '../styles/pagefind.css?url';
+import '../styles/toggle.css';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>{title} · astro-pagefind playground</title>
+		<ClientRouter />
+		<style>
+			body {
+				font-family: system-ui, sans-serif;
+				max-width: 42rem;
+				margin: 4rem auto;
+				padding: 0 1.5rem;
+				line-height: 1.6;
+			}
+
+			header {
+				display: flex;
+				gap: 1rem;
+				align-items: center;
+				justify-content: space-between;
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<nav>
+				<a href={`${base}/toggle/`}>Toggle</a> ·{' '}
+				<a href={`${base}/toggle/lighthouses/`}>Lighthouses</a> ·
+				<a href={`${base}/`}>Inline search</a>
+			</nav>
+			<search-toggle shortcut-description="Search" stylesheet={pagefindCssUrl}>
+				<button aria-expanded="false" aria-haspopup="dialog" aria-label="Search" type="button">
+					Search
+				</button>
+			</search-toggle>
+			<pagefind-config bundle-path={getBundlePath(base)}></pagefind-config>
+			<pagefind-modal reset-on-close={true}></pagefind-modal>
+		</header>
+		<main>
+			<h1>{title}</h1>
+			<slot />
+			<label>
+				Notes <input type="text" />
+			</label>
+		</main>
+		<script>
+			import '../scripts/search-toggle.ts';
+		</script>
+	</body>
+</html>

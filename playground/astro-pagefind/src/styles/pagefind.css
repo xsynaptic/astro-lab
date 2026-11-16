@@ -1,0 +1,7 @@
+/* Stands in for a site's theme, loaded only when the toggle is reached for */
+@import '@pagefind/component-ui/css/pagefind-component-ui.css';
+
+:root {
+	--pf-background: #f4f1ea;
+	--pf-text: #1f2a33;
+}
