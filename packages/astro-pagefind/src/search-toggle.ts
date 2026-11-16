@@ -158,7 +158,6 @@ class SearchToggleElement extends BaseElement implements PagefindModalTrigger {
 		this.buttonEl?.setAttribute('aria-expanded', 'false');
 		this.buttonEl?.focus();
 
-		// WebKit leaves focus on the closed modal's input, which ignores Pagefind's own reset
 		if (this.instance?.getUtilities('modal')[0]?.resetOnClose) this.instance.triggerSearch('');
 	}
 
