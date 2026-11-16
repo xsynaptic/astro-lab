@@ -50,6 +50,30 @@ export function recordRendition(name: string, sourcePath: string) {
 	writeRecord({ kind: 'rendition', name, sourcePath });
 }
 
+// Page code and the integration load separate module instances in one realm, so dev cards hang off `globalThis`
+const devCardsKey = Symbol.for('@xsynaptic/astro-image-pipeline/dev-cards');
+
+function getDevCards(): Map<string, Card> | undefined {
+	const cards: unknown = Reflect.get(globalThis, devCardsKey);
+
+	if (cards instanceof Map) return cards;
+
+	return undefined;
+}
+
+export function openDevCards() {
+	const existing = getDevCards();
+
+	if (existing) return existing;
+
+	const cards = new Map<string, Card>();
+
+	Reflect.set(globalThis, devCardsKey, cards);
+
+	return cards;
+}
+
 export function recordCard(name: string, card: Card) {
+	getDevCards()?.set(name, card);
 	writeRecord({ card, kind: 'card', name });
 }

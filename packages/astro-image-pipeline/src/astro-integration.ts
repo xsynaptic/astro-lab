@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
+import type { CardRenderOptions } from './card-build.js';
 import type { Card } from './card-name.js';
 import type { PlaceholderConfig } from './image-placeholders.js';
 import type { ImageSourceResolver } from './image-sources.js';
@@ -16,7 +17,7 @@ import { createDevImageResolver } from './dev-resolver.js';
 import { imageEncodingSchema, resolveImageEncoding } from './image-encoding.js';
 import { imageFormatTraits, isImageFormat } from './image-formats.js';
 import { imagePlaceholdersVariable, placeholderOptionsSchema } from './image-placeholders.js';
-import { imageRecordsVariable } from './image-recorder.js';
+import { imageRecordsVariable, openDevCards } from './image-recorder.js';
 import { readImageRecords, resetImageRecords } from './image-records.js';
 import { createDirectorySources } from './image-sources.js';
 import {
@@ -35,12 +36,26 @@ export { createDirectorySources } from './image-sources.js';
 
 const sharpDefaultInputPixelLimit = 0x3f_ff * 0x3f_ff;
 
+type CardRenderer = Pick<CardRenderOptions<unknown>, 'decode' | 'render'>;
+
+interface ModuleRunner {
+	import: (url: string) => Promise<unknown>;
+}
+
 const optionsSchema = z.strictObject({
 	baseUrl: z
 		.string()
 		.refine((value) => value.replace(/\/+$/, '') !== '', {
 			error:
 				'imagePipeline needs a baseUrl below the site root; at the root, every request and every root-relative URL would count as an image',
+		})
+		.optional(),
+	cards: z
+		.strictObject({
+			renderer: z.string(),
+			route: z.string().refine((value) => /^\/+[^/]/.test(value), {
+				error: 'cards.route needs a path below the site root, such as /og/',
+			}),
 		})
 		.optional(),
 	encoding: imageEncodingSchema.optional(),
@@ -207,6 +222,91 @@ function createDevImageHandler(
 	};
 }
 
+function isModuleRunner(value: unknown): value is ModuleRunner {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'import' in value &&
+		typeof value.import === 'function'
+	);
+}
+
+function isCardRenderer(value: unknown): value is CardRenderer {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'decode' in value &&
+		typeof value.decode === 'function' &&
+		'render' in value &&
+		typeof value.render === 'function'
+	);
+}
+
+// Imported per request so template edits apply; the runner caches it until the file changes
+async function loadCardRenderer(runner: ModuleRunner, rendererPath: string) {
+	const module = await runner.import(rendererPath);
+	const renderer: unknown =
+		typeof module === 'object' && module !== null ? Reflect.get(module, 'default') : undefined;
+
+	if (!isCardRenderer(renderer)) {
+		throw new Error(
+			`${rendererPath} needs a default export with decode(source) and render(input, decoded) functions`,
+		);
+	}
+
+	return renderer;
+}
+
+function createDevCardHandler({
+	logger,
+	mediaPath,
+	rendererPath,
+	runner,
+}: {
+	logger: AstroIntegrationLogger;
+	mediaPath: string;
+	rendererPath: string;
+	runner: ModuleRunner;
+}) {
+	const cards = openDevCards();
+
+	return async function serveDevCard(request: IncomingMessage, response: ServerResponse) {
+		const { pathname } = new URL(request.url ?? '/', 'http://localhost');
+		const name = decodeImageName(pathname);
+
+		if (name === undefined) {
+			response.statusCode = 400;
+			response.end();
+			return;
+		}
+
+		const card = cards.get(name);
+
+		if (!card) {
+			response.statusCode = 404;
+			response.end();
+			return;
+		}
+
+		try {
+			const { decode, render } = await loadCardRenderer(runner, rendererPath);
+			const { image, input } = card;
+			const decoded = image
+				? await decode({ ...image, filePath: path.resolve(mediaPath, image.path) })
+				: undefined;
+			const body = await render(input, decoded);
+
+			response.setHeader('Cache-Control', 'no-store');
+			response.setHeader('Content-Type', getContentType(name));
+			response.end(body);
+		} catch (error) {
+			logger.error(`${pathname}: ${error instanceof Error ? error.message : String(error)}`);
+			response.statusCode = 500;
+			response.end();
+		}
+	};
+}
+
 async function isBuiltFrom(storePath: string, mediaPath: string) {
 	try {
 		const manifest = await readLatestManifest(storePath);
@@ -220,6 +320,7 @@ async function isBuiltFrom(storePath: string, mediaPath: string) {
 export default function imagePipeline(options: ImagePipelineOptions): AstroIntegration {
 	const {
 		baseUrl,
+		cards,
 		encoding,
 		keepIccProfile,
 		limitInputPixels,
@@ -286,6 +387,26 @@ export default function imagePipeline(options: ImagePipelineOptions): AstroInteg
 				process.env[imageRecordsVariable] = buildRecordsPath;
 			},
 			'astro:server:setup': async ({ logger, server }) => {
+				if (cards) {
+					const { ssr } = server.environments;
+					const runner = 'runner' in ssr ? ssr.runner : undefined;
+
+					if (isModuleRunner(runner)) {
+						const serveDevCard = createDevCardHandler({
+							logger,
+							mediaPath: absoluteMediaPath,
+							rendererPath: path.resolve(cards.renderer),
+							runner,
+						});
+
+						server.middlewares.use(cards.route.replace(/\/+$/, ''), (request, response) => {
+							void serveDevCard(request, response);
+						});
+					} else {
+						logger.warn("Dev SSR doesn't run in Node here, so dev serves no cards");
+					}
+				}
+
 				// An absolute base URL means dev fetches images from the live host
 				if (!baseUrl?.startsWith('/')) return;
 

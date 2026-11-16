@@ -155,6 +155,90 @@ describe('imagePipeline dev server', () => {
 	});
 });
 
+describe('imagePipeline dev cards', () => {
+	const devCardsKey = Symbol.for('@xsynaptic/astro-image-pipeline/dev-cards');
+	const cardBytes = new Uint8Array([0xff, 0xd8, 0xff]);
+
+	async function startCardServer() {
+		const use = vi.fn();
+		const decode = vi.fn(async (source: unknown) => ({ source }));
+		const render = vi.fn(async () => cardBytes);
+		const runnerImport = vi.fn(async () => ({ default: { decode, render } }));
+
+		await imagePipeline({
+			cards: { renderer: 'src/og/card-renderer.ts', route: '/og/' },
+			mediaPath: path.join(root, 'media'),
+			storePath: root,
+		}).hooks['astro:server:setup']?.({
+			logger: createLogger(),
+			server: { environments: { ssr: { runner: { import: runnerImport } } }, middlewares: { use } },
+		} as unknown as Parameters<NonNullable<Hooks['astro:server:setup']>>[0]);
+
+		const [[route, handle]] = use.mock.calls as [
+			[string, (request: unknown, response: unknown) => void],
+		];
+
+		function request(url: string) {
+			return new Promise<{ body: unknown; headers: Map<string, string>; statusCode: number }>(
+				(resolve) => {
+					const headers = new Map<string, string>();
+					const response = {
+						end(body?: unknown) {
+							resolve({ body, headers, statusCode: response.statusCode });
+						},
+						setHeader(name: string, value: string) {
+							headers.set(name, value);
+						},
+						statusCode: 200,
+					};
+
+					handle({ url } as IncomingMessage, response as unknown as ServerResponse);
+				},
+			);
+		}
+
+		return { decode, render, request, route, runnerImport };
+	}
+
+	afterEach(() => {
+		Reflect.deleteProperty(globalThis, devCardsKey);
+	});
+
+	test('a recorded name draws with its latest input', async () => {
+		const { decode, render, request, route } = await startCardServer();
+
+		getCardName({ id: 'atlas', image: { id: 'a/b.jpg' }, input: { title: 'Old' } }, cardFormat);
+		getCardName({ id: 'atlas', image: { id: 'a/b.jpg' }, input: { title: 'New' } }, cardFormat);
+
+		const { body, headers, statusCode } = await request('/atlas.jpg');
+
+		expect(route).toBe('/og');
+		expect(statusCode).toBe(200);
+		expect(body).toBe(cardBytes);
+		expect(headers.get('Cache-Control')).toBe('no-store');
+		expect(headers.get('Content-Type')).toBe('image/jpeg');
+		expect(decode).toHaveBeenCalledWith({
+			filePath: path.join(root, 'media', 'a/b.jpg'),
+			path: 'a/b.jpg',
+		});
+		expect(render).toHaveBeenCalledExactlyOnceWith(
+			{ title: 'New' },
+			{ source: expect.objectContaining({ path: 'a/b.jpg' }) },
+		);
+	});
+
+	test('an unrecorded name 404s without loading the renderer', async () => {
+		const { request, runnerImport } = await startCardServer();
+
+		getCardName({ id: 'atlas', input: { title: 'Atlas' } }, cardFormat);
+
+		const { statusCode } = await request('/elsewhere.jpg');
+
+		expect(statusCode).toBe(404);
+		expect(runnerImport).not.toHaveBeenCalled();
+	});
+});
+
 describe('imagePipeline recording', () => {
 	test('names built during the build become the manifest, mapped to their sources', async () => {
 		const { hooks } = createIntegration();

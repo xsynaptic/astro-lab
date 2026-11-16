@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.15.0
+
+### Minor Changes
+
+- Dev draws OpenGraph cards on request with the new `cards: { renderer, route }` option
+
 ## 0.14.0
 
 ### Minor Changes
