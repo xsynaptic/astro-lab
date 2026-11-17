@@ -21,7 +21,7 @@ const { can, class: className, id, label, note, payload } = Astro.props;
 	<h2>{label}</h2>
 	<p>{note}</p>
 	<share-kit data-can={can}>
-		<button class="trigger" data-share-kit-trigger disabled={true} type="button">
+		<button class="trigger" data-share-kit-trigger disabled type="button">
 			Share
 		</button>
 		<script is:inline set:html={serializeShareKitPayload(payload)} type="application/json" />
