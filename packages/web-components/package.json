@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/web-components",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Small light-DOM custom elements for Astro sites: path suggestions, a back-to-top button, and loading and reading progress bars",
 	"type": "module",
 	"license": "MIT",

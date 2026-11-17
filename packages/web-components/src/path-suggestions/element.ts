@@ -198,12 +198,7 @@ export class PathSuggestionsElement extends BaseElement {
 }
 
 declare global {
-	interface DocumentEventMap {
-		'path-suggestions:done': CustomEvent<PathSuggestionsDoneDetail>;
-		'path-suggestions:redirect': CustomEvent<PathSuggestionsRedirectDetail>;
-	}
-
-	interface HTMLElementEventMap {
+	interface GlobalEventHandlersEventMap {
 		'path-suggestions:done': CustomEvent<PathSuggestionsDoneDetail>;
 		'path-suggestions:redirect': CustomEvent<PathSuggestionsRedirectDetail>;
 	}

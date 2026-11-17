@@ -128,11 +128,7 @@ export class TopButtonElement extends BaseElement {
 }
 
 declare global {
-	interface DocumentEventMap {
-		'top-button:activate': CustomEvent<TopButtonActivateDetail>;
-	}
-
-	interface HTMLElementEventMap {
+	interface GlobalEventHandlersEventMap {
 		'top-button:activate': CustomEvent<TopButtonActivateDetail>;
 	}
 
