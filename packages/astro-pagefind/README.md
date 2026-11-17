@@ -123,7 +123,7 @@ When a search ends, the toggle dispatches `search-toggle:search-end` on `documen
 
 A search ends when the modal closes or a ClientRouter navigation replaces the page. One with no query, or one open during a full page load, isn't reported.
 
-`searchToggleSearchEndEventName` and `normalizeSearchQuery` are exported from `./search-toggle`. Before reporting a query, `normalizeSearchQuery` collapses its whitespace and caps it at 100 characters, or returns `undefined` under 2. Add the listener once at module level, not on `astro:page-load`, or each navigation adds another.
+`@xsynaptic/astro-pagefind/search-toggle` exports `searchToggleSearchEndEventName` and `normalizeSearchQuery`, which collapses a query's whitespace and caps it at 100 characters, and returns `undefined` for one under 2. Add the listener once at module level, not on `astro:page-load`, or each navigation adds another.
 
 ## Why the version is in the path
 
