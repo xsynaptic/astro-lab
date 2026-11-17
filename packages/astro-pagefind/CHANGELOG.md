@@ -1,5 +1,11 @@
 # @xsynaptic/astro-pagefind
 
+## 0.3.0
+
+### Minor Changes
+
+- Rename `search-toggle:search` to `search-toggle:search-end`, with `searchToggleSearchEndEventName` and `SearchToggleSearchEndDetail`, and add `normalizeSearchQuery` to `./search-toggle`
+
 ## 0.2.1
 
 ### Patch Changes

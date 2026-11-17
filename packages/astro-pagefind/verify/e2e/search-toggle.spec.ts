@@ -2,9 +2,9 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '@playwright/test';
 
-import type { SearchToggleSearchDetail } from '../../src/search-toggle.js';
+import type { SearchToggleSearchEndDetail } from '../../src/search-toggle.js';
 
-import { searchToggleSearchEventName } from '../../src/search-toggle.js';
+import { searchToggleSearchEndEventName } from '../../src/search-toggle.js';
 
 const paths = {
 	home: 'toggle/',
@@ -51,12 +51,12 @@ async function recordSearches(page: Page) {
 		document.addEventListener(eventName, (event) => {
 			searches.push((event as CustomEvent).detail);
 		});
-	}, searchToggleSearchEventName);
+	}, searchToggleSearchEndEventName);
 }
 
 function getSearches(page: Page) {
 	return page.evaluate(
-		() => (window as { searches?: Array<SearchToggleSearchDetail> }).searches ?? [],
+		() => (window as { searches?: Array<SearchToggleSearchEndDetail> }).searches ?? [],
 	);
 }
 

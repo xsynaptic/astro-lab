@@ -115,29 +115,15 @@ It hides the toggle until it upgrades, and keeps `<pagefind-config>` and `<pagef
 
 ### Search events
 
-When a search ends, the toggle dispatches `search-toggle:search` on `document`, with this detail:
+When a search ends, the toggle dispatches `search-toggle:search-end` on `document`, with this detail:
 
 - `clicked`: whether it ended on a result click
 - `query`: the trimmed term Pagefind last returned results for
 - `results`: the number of text matches; a match only on `image` or `image_2x` meta doesn't count
 
-A search ends when the modal closes or a ClientRouter navigation replaces the page. One with no query, or one open during a full page load, isn't reported. What to track is up to you:
+A search ends when the modal closes or a ClientRouter navigation replaces the page. One with no query, or one open during a full page load, isn't reported.
 
-```ts
-import { searchToggleSearchEventName } from '@xsynaptic/astro-pagefind/search-toggle';
-
-document.addEventListener(searchToggleSearchEventName, ({ detail }) => {
-	const query = detail.query.replaceAll(/\s+/gu, ' ').slice(0, 100);
-
-	if (query.length < 2) return;
-
-	window.umami?.track('search-query', { ...detail, query });
-
-	if (detail.results === 0) window.umami?.track('search-empty', { query });
-});
-```
-
-Add the listener once at module level, not on `astro:page-load`, or each navigation adds another.
+`searchToggleSearchEndEventName` and `normalizeSearchQuery` are exported from `./search-toggle`. Before reporting a query, `normalizeSearchQuery` collapses its whitespace and caps it at 100 characters, or returns `undefined` under 2. Add the listener once at module level, not on `astro:page-load`, or each navigation adds another.
 
 ## Why the version is in the path
 

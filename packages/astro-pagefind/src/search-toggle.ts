@@ -3,13 +3,15 @@ import type {
 	PagefindInstance,
 	PagefindModalTrigger,
 } from './pagefind-component-ui.js';
-import type { SearchSession, SearchToggleSearchDetail } from './search-session.js';
+import type { SearchSession, SearchToggleSearchEndDetail } from './search-session.js';
 
 import { createSearchSession, getResultCount } from './search-session.js';
 
-export type { SearchToggleSearchDetail } from './search-session.js';
+export type { SearchToggleSearchEndDetail } from './search-session.js';
 
-export const searchToggleSearchEventName = 'search-toggle:search';
+export { normalizeSearchQuery } from './search-session.js';
+
+export const searchToggleSearchEndEventName = 'search-toggle:search-end';
 
 const tagName = 'search-toggle';
 
@@ -25,7 +27,7 @@ function getSearchSession(instance: PagefindInstance) {
 
 	// On `document`, since an abandoned search ends after the toggle has left it
 	const session = createSearchSession((detail) => {
-		document.dispatchEvent(new CustomEvent(searchToggleSearchEventName, { detail }));
+		document.dispatchEvent(new CustomEvent(searchToggleSearchEndEventName, { detail }));
 	});
 
 	// A debounced search can land after the modal closes, and an inline input may share the instance
@@ -226,7 +228,7 @@ export function defineSearchToggle() {
 
 declare global {
 	interface GlobalEventHandlersEventMap {
-		[searchToggleSearchEventName]: CustomEvent<SearchToggleSearchDetail>;
+		[searchToggleSearchEndEventName]: CustomEvent<SearchToggleSearchEndDetail>;
 	}
 
 	interface HTMLElementTagNameMap {

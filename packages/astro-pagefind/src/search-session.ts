@@ -1,4 +1,4 @@
-export interface SearchToggleSearchDetail {
+export interface SearchToggleSearchEndDetail {
 	clicked: boolean;
 	query: string;
 	results: number;
@@ -26,8 +26,16 @@ export function getResultCount(result: unknown) {
 	return (results as Array<PagefindMatch>).filter((match) => isTextMatch(match)).length;
 }
 
-export function createSearchSession(report: (outcome: SearchToggleSearchDetail) => void) {
-	let pending: Omit<SearchToggleSearchDetail, 'clicked'> | undefined;
+export function normalizeSearchQuery(query: string) {
+	const normalizedQuery = query.replaceAll(/\s+/gu, ' ').slice(0, 100);
+
+	if (normalizedQuery.length < 2) return;
+
+	return normalizedQuery;
+}
+
+export function createSearchSession(report: (outcome: SearchToggleSearchEndDetail) => void) {
+	let pending: Omit<SearchToggleSearchEndDetail, 'clicked'> | undefined;
 
 	function update(searchTerm: string, results: number | undefined) {
 		const query = searchTerm.trim();

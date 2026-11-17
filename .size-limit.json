@@ -13,7 +13,7 @@
 		"name": "astro-pagefind/search-toggle",
 		"path": "packages/astro-pagefind/src/search-toggle.ts",
 		"entry": ["search-toggle"],
-		"limit": "1400 B"
+		"limit": "1450 B"
 	},
 	{
 		"name": "astro-pagefind/search-toggle.css",

@@ -1,11 +1,15 @@
 import { describe, expect, test } from 'vitest';
 
-import type { SearchToggleSearchDetail } from '../../src/search-session.js';
+import type { SearchToggleSearchEndDetail } from '../../src/search-session.js';
 
-import { createSearchSession, getResultCount } from '../../src/search-session.js';
+import {
+	createSearchSession,
+	getResultCount,
+	normalizeSearchQuery,
+} from '../../src/search-session.js';
 
 function startSession() {
-	const reported: Array<SearchToggleSearchDetail> = [];
+	const reported: Array<SearchToggleSearchEndDetail> = [];
 	const session = createSearchSession((outcome) => {
 		reported.push(outcome);
 	});
@@ -66,5 +70,19 @@ describe('getResultCount', () => {
 
 	test.each([undefined, {}, { results: 'none' }])('is unknown for %j', (result) => {
 		expect(getResultCount(result)).toBeUndefined();
+	});
+});
+
+describe('normalizeSearchQuery', () => {
+	test('collapses whitespace', () => {
+		expect(normalizeSearchQuery('old \n  temple')).toBe('old temple');
+	});
+
+	test('caps the query length', () => {
+		expect(normalizeSearchQuery('x'.repeat(200))).toBe('x'.repeat(100));
+	});
+
+	test('drops a query too short to mean anything', () => {
+		expect(normalizeSearchQuery('t')).toBeUndefined();
 	});
 });
