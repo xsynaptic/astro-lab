@@ -1,4 +1,4 @@
-type EventValue = boolean | number | string;
+export type EventValue = boolean | number | string;
 
 // A bare mapped type passes primitives and arrays through and turns `object` into `{}`
 type EventPayload<Data> =

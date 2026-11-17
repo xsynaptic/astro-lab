@@ -7,7 +7,7 @@
 	{
 		"name": "analytics/umami",
 		"path": "packages/analytics/src/umami.ts",
-		"limit": "350 B"
+		"limit": "400 B"
 	},
 	{
 		"name": "astro-pagefind/search-toggle",

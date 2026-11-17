@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/analytics",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Typed analytics events with a Umami adapter, for Astro sites",
 	"type": "module",
 	"license": "MIT",

@@ -33,3 +33,12 @@ test('records a pageview when the router goes back', async ({ page }) => {
 	await page.goBack();
 	await expect.poll(() => getPageviews(page)).toEqual(['/second/', '/']);
 });
+
+test('updating attributes drops a key the new payload lacks', async ({ page }) => {
+	await page.goto('/');
+
+	const button = page.getByRole('button', { name: 'Mode' });
+
+	await expect(button).toHaveAttribute('data-umami-event', 'mode-toggle');
+	await expect(button).not.toHaveAttribute('data-umami-event-mode');
+});

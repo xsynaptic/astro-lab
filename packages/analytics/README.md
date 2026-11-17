@@ -32,7 +32,7 @@ sendEvent('search-query', { query: 'tea', results: 3 });
 </button>
 ```
 
-A payload is a flat object of booleans, numbers and strings; an event without one is `undefined`. Attribute values are strings, since the tracker reads them with `getAttribute`. `setSendEventAttributes(element, name, data)` updates them at runtime.
+A payload is a flat object of booleans, numbers and strings (`EventValue`); an event without one is `undefined`. Attribute values are strings and their keys lowercase, since the tracker reads them with `getAttribute` and HTML lowercases attribute names. `setSendEventAttributes(element, name, data)` replaces them at runtime.
 
 Never put the attributes on an `<a>`: the tracker cancels a tracked link's click and assigns `location.href`, so `<ClientRouter />` never sees it. Call `sendEvent` from a click listener instead.
 

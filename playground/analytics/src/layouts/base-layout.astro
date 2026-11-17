@@ -21,6 +21,7 @@ const { title } = Astro.props;
 			<a href="/">First page</a>
 			<a href="/second/">Second page</a>
 		</nav>
+		<slot />
 		<script>
 			import { recordTraversalPageviews } from '@xsynaptic/analytics/umami';
 

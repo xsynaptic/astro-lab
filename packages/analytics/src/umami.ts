@@ -34,6 +34,10 @@ export function createUmamiAttributes<Events extends EventMap<Events>>() {
 		name: Name,
 		...[data]: EventArguments<AttributePayload<Events[Name]>>
 	) {
+		for (const attribute of element.getAttributeNames()) {
+			if (attribute.startsWith('data-umami-event-')) element.removeAttribute(attribute);
+		}
+
 		const attributes = Object.entries(getAttributes(name, data));
 
 		for (const [attribute, value] of attributes) {

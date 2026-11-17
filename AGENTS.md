@@ -18,7 +18,7 @@ A pnpm monorepo of Astro integrations, markdown plugins, lint configs, web compo
 
 - A `define…()` function registers the element and takes its options. The class extends a stand-in where `HTMLElement` is undefined, so the entry imports cleanly in server code
 - `sideEffects` is `false` (or `["**/*.css"]` when the package ships CSS) only while no module calls `customElements.define` at load; a package that does (_e.g._ the `astro-font-devtools` toolbar) omits the field; given `false`, tsdown drops the import, the element never upgrades, and the build stays green
-- An element reports through a bubbling `<owner>:<action>` event with a typed detail and never sends analytics itself; what to send is the site's call
+- An element reports through a bubbling `<owner>:<action>` event, its typed detail declared in `GlobalEventHandlersEventMap`, and never sends analytics itself; what to send is the site's call
 - An element consumers restyle renders in the light DOM and ships a CSS export the host imports into its own layer; an injected sheet would beat the host's layered utilities
 
 ## Releases
