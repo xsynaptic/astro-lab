@@ -1,5 +1,15 @@
 [
 	{
+		"name": "analytics",
+		"path": "packages/analytics/src/index.ts",
+		"limit": "100 B"
+	},
+	{
+		"name": "analytics/umami",
+		"path": "packages/analytics/src/umami.ts",
+		"limit": "350 B"
+	},
+	{
 		"name": "astro-pagefind/search-toggle",
 		"path": "packages/astro-pagefind/src/search-toggle.ts",
 		"entry": ["search-toggle"],

@@ -1,0 +1,30 @@
+---
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>{title}</title>
+		<ClientRouter />
+	</head>
+	<body>
+		<nav>
+			<a href="/">First page</a>
+			<a href="/second/">Second page</a>
+		</nav>
+		<script>
+			import { recordTraversalPageviews } from '@xsynaptic/analytics/umami';
+
+			recordTraversalPageviews();
+		</script>
+	</body>
+</html>

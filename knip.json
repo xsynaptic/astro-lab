@@ -2,6 +2,9 @@
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"ignoreWorkspaces": ["playground/*"],
 	"workspaces": {
+		"packages/analytics": {
+			"entry": ["verify/types/*.ts"]
+		},
 		"packages/astro-pagefind": {
 			"ignore": ["verify/fixtures/**"]
 		},

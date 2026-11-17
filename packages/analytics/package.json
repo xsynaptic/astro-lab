@@ -1,0 +1,57 @@
+{
+	"name": "@xsynaptic/analytics",
+	"version": "0.1.0",
+	"description": "Typed analytics events with a Umami adapter, for Astro sites",
+	"type": "module",
+	"license": "MIT",
+	"author": "Alexander Synaptic <x@synapticism.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xsynaptic/astro-lab.git",
+		"directory": "packages/analytics"
+	},
+	"homepage": "https://github.com/xsynaptic/astro-lab/tree/main/packages/analytics#readme",
+	"bugs": {
+		"url": "https://github.com/xsynaptic/astro-lab/issues"
+	},
+	"keywords": [
+		"analytics",
+		"astro",
+		"events",
+		"umami"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs"
+		},
+		"./umami": {
+			"types": "./dist/umami.d.mts",
+			"import": "./dist/umami.mjs"
+		},
+		"./umami/testing": {
+			"types": "./dist/umami-testing.d.mts",
+			"import": "./dist/umami-testing.mjs"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"test:e2e": "playwright test"
+	},
+	"peerDependencies": {
+		"@playwright/test": "^1.40.0"
+	},
+	"peerDependenciesMeta": {
+		"@playwright/test": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.65.0"
+	}
+}

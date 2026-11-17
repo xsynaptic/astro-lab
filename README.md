@@ -42,6 +42,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 
 ## Other
 
+- [`@xsynaptic/analytics`](packages/analytics): typed analytics events with a Umami adapter
 - [`@xsynaptic/unpic-imagor`](packages/unpic-imagor): unpic URL provider for the imagor image server
 - [`@xsynaptic/word-count`](packages/word-count): fast, dependency-free multilingual word counter
 
