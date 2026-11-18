@@ -1,5 +1,11 @@
 # @xsynaptic/stylelint-config
 
+## 1.1.7
+
+### Patch Changes
+
+- Bump `postcss-html` to 2.0.1, which fixes reported locations in files with CRLF line endings.
+
 ## 1.1.6
 
 ### Patch Changes
