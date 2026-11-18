@@ -63,10 +63,8 @@ class ShareQrDialog {
 		polyfillLightDismiss(this.dialog, signal);
 	}
 
-	async open() {
+	async load() {
 		if (!this.#image.getAttribute('src')) this.#image.src = await createQrSource(this.#url);
-
-		this.dialog.showModal();
 	}
 }
 

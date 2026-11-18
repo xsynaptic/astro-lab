@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- Drop the More button: `settings.destinations` is now the only list, so merge `destinationsMore` into it, and remove the `more` icon and string from your overrides. Buttons show a press, and a copy button's own Copied label is no longer repeated in the footer.
+- Drop the More button: `settings.destinations` is now the only list, so merge `destinationsMore` into it, and remove the `more` icon and string from your overrides. Buttons show a press, and a copy button's own Copied label is no longer repeated in the footer. Closing the dialog while its QR code loads no longer leaves an invisible modal blocking the page, and `<share-kit hidden>` stays hidden.
 
 ## 0.5.0
 

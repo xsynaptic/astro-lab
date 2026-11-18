@@ -1,6 +1,7 @@
 import type { ShareCapability } from './actions.js';
 import type { ShareOutcome } from './assets.js';
 import type { ShareKitActionKind, ShareKitDestination } from './destinations.js';
+import type { ShareIconSource } from './icons.js';
 import type { ShareKitParts } from './render.js';
 import type { ShareKitStrings } from './strings.js';
 import type { ShareKitAction, ShareKitActionDetail, ShareKitPayload } from './types.js';
@@ -18,7 +19,6 @@ import { getDestinationUrl, getPrimaryAction } from './destinations.js';
 import { patchIcons, polyfillLightDismiss, radioKeys } from './dom.js';
 import { ShareFeedback } from './feedback.js';
 import { getSuggestedImage } from './formats.js';
-import { ShareIconSource } from './icons.js';
 import { getShareAssets, getShareDestinations, readSharePayload } from './payload.js';
 import { createShareQr } from './qr.js';
 import { renderShareKit } from './render.js';
@@ -47,9 +47,9 @@ function isKeyOf<Key extends string>(record: Record<Key, unknown>, key: string):
 const BaseElement =
 	typeof HTMLElement === 'undefined' ? (Object as unknown as typeof HTMLElement) : HTMLElement;
 
-export class ShareKitElement extends BaseElement {
-	protected readonly catalogue: ReadonlyMap<string, ShareKitDestination<string>> = new Map();
-	protected readonly iconSource = new ShareIconSource({});
+export abstract class ShareKitElement extends BaseElement {
+	protected abstract readonly catalogue: ReadonlyMap<string, ShareKitDestination<string>>;
+	protected abstract readonly iconSource: ShareIconSource;
 
 	#abortController: AbortController | undefined;
 	#actions = {
@@ -416,10 +416,16 @@ export class ShareKitElement extends BaseElement {
 	}
 
 	async #openQr() {
+		const qr = this.#qr;
+
 		this.#track('qr');
 
+		if (!qr) return;
+
 		try {
-			await this.#qr?.open();
+			await qr.load();
+
+			if (this.#parts?.dialog.open) qr.dialog.showModal();
 		} catch {
 			this.#feedback?.announce(this.#strings.error);
 		}

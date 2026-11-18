@@ -1,5 +1,9 @@
 share-kit {
 	display: block;
+
+	&[hidden] {
+		display: none;
+	}
 }
 
 /* Zero specificity, so a host sets any of these on `share-kit` without a fight */
