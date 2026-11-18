@@ -90,7 +90,9 @@ Sharing and saving fire once they finish, with an `outcome`:
 
 `shared` means the share sheet took it, not that it was posted.
 
-If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fragment that no element id on the page uses, or the page also scrolls there.
+A trigger can name a destination, as in `data-share-kit-trigger="instagram"`, to open the dialog with it selected. With a single destination, the dialog leaves out the destination row.
+
+If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fragment that no element id on the page uses, or the page also scrolls there. When several elements share one, only the first on the page opens.
 
 `strings` in the payload overrides the dialog's wording by key, including `destination.<id>` and `hint.<id>`.
 
@@ -121,7 +123,7 @@ The dialog downloads the images in `assets` to save, copy or share them, so serv
 
 ## Icons
 
-The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close`, `more` and `qr`, or pass a function that returns a promise of that map to load them lazily. `shareKitInterfaceIcons` holds the five drawn for this package. For brand marks, [Simple Icons](https://simpleicons.org) has every built-in but LinkedIn.
+The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close` and `more`, or pass a function that returns a promise of that map to load them lazily. `shareKitInterfaceIcons` holds the four drawn for this package. For brand marks, [Simple Icons](https://simpleicons.org) has every built-in but LinkedIn.
 
 ## Styles
 

@@ -8,8 +8,8 @@ share-kit {
 	--share-kit-text: CanvasText;
 	--share-kit-muted: GrayText;
 	--share-kit-border: color-mix(in srgb, currentcolor 20%, transparent);
-	--share-kit-field: color-mix(in srgb, currentcolor 5%, transparent);
-	--share-kit-accent: LinkText;
+	--share-kit-field: color-mix(in srgb, currentcolor 8%, transparent);
+	--share-kit-accent: #2563eb;
 	--share-kit-accent-text: Canvas;
 	--share-kit-hover: color-mix(in srgb, var(--share-kit-accent) 8%, transparent);
 	--share-kit-hover-border: color-mix(in srgb, var(--share-kit-accent) 45%, transparent);
@@ -18,6 +18,10 @@ share-kit {
 	--share-kit-gap: 1rem;
 	--share-kit-shadow: 0 20px 25px -5px rgb(0 0 0 / 20%);
 	--share-kit-font-mono: ui-monospace, monospace;
+
+	@supports (color: light-dark(red, red)) {
+		--share-kit-accent: light-dark(#2563eb, #60a5fa);
+	}
 }
 
 /* Class-level, so a host's bare element rules don't reach the dialog, and a host without a reset still gets bare controls */
@@ -124,15 +128,10 @@ share-kit {
 	outline: none;
 }
 
-.share-kit-header-actions {
-	display: flex;
-	gap: 0.5rem;
-	margin: -0.25rem;
-}
-
 .share-kit-icon-button {
 	display: inline-flex;
 	padding: 0.25rem;
+	margin: -0.25rem;
 	color: inherit;
 	cursor: pointer;
 	border-radius: calc(var(--share-kit-radius) * 0.5);
@@ -169,7 +168,7 @@ share-kit {
 	letter-spacing: 0.04em;
 }
 
-/* Bleeds to the dialog's edges so the row scrolls under them; scroll padding keeps snapped and focused items inside the gutter */
+/* Bleeds to the dialog's edges so the row scrolls under a fade as wide as the gutter; scroll padding keeps snapped and focused items inside it */
 .share-kit-destinations-row {
 	display: flex;
 	gap: 0.25rem;
@@ -179,11 +178,22 @@ share-kit {
 	scroll-snap-type: x proximity;
 	scroll-padding-inline: var(--share-kit-gap);
 	scrollbar-width: none;
+	mask-image: linear-gradient(
+		to right,
+		transparent,
+		#000 var(--share-kit-gap),
+		#000 calc(100% - var(--share-kit-gap)),
+		transparent
+	);
 }
 
 .share-kit-destinations {
 	display: flex;
 	gap: 0.25rem;
+
+	@container share-kit (width >= 30rem) {
+		flex-wrap: wrap;
+	}
 }
 
 .share-kit-destination {
@@ -196,6 +206,7 @@ share-kit {
 	padding: 0.625rem 0.5rem;
 	font-size: 0.75rem;
 	cursor: pointer;
+	user-select: none;
 	scroll-snap-align: start;
 	border: 1px solid transparent;
 	border-radius: var(--share-kit-radius);
@@ -233,7 +244,9 @@ share-kit {
 	justify-content: space-between;
 }
 
+/* Keeps the count still as its buttons come and go */
 .share-kit-caption-meta {
+	min-height: 1.75rem;
 	margin-top: 0.5rem;
 }
 
@@ -260,6 +273,7 @@ share-kit {
 	font-weight: 500;
 	line-height: 1.25;
 	color: var(--share-kit-accent);
+	white-space: nowrap;
 	cursor: pointer;
 	border: 1px solid var(--share-kit-border);
 	border-radius: calc(var(--share-kit-radius) * 0.5);
@@ -281,19 +295,19 @@ share-kit {
 }
 
 .share-kit-hint {
-	margin-top: 0.5rem;
 	font-size: 0.875rem;
 	color: var(--share-kit-muted);
 }
 
+.share-kit-destinations-row + .share-kit-hint {
+	margin-top: 0.5rem;
+}
+
 .share-kit-grid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 	gap: var(--share-kit-gap);
-
-	@container share-kit (width >= 32rem) {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-	}
+	margin-top: 0.5rem;
 }
 
 .share-kit-tile {
@@ -330,12 +344,18 @@ share-kit {
 	border-radius: 999px;
 }
 
+.share-kit-link-row > .share-kit-actions {
+	flex: none;
+}
+
 .share-kit-link {
 	min-width: 0;
 	font-family: var(--share-kit-font-mono);
 	font-size: 0.8125rem;
 	color: var(--share-kit-muted);
-	overflow-wrap: anywhere;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 .share-kit-qr-dialog {
@@ -358,6 +378,15 @@ share-kit {
 	height: auto;
 	margin: var(--share-kit-gap) auto;
 	background-color: #fff;
+}
+
+.share-kit-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
 }
 
 .share-kit-status {

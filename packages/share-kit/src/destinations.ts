@@ -20,7 +20,7 @@ import {
 } from './formats.js';
 
 export type ShareKitActionKind =
-	'copy-caption' | 'open-composer' | 'share-image' | 'share-link' | 'share-text';
+	'copy-caption' | 'open-composer' | 'save-image' | 'share-image' | 'share-link' | 'share-text';
 
 export type ShareKitDevice = 'desktop' | 'mobile';
 
@@ -99,7 +99,7 @@ export const shareKitFacebook = {
 	actions: { desktop: ['open-composer'], mobile: ['share-link', 'open-composer'] },
 	composer: ({ url }) => withQuery('https://www.facebook.com/sharer/sharer.php', { u: url }),
 	count: shareKitCountLength,
-	hint: 'Facebook only takes the link. Your caption is copied, so paste it into your post.',
+	hint: 'Facebook only takes the link. Your text is copied, so paste it into your post.',
 	id: 'facebook',
 	images: [shareKitLandscapeFormat, shareKitPortraitFormat],
 	label: 'Facebook',
@@ -108,9 +108,9 @@ export const shareKitFacebook = {
 } as const satisfies ShareKitDestination<'facebook'>;
 
 export const shareKitInstagram = {
-	actions: { desktop: [], mobile: ['share-image'] },
+	actions: { desktop: ['save-image'], mobile: ['share-image'] },
 	count: shareKitCountLength,
-	hint: "Links in Instagram captions aren't clickable. Point people to the link in your bio.",
+	hint: "Your text is copied, so paste it as the caption. Links in it aren't clickable.",
 	id: 'instagram',
 	images: [shareKitPortraitFormat],
 	label: 'Instagram',
@@ -119,9 +119,9 @@ export const shareKitInstagram = {
 } as const satisfies ShareKitDestination<'instagram'>;
 
 export const shareKitInstagramStory = {
-	actions: { desktop: [], mobile: ['share-image'] },
+	actions: { desktop: ['save-image'], mobile: ['share-image'] },
 	count: shareKitCountLength,
-	hint: 'Add the link to your Story with a link sticker.',
+	hint: 'The link is copied, so add it to your Story with a link sticker.',
 	id: 'instagram-story',
 	images: [shareKitStoryFormat, shareKitPortraitFormat],
 	label: 'Story',
@@ -132,7 +132,7 @@ export const shareKitLinkedin = {
 	actions: { desktop: ['open-composer'], mobile: ['share-link', 'open-composer'] },
 	composer: ({ url }) => withQuery('https://www.linkedin.com/sharing/share-offsite/', { url }),
 	count: shareKitCountLength,
-	hint: 'LinkedIn only takes the link. Your caption is copied, so paste it into your post.',
+	hint: 'LinkedIn only takes the link. Your text is copied, so paste it into your post.',
 	id: 'linkedin',
 	images: [shareKitLandscapeFormat],
 	label: 'LinkedIn',
@@ -149,15 +149,17 @@ export const shareKitLine = {
 			? `https://line.me/R/share?text=${encodeURIComponent(text)}`
 			: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
 	count: shareKitCountLength,
+	hint: 'Opens the LINE app if you have it, or LINE on the web, which asks you to sign in.',
 	id: 'line',
 	images: [shareKitLandscapeFormat],
 	label: 'LINE',
 	shape: 'full',
 } as const satisfies ShareKitDestination<'line'>;
 
-// Each reader posts from their own server, so there is no composer to open
+// The fragment keeps the text out of the hosted page's server logs
 export const shareKitMastodon = {
-	actions: { desktop: [], mobile: ['share-image'] },
+	actions: { desktop: ['open-composer'], mobile: ['share-image', 'open-composer'] },
+	composer: ({ text }) => `https://share.joinmastodon.org/#text=${encodeURIComponent(text)}`,
 	count: shareKitWithLinkCost(shareKitCountStringz, fixedLinkCost),
 	id: 'mastodon',
 	images: [shareKitPortraitFormat],
@@ -246,6 +248,9 @@ function canRun(action: ShareKitActionKind, input: SharePrimaryActionInput) {
 		}
 		case 'open-composer': {
 			return Boolean(input.composerUrl);
+		}
+		case 'save-image': {
+			return input.hasSuggestedImage;
 		}
 		case 'share-image': {
 			return input.canShareFiles && input.hasSuggestedImage;

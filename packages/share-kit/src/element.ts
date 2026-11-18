@@ -70,7 +70,7 @@ export class ShareKitElement extends BaseElement {
 		},
 		'copy-link': (button: HTMLElement) => {
 			this.#track('copy-link');
-			void this.#feedback?.copyText(this.#payload?.url ?? '', button);
+			void this.#feedback?.copyText(this.#getUrl(), button);
 		},
 		destination: (button: HTMLElement) => {
 			const destination = this.#getRendered(button.dataset.shareKitDestination);
@@ -80,8 +80,8 @@ export class ShareKitElement extends BaseElement {
 			this.#selectDestination(destination);
 			this.#track('destination');
 		},
-		more: (button: HTMLElement) => {
-			this.#showMore(button);
+		more: () => {
+			this.#showMore()[0]?.focus();
 		},
 		primary: () => {
 			this.#primaryActions[this.#getPrimaryAction()]();
@@ -89,9 +89,11 @@ export class ShareKitElement extends BaseElement {
 		qr: () => {
 			void this.#openQr();
 		},
+		// Reset hides itself, which would drop focus to the page
 		reset: () => {
 			this.#isCaptionEdited = false;
 			this.#syncDestination();
+			this.#parts?.caption.focus();
 		},
 		save: (_button: HTMLElement, tile?: HTMLElement) => {
 			if (tile) void this.#settle('save', this.#files?.save(tile), tile);
@@ -124,6 +126,14 @@ export class ShareKitElement extends BaseElement {
 			this.#track('open-composer');
 			void this.#copyCaption();
 			openComposer(href);
+		},
+		'save-image': () => {
+			const tile = this.#getSuggestedAsset();
+
+			if (!tile) return;
+
+			void this.#copyCaption();
+			void this.#settle('save', this.#files?.save(tile), tile);
 		},
 		// Both start inside the tap, before any await, or the browser refuses one of them
 		'share-image': () => {
@@ -188,11 +198,13 @@ export class ShareKitElement extends BaseElement {
 		}
 		window.addEventListener('hashchange', this.#handleHashChange, { signal });
 		// The trigger ships disabled so a tap before this runs isn't silently lost
-		this.querySelector('[data-share-kit-trigger]')?.toggleAttribute('disabled', false);
+		for (const trigger of this.querySelectorAll('[data-share-kit-trigger]')) {
+			trigger.toggleAttribute('disabled', false);
+		}
 
 		// Deferred so a listener added after `defineShareKit()` in the same task still hears `open`
 		queueMicrotask(() => {
-			if (!signal.aborted && isOpenHash(payload.settings.openHash)) this.#open();
+			if (!signal.aborted && this.#ownsOpenHash()) this.#open();
 		});
 	}
 
@@ -215,9 +227,13 @@ export class ShareKitElement extends BaseElement {
 
 	// A failed write selects the caption, so it is ready to copy by hand once the reader is back
 	async #copyCaption(button?: HTMLElement) {
-		const caption = this.#parts?.caption;
+		const parts = this.#parts;
 
-		if (caption) await this.#feedback?.copyText(caption.value, button, caption);
+		if (!parts) return;
+
+		const fallback = parts.captionSection.hidden ? undefined : parts.caption;
+
+		await this.#feedback?.copyText(parts.caption.value, button, fallback);
 	}
 
 	#dispatch(detail: ShareKitActionDetail) {
@@ -311,8 +327,10 @@ export class ShareKitElement extends BaseElement {
 	#handleClick = (event: MouseEvent) => {
 		if (!(event.target instanceof Element)) return;
 
-		if (event.target.closest('[data-share-kit-trigger]')) {
-			this.#open();
+		const trigger = event.target.closest<HTMLElement>('[data-share-kit-trigger]');
+
+		if (trigger) {
+			this.#open(trigger.dataset.shareKitTrigger);
 			return;
 		}
 
@@ -332,7 +350,7 @@ export class ShareKitElement extends BaseElement {
 	};
 
 	#handleHashChange = () => {
-		if (isOpenHash(this.#payload?.settings.openHash)) this.#open();
+		if (this.#ownsOpenHash()) this.#open();
 	};
 
 	#handleInput = (event: Event) => {
@@ -383,12 +401,17 @@ export class ShareKitElement extends BaseElement {
 		});
 	}
 
-	#open() {
+	#open(destinationId?: string) {
 		this.#loadIcons();
 
 		const parts = this.#parts ?? this.#render();
 
 		if (!parts || parts.dialog.open) return;
+
+		const destination = this.#getRendered(destinationId);
+
+		if (destination) this.#selectDestination(destination);
+		if (destination && this.#lists?.more.includes(destination)) this.#showMore();
 
 		parts.dialog.showModal();
 		// Focusing the heading lets a screen reader start from the dialog's name
@@ -396,6 +419,7 @@ export class ShareKitElement extends BaseElement {
 		this.#track('open');
 		// Synced again once open, since a status written to a closed dialog goes unannounced
 		this.#isOver = false;
+		parts.alert.textContent = '';
 		this.#syncCaption();
 	}
 
@@ -407,6 +431,20 @@ export class ShareKitElement extends BaseElement {
 		} catch {
 			this.#feedback?.announce(this.#strings.error);
 		}
+	}
+
+	#ownsOpenHash() {
+		const openHash = this.#payload?.settings.openHash;
+
+		if (!isOpenHash(openHash)) return false;
+
+		for (const element of document.querySelectorAll(this.localName)) {
+			if (element instanceof ShareKitElement && element.#payload?.settings.openHash === openHash) {
+				return element === this;
+			}
+		}
+
+		return false;
 	}
 
 	// The primary button shares the suggested image on a phone, so only that file is fetched ahead
@@ -514,13 +552,14 @@ export class ShareKitElement extends BaseElement {
 		this.#dispatch({ ...detail, outcome: outcome === 'unsaved' ? 'error' : outcome });
 	}
 
-	#showMore(button: HTMLElement) {
+	#showMore() {
 		const hidden = [...this.querySelectorAll<HTMLElement>('[role="radio"][hidden]')];
 
 		for (const radio of hidden) radio.hidden = false;
 
-		button.hidden = true;
-		hidden[0]?.focus();
+		if (this.#parts?.more) this.#parts.more.hidden = true;
+
+		return hidden;
 	}
 
 	#syncCaption() {
@@ -531,14 +570,17 @@ export class ShareKitElement extends BaseElement {
 
 		const { isOver, message } = syncCaptionView({
 			destination,
+			isEdited: this.#isCaptionEdited,
 			parts,
 			primaryAction: this.#getPrimaryAction(),
 			strings: this.#strings,
 		});
 
-		if (isOver && !this.#isOver && parts.dialog.open) this.#feedback?.announce(message);
+		const isAnnounced = isOver && parts.dialog.open;
 
-		this.#isOver = isOver;
+		if (isAnnounced !== this.#isOver) parts.alert.textContent = isAnnounced ? message : '';
+
+		this.#isOver = isAnnounced;
 	}
 
 	#syncDestination() {
@@ -554,6 +596,7 @@ export class ShareKitElement extends BaseElement {
 			parts,
 			strings: this.#strings,
 			suggested: this.#getSuggestedAsset(),
+			url: this.#getUrl(),
 		});
 
 		if (!this.#isCaptionEdited) {

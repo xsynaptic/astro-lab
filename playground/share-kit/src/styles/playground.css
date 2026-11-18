@@ -57,6 +57,23 @@
 		}
 	}
 
+	.event-log {
+		padding-top: 1rem;
+		margin-top: 2rem;
+		font-size: 0.875rem;
+		color: var(--page-muted);
+		border-top: 1px solid var(--page-border);
+
+		& > p {
+			margin: 0 0 0.25rem;
+		}
+
+		& > output {
+			font-family: ui-monospace, monospace;
+			overflow-wrap: anywhere;
+		}
+	}
+
 	.retheme share-kit {
 		--share-kit-surface: light-dark(#fdf6ec, #1c1410);
 		--share-kit-text: light-dark(#3b2a1a, #f0e2cf);

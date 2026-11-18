@@ -20,7 +20,7 @@ async function grantClipboard(
 async function openSpecimen(page: Page, id: string) {
 	await page.goto('/');
 
-	const trigger = page.locator(`#${id} [data-share-kit-trigger]`);
+	const trigger = page.locator(`#${id} [data-share-kit-trigger]`).first();
 
 	await expect(trigger).toBeEnabled();
 	await trigger.click();
@@ -41,12 +41,15 @@ test('the trigger opens the dialog, focuses its heading and reports the action',
 	await expect(page.locator('[data-event-log]')).toContainText('"action":"open"');
 });
 
-test('the open hash opens its dialog, and closing clears the hash', async ({ page }) => {
+test('the open hash opens the first dialog that claims it, and closing clears the hash', async ({
+	page,
+}) => {
 	await page.goto('/#share');
 
 	const dialog = page.locator('#desktop .share-kit-dialog');
 
 	await expect(dialog).toBeVisible();
+	await expect(page.locator('#single-destination .share-kit-dialog')).toHaveCount(0);
 	await expect(page.locator('[data-event-log]')).toContainText('"action":"open"');
 	await page.keyboard.press('Escape');
 	await expect(dialog).toBeHidden();
@@ -85,15 +88,54 @@ test('destination buttons show the icons the host passed', async ({ page }) => {
 	await expect(dialog.getByRole('radio', { name: 'Bluesky' }).locator('svg')).toBeVisible();
 });
 
-test('the link sits between the caption and the images', async ({ page }) => {
+test('the link comes last, after the images', async ({ page }) => {
 	const dialog = await openSpecimen(page, 'desktop');
 
 	await expect(dialog.locator('.share-kit-heading')).toHaveText([
 		'Post to',
-		'Caption',
-		'Link',
+		'Text',
 		'Images',
+		'Link',
 	]);
+});
+
+test('a named trigger opens the same dialog with its destination selected', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'named-triggers');
+
+	await expect(dialog.getByRole('radio', { name: 'Anywhere' })).toHaveAttribute(
+		'aria-checked',
+		'true',
+	);
+	await page.keyboard.press('Escape');
+	await page.locator('#named-triggers').getByRole('button', { name: 'Share on Reddit' }).click();
+
+	await expect(dialog).toBeVisible();
+	await expect(page.locator('#named-triggers .share-kit-dialog')).toHaveCount(1);
+	await expect(dialog.getByRole('radio', { name: 'Reddit' })).toHaveAttribute(
+		'aria-checked',
+		'true',
+	);
+	await expect(page.locator('[data-event-log]')).toHaveText(
+		'{"action":"open","destination":"reddit"}',
+	);
+});
+
+test('a single destination drops the Post to row but keeps its hint', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'single-destination');
+
+	await expect(dialog.getByRole('radiogroup')).toHaveCount(0);
+	await expect(dialog.locator('.share-kit-heading').first()).toHaveText('Text');
+	await expect(dialog.locator('.share-kit-hint').first()).toContainText(
+		'Facebook only takes the link',
+	);
+	await expect(dialog.locator('.share-kit-primary')).toHaveText('Open Facebook');
+});
+
+test('a desktop gets no Share button on its images', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await expect(dialog.locator('[data-share-kit-action="share"]')).toHaveCount(0);
+	await expect(dialog.locator('[data-share-kit-action="copy"]').first()).toBeVisible();
 });
 
 async function stubShareSheet(page: Page) {
@@ -147,14 +189,20 @@ test('the share sheet reports its outcome once it settles', async ({ page }) => 
 	await primary.click();
 	await settleShareSheet(page, 'DataError');
 	await expect(eventLog).toContainText('"outcome":"error"');
-	await expect(dialog.getByRole('status')).toHaveText('Something went wrong. Try saving instead.');
+	await expect(dialog.locator('.share-kit-status')).toHaveText(
+		'Something went wrong. Try saving instead.',
+	);
 });
 
 test('a caption over the limit is counted and announced', async ({ page }) => {
 	const dialog = await openSpecimen(page, 'over-limit');
 
 	await expect(dialog.locator('.share-kit-count')).toHaveAttribute('data-share-kit-over');
-	await expect(dialog.getByRole('status')).toContainText('over the limit for Threads');
+	await expect(dialog.locator('.share-kit-count')).toContainText('185 over');
+	await expect(dialog.locator('.share-kit-visually-hidden')).toHaveText(
+		'185 over the limit for Threads',
+	);
+	await expect(dialog.locator('.share-kit-status')).toBeEmpty();
 });
 
 // Firefox spends the click's activation on the new tab, so only a write started before it lands
@@ -182,9 +230,9 @@ test(
 		expect(composer.searchParams.get('text')).toContain("The Lighthouse Keeper's Cat");
 		expect(composer.searchParams.get('text')).toContain('utm_source=bluesky');
 		await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
-		await expect(dialog.getByRole('status')).toHaveText('Copied');
+		await expect(dialog.locator('.share-kit-status')).toHaveText('Copied');
 
-		const caption = await dialog.getByRole('textbox', { name: 'Caption' }).inputValue();
+		const caption = await dialog.getByRole('textbox', { name: 'Text' }).inputValue();
 
 		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(caption);
 	},
@@ -217,6 +265,30 @@ test('LINE opens its web share page on a desktop', async ({ context, page }) => 
 	await expect(page.locator('[data-event-log]')).toContainText('"destination":"line"');
 });
 
+test('Mastodon opens its hosted composer with the text in the fragment', async ({
+	context,
+	page,
+}) => {
+	await context.route('https://share.joinmastodon.org/**', (route) =>
+		route.fulfill({ body: 'composer' }),
+	);
+
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await selectMore(dialog, 'Mastodon');
+
+	const caption = await dialog.getByRole('textbox', { name: 'Text' }).inputValue();
+	const [popup] = await Promise.all([
+		page.waitForEvent('popup'),
+		dialog.getByRole('button', { name: 'Open Mastodon' }).click(),
+	]);
+	const composer = new URL(popup.url());
+
+	expect(composer.origin + composer.pathname).toBe('https://share.joinmastodon.org/');
+	expect(composer.search).toBe('');
+	expect(new URLSearchParams(composer.hash.slice(1)).get('text')).toBe(caption);
+});
+
 test("LINE opens its app's share screen on a phone", async ({ context, page }) => {
 	await context.route('https://line.me/**', (route) => route.fulfill({ body: 'composer' }));
 
@@ -234,32 +306,29 @@ test("LINE opens its app's share screen on a phone", async ({ context, page }) =
 	expect(composer.searchParams.get('text')).toContain("The Lighthouse Keeper's Cat");
 });
 
-test(
-	'a mailto: composer hands off without opening a tab',
-	{ tag: ['@firefox', '@webkit'] },
-	async ({ context, page }) => {
-		const dialog = await openSpecimen(page, 'desktop');
-		const pageUrl = page.url();
-		const errors: Array<string> = [];
-		let popups = 0;
+// Chromium only; WebKit and Firefox hand `mailto:` to the OS, which opens the system mail client
+test('a mailto: composer hands off without opening a tab', async ({ context, page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+	const pageUrl = page.url();
+	const errors: Array<string> = [];
+	let popups = 0;
 
-		context.on('page', () => {
-			popups += 1;
-		});
-		page.on('pageerror', (error) => {
-			errors.push(error.message);
-		});
-		await selectMore(dialog, 'Email');
-		await dialog.locator('.share-kit-primary').click();
+	context.on('page', () => {
+		popups += 1;
+	});
+	page.on('pageerror', (error) => {
+		errors.push(error.message);
+	});
+	await selectMore(dialog, 'Email');
+	await dialog.locator('.share-kit-primary').click();
 
-		await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
-		await expect(page.locator('[data-event-log]')).toContainText('"destination":"email"');
-		expect(popups).toBe(0);
-		await expect(dialog).toBeVisible();
-		expect(page.url()).toBe(pageUrl);
-		expect(errors).toEqual([]);
-	},
-);
+	await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
+	await expect(page.locator('[data-event-log]')).toContainText('"destination":"email"');
+	expect(popups).toBe(0);
+	await expect(dialog).toBeVisible();
+	expect(page.url()).toBe(pageUrl);
+	expect(errors).toEqual([]);
+});
 
 test('icons from a slow loader patch into the open dialog without moving it', async ({ page }) => {
 	const { promise: released, resolve: release } = Promise.withResolvers<undefined>();
@@ -292,15 +361,58 @@ test('copying the caption puts it on the clipboard', async ({ browserName, conte
 	const dialog = await openSpecimen(page, 'desktop');
 	const primary = dialog.locator('.share-kit-primary');
 
-	await expect(primary).toHaveText('Copy caption');
+	await expect(primary).toHaveText('Copy text');
 	await primary.click();
-	await expect(dialog.getByRole('status')).toHaveText('Copied');
+	await expect(dialog.locator('.share-kit-status')).toHaveText('Copied');
 
-	const caption = await dialog.getByRole('textbox', { name: 'Caption' }).inputValue();
+	const caption = await dialog.getByRole('textbox', { name: 'Text' }).inputValue();
 	const clipboard = await page.evaluate(() => navigator.clipboard.readText());
 
 	expect(clipboard).toBe(caption);
 	expect(clipboard).toContain('https://example.com/lighthouse-keepers-cat/');
+});
+
+test('Story drops the text field and copies its tagged link', async ({
+	browserName,
+	context,
+	page,
+}) => {
+	await grantClipboard(context, browserName);
+
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await dialog.getByRole('radio', { name: 'Story' }).click();
+	await expect(dialog.getByRole('textbox')).toBeHidden();
+	await dialog.getByRole('button', { name: 'Copy link' }).click();
+
+	const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+
+	expect(new URL(clipboard).searchParams.get('utm_source')).toBe('instagram-story');
+	await expect(dialog.locator('.share-kit-link')).toHaveText(clipboard);
+});
+
+test('Instagram on a desktop saves the suggested image and copies the text', async ({
+	browserName,
+	context,
+	page,
+}) => {
+	await grantClipboard(context, browserName);
+
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await dialog.getByRole('radio', { name: 'Instagram' }).click();
+
+	const caption = await dialog.getByRole('textbox', { name: 'Text' }).inputValue();
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		dialog.getByRole('button', { name: 'Save image' }).click(),
+	]);
+
+	expect(download.suggestedFilename()).toBe('lighthouse-cat-portrait.jpg');
+	expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(caption);
+	await expect(page.locator('[data-event-log]')).toContainText(
+		'{"action":"save","destination":"instagram","asset":"portrait","outcome":"saved"}',
+	);
 });
 
 test(
@@ -320,7 +432,7 @@ test(
 		}));
 
 		await tile.getByRole('button', { exact: true, name: 'Copy' }).click();
-		await expect(dialog.getByRole('status')).toHaveText('Copied');
+		await expect(dialog.locator('.share-kit-status')).toHaveText('Copied');
 
 		const copied = await page.evaluate(async () => {
 			const [item] = await navigator.clipboard.read();
@@ -369,7 +481,7 @@ test(
 	async ({ page }) => {
 		const dialog = await openSpecimen(page, 'desktop');
 
-		await dialog.getByRole('button', { name: 'Continue on your phone' }).click();
+		await dialog.getByRole('button', { name: 'Open on phone' }).click();
 
 		const qrDialog = page.locator('#desktop .share-kit-qr-dialog');
 		const qrImage = qrDialog.getByRole('img', { name: 'QR code for this page' });
@@ -390,7 +502,7 @@ test("an edited caption keeps the reader's words and swaps in the new destinatio
 	page,
 }) => {
 	const dialog = await openSpecimen(page, 'desktop');
-	const caption = dialog.getByRole('textbox', { name: 'Caption' });
+	const caption = dialog.getByRole('textbox', { name: 'Text' });
 
 	await dialog.getByRole('radio', { name: 'Bluesky' }).click();
 	await caption.evaluate((element: HTMLTextAreaElement) => {
@@ -435,7 +547,7 @@ test('a phone gets no QR code and hands image posts to the share sheet', async (
 	const dialog = await openSpecimen(page, 'phone');
 	const primary = dialog.locator('.share-kit-primary');
 
-	await expect(dialog.getByRole('button', { name: 'Continue on your phone' })).toHaveCount(0);
+	await expect(dialog.getByRole('button', { name: 'Open on phone' })).toHaveCount(0);
 	await expect(primary).toHaveText('Share');
 	await dialog.getByRole('radio', { name: 'Bluesky' }).click();
 	await expect(primary).toHaveText('Share image');
@@ -444,14 +556,14 @@ test('a phone gets no QR code and hands image posts to the share sheet', async (
 test('an element moved in the page starts over with a fresh caption', async ({ page }) => {
 	const dialog = await openSpecimen(page, 'desktop');
 
-	await dialog.getByRole('textbox', { name: 'Caption' }).fill('Edited');
+	await dialog.getByRole('textbox', { name: 'Text' }).fill('Edited');
 	await page.keyboard.press('Escape');
 	await page.locator('#desktop share-kit').evaluate((element) => {
 		element.parentElement?.append(element);
 	});
 	await page.locator('#desktop [data-share-kit-trigger]').click();
 
-	await expect(dialog.getByRole('textbox', { name: 'Caption' })).toHaveValue(
+	await expect(dialog.getByRole('textbox', { name: 'Text' })).toHaveValue(
 		/^The Lighthouse Keeper's Cat/u,
 	);
 });
@@ -520,7 +632,7 @@ test.describe('the light dismiss polyfill', { tag: '@webkit' }, () => {
 		const dialog = await openSpecimen(page, 'desktop');
 		const qrDialog = page.locator('#desktop .share-kit-qr-dialog');
 
-		await dialog.getByRole('button', { name: 'Continue on your phone' }).click();
+		await dialog.getByRole('button', { name: 'Open on phone' }).click();
 		await expect(qrDialog).toBeVisible();
 
 		await page.mouse.click(backdrop.x, backdrop.y);

@@ -58,7 +58,6 @@ function renderHeading({ classNames }: RenderContext, children: Array<Node | str
 
 interface IconButtonInput {
 	action: string;
-	attributes?: Record<string, string>;
 	fallback: string;
 	icon: string;
 	label: string;
@@ -66,12 +65,11 @@ interface IconButtonInput {
 
 function renderIconButton(
 	{ icons }: RenderContext,
-	{ action, attributes, fallback, icon, label }: IconButtonInput,
+	{ action, fallback, icon, label }: IconButtonInput,
 ) {
 	return createElement(
 		'button',
 		{
-			...attributes,
 			'aria-label': label,
 			class: 'share-kit-icon-button',
 			'data-share-kit-action': action,
@@ -83,21 +81,12 @@ function renderIconButton(
 }
 
 function renderHeader(context: RenderContext) {
-	const { capabilities, id, strings } = context;
+	const { id, strings } = context;
 	const heading = createElement(
 		'h2',
 		{ class: 'share-kit-title', id: `${id}-title`, tabindex: '-1' },
 		[strings.title],
 	);
-	const qrToggle = capabilities.has('mobile')
-		? undefined
-		: renderIconButton(context, {
-				action: 'qr',
-				attributes: { 'aria-haspopup': 'dialog' },
-				fallback: 'QR',
-				icon: 'qr',
-				label: strings.qrToggle,
-			});
 	const close = renderIconButton(context, {
 		action: 'close',
 		fallback: '×',
@@ -106,10 +95,7 @@ function renderHeader(context: RenderContext) {
 	});
 
 	return {
-		header: createElement('header', { class: 'share-kit-header' }, [
-			heading,
-			createElement('div', { class: 'share-kit-header-actions' }, [qrToggle, close]),
-		]),
+		header: createElement('header', { class: 'share-kit-header' }, [heading, close]),
 		heading,
 	};
 }
@@ -135,7 +121,7 @@ function renderDestination(context: RenderContext, destination: ShareKitDestinat
 	);
 }
 
-function renderDestinations(context: RenderContext) {
+function renderDestinationRow(context: RenderContext) {
 	const { destinations, destinationsMore, id, strings } = context;
 	const headingId = `${id}-destinations`;
 	const more =
@@ -168,10 +154,26 @@ function renderDestinations(context: RenderContext) {
 
 	return {
 		more,
-		section: createElement('section', { class: 'share-kit-section' }, [
+		nodes: [
 			renderHeading(context, [strings.destinationsTitle], headingId),
 			createElement('div', { class: 'share-kit-destinations-row' }, [group, more]),
-		]),
+		],
+	};
+}
+
+function renderDestinations(context: RenderContext) {
+	const hint = createElement('p', { class: 'share-kit-hint', id: `${context.id}-hint` });
+
+	if (context.destinations.length + context.destinationsMore.length === 1) {
+		return { hint, more: undefined, section: hint };
+	}
+
+	const { more, nodes } = renderDestinationRow(context);
+
+	return {
+		hint,
+		more,
+		section: createElement('section', { class: 'share-kit-section' }, [...nodes, hint]),
 	};
 }
 
@@ -179,35 +181,36 @@ function renderCaption(context: RenderContext) {
 	const { classNames, id, payload, strings } = context;
 	const captionId = `${id}-caption`;
 	const countId = `${id}-count`;
-	const hintId = `${id}-hint`;
 	const caption = createElement('textarea', {
-		'aria-describedby': `${countId} ${hintId}`,
+		'aria-describedby': `${countId} ${id}-hint`,
 		class: joinClasses('share-kit-caption', classNames.input),
 		dir: 'auto',
 		id: captionId,
 		lang: payload.locale,
-		rows: '6',
 	});
 	const count = createElement('span', { class: 'share-kit-count', id: countId });
-	const captionCopy = renderAction(context, { action: 'copy-caption', label: strings.captionCopy });
-	const hint = createElement('p', { class: 'share-kit-hint', id: hintId });
+	const captionCopy = renderAction(context, { action: 'copy-caption', label: '' });
+	const reset = renderAction(context, { action: 'reset', label: strings.captionReset });
+	const label = createElement('label', { for: captionId });
+	const alert = createElement('p', { class: 'share-kit-visually-hidden', role: 'status' });
+
+	reset.hidden = true;
 
 	return {
+		alert,
 		caption,
 		captionCopy,
+		captionLabel: label,
 		count,
-		hint,
+		reset,
 		section: createElement('section', { class: 'share-kit-section' }, [
-			renderHeading(context, [createElement('label', { for: captionId }, [strings.captionTitle])]),
+			renderHeading(context, [label]),
 			caption,
 			createElement('div', { class: 'share-kit-caption-meta' }, [
 				count,
-				createElement('span', { class: 'share-kit-actions' }, [
-					renderAction(context, { action: 'reset', label: strings.captionReset }),
-					captionCopy,
-				]),
+				createElement('span', { class: 'share-kit-actions' }, [reset, captionCopy]),
 			]),
-			hint,
+			alert,
 		]),
 	};
 }
@@ -226,6 +229,10 @@ function renderTile(context: RenderContext, { actions, asset, index }: TileInput
 	badge.hidden = true;
 
 	return createElement('li', { class: 'share-kit-tile', 'data-share-kit-asset': asset.id }, [
+		createElement('div', { class: 'share-kit-tile-label' }, [
+			createElement('span', { id: labelId }, [asset.label]),
+			badge,
+		]),
 		createElement('img', {
 			alt: asset.alt,
 			class: 'share-kit-preview',
@@ -235,10 +242,6 @@ function renderTile(context: RenderContext, { actions, asset, index }: TileInput
 			src: asset.previewSrc,
 			width: String(asset.width),
 		}),
-		createElement('div', { class: 'share-kit-tile-label' }, [
-			createElement('span', { id: labelId }, [asset.label]),
-			badge,
-		]),
 		createElement(
 			'div',
 			{ class: 'share-kit-actions' },
@@ -251,14 +254,11 @@ function renderTile(context: RenderContext, { actions, asset, index }: TileInput
 
 function getAssetActions({ capabilities, strings }: RenderContext) {
 	const actions: Array<[string, string]> = [];
-	const canShare = capabilities.has('files');
+	// A desktop share sheet reaches little beyond Mail and AirDrop, and a phone's already offers copying
+	const canShare = capabilities.has('files') && capabilities.has('mobile');
 
 	if (canShare) actions.push(['share', strings.assetShare]);
-
-	// On a phone the share sheet already offers copying
-	if (capabilities.has('copy-image') && !(canShare && capabilities.has('mobile'))) {
-		actions.push(['copy', strings.assetCopy]);
-	}
+	if (!canShare && capabilities.has('copy-image')) actions.push(['copy', strings.assetCopy]);
 
 	actions.push(['save', strings.assetSave]);
 
@@ -266,7 +266,7 @@ function getAssetActions({ capabilities, strings }: RenderContext) {
 }
 
 function renderImages(context: RenderContext) {
-	const { payload, strings } = context;
+	const { capabilities, payload, strings } = context;
 	const actions = getAssetActions(context);
 	const assets = new Map<HTMLElement, ShareKitAsset>();
 
@@ -281,34 +281,61 @@ function renderImages(context: RenderContext) {
 		grid,
 		section: createElement('section', { class: 'share-kit-section' }, [
 			renderHeading(context, [strings.imagesTitle]),
+			createElement('p', { class: 'share-kit-hint' }, [
+				capabilities.has('mobile') ? strings.imagesHintMobile : strings.imagesHint,
+			]),
 			grid,
 		]),
 	};
 }
 
 function renderLink(context: RenderContext) {
-	const { payload, strings } = context;
+	const { capabilities, strings } = context;
+	const link = createElement('p', { class: 'share-kit-link' });
+	const qr = capabilities.has('mobile')
+		? undefined
+		: createElement(
+				'button',
+				{
+					'aria-haspopup': 'dialog',
+					class: joinClasses('share-kit-action', context.classNames.action),
+					'data-share-kit-action': 'qr',
+					type: 'button',
+				},
+				[strings.qrToggle],
+			);
 
-	return createElement('section', { class: 'share-kit-section' }, [
-		renderHeading(context, [strings.linkTitle]),
-		createElement('div', { class: 'share-kit-link-row' }, [
-			createElement('p', { class: 'share-kit-link' }, [payload.url]),
-			renderAction(context, { action: 'copy-link', label: strings.linkCopy }),
+	return {
+		link,
+		section: createElement('section', { class: 'share-kit-section' }, [
+			renderHeading(context, [strings.linkTitle]),
+			createElement('div', { class: 'share-kit-link-row' }, [
+				link,
+				createElement('span', { class: 'share-kit-actions' }, [
+					renderAction(context, { action: 'copy-link', label: strings.linkCopy }),
+					qr,
+				]),
+			]),
 		]),
-	]);
+	};
 }
 
 export interface ShareKitParts {
+	alert: HTMLElement;
 	assets: ReadonlyMap<HTMLElement, ShareKitAsset>;
 	caption: HTMLTextAreaElement;
 	captionCopy: HTMLElement;
+	captionLabel: HTMLElement;
+	captionSection: HTMLElement;
 	count: HTMLElement;
 	dialog: HTMLDialogElement;
 	grid: HTMLElement;
 	heading: HTMLElement;
 	hint: HTMLElement;
+	link: HTMLElement;
 	more: HTMLElement | undefined;
 	primary: HTMLButtonElement;
+	reset: HTMLElement;
 	status: HTMLElement;
 	tiles: Array<HTMLElement>;
 }
@@ -319,6 +346,7 @@ export function renderShareKit(input: RenderInput): ShareKitParts {
 	const destinations = renderDestinations(context);
 	const caption = renderCaption(context);
 	const images = renderImages(context);
+	const link = renderLink(context);
 	const status = createElement('p', { class: 'share-kit-status', role: 'status' });
 	const primary = createElement('button', {
 		class: joinClasses('share-kit-primary', context.classNames.primary),
@@ -334,8 +362,8 @@ export function renderShareKit(input: RenderInput): ShareKitParts {
 				createElement('div', { class: 'share-kit-scroll' }, [
 					destinations.section,
 					caption.section,
-					renderLink(context),
 					images.section,
+					link.section,
 				]),
 				createElement('footer', { class: 'share-kit-footer' }, [status, primary]),
 			]),
@@ -343,16 +371,21 @@ export function renderShareKit(input: RenderInput): ShareKitParts {
 	);
 
 	return {
+		alert: caption.alert,
 		assets: images.assets,
 		caption: caption.caption,
 		captionCopy: caption.captionCopy,
+		captionLabel: caption.captionLabel,
+		captionSection: caption.section,
 		count: caption.count,
 		dialog,
 		grid: images.grid,
 		heading,
-		hint: caption.hint,
+		hint: destinations.hint,
+		link: link.link,
 		more: destinations.more,
 		primary,
+		reset: caption.reset,
 		status,
 		tiles: [...images.assets.keys()],
 	};

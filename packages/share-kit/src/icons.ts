@@ -1,4 +1,4 @@
-export const shareKitInterfaceIconNames = ['close', 'more', 'qr'] as const;
+export const shareKitInterfaceIconNames = ['close', 'more'] as const;
 
 export type ShareKitIconName<Id extends string> = (typeof shareKitInterfaceIconNames)[number] | Id;
 
@@ -14,7 +14,6 @@ export const shareKitInterfaceIcons = {
 	messages:
 		'M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM5 6v9h14V6ZM7 17v4l4-4Z',
 	more: 'M4 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0ZM10 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0ZM16 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0Z',
-	qr: 'M3 3h7v7H3ZM4.5 4.5v4h4v-4ZM5.5 5.5h2v2h-2ZM14 3h7v7h-7ZM15.5 4.5v4h4v-4ZM16.5 5.5h2v2h-2ZM3 14h7v7H3ZM4.5 15.5v4h4v-4ZM5.5 16.5h2v2h-2ZM14 14h2v2h-2ZM18 14h3v2h-3ZM16 16h2v2h-2ZM14 18h2v3h-2ZM18 18h3v3h-3Z',
 } as const satisfies ShareKitIcons<'any' | 'messages'>;
 
 export class ShareIconSource {

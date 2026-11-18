@@ -12,9 +12,10 @@ interface Props {
 	label: string;
 	note: string;
 	payload: ShareKitPayload<Destination>;
+	triggers?: Array<{ destination: Destination; label: string }> | undefined;
 }
 
-const { can, class: className, id, label, note, payload } = Astro.props;
+const { can, class: className, id, label, note, payload, triggers = [] } = Astro.props;
 ---
 
 <article class:list={['specimen', className]} id={id}>
@@ -24,6 +25,11 @@ const { can, class: className, id, label, note, payload } = Astro.props;
 		<button class="trigger" data-share-kit-trigger disabled type="button">
 			Share
 		</button>
+		{triggers.map((trigger) => (
+			<button class="trigger" data-share-kit-trigger={trigger.destination} disabled type="button">
+				{trigger.label}
+			</button>
+		))}
 		<script is:inline set:html={serializeShareKitPayload(payload)} type="application/json" />
 	</share-kit>
 </article>

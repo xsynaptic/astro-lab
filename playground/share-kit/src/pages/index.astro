@@ -15,10 +15,7 @@ const specimens = getSpecimens();
 	</head>
 	<body>
 		<h1>share-kit playground</h1>
-		<p>
-			Each button opens the dialog as it would look in one situation. Last action:{' '}
-			<output data-event-log>none</output>
-		</p>
+		<p>Each button opens the dialog as it would look in one situation.</p>
 		<ul class="specimens">
 			{specimens.map((specimen) => (
 				<li>
@@ -26,6 +23,12 @@ const specimens = getSpecimens();
 				</li>
 			))}
 		</ul>
+		<footer class="event-log">
+			<p>
+				Last <code>share-kit:action</code> event, read by the e2e tests:
+			</p>
+			<output data-event-log>none</output>
+		</footer>
 		<script>
 			import {
 				defineShareKit,

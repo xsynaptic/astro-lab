@@ -7,7 +7,6 @@ import { getSamplePayload, sampleSettings } from './sample-page.js';
 // `data-can` stands in for the device, so each specimen opens the real dialog in one state
 const capabilities = {
 	desktop: 'copy-image',
-	none: '',
 	phone: 'files link mobile',
 	phoneLinkOnly: 'link mobile',
 } as const;
@@ -28,6 +27,7 @@ export interface Specimen {
 	label: string;
 	note: string;
 	payload: ShareKitPayload<Destination>;
+	triggers?: Array<{ destination: Destination; label: string }>;
 }
 
 export function getSpecimens(): Array<Specimen> {
@@ -47,6 +47,32 @@ export function getSpecimens(): Array<Specimen> {
 			label: 'Desktop',
 			note: 'Can copy images, and offers a QR code for opening the page on a phone. Add #share to the URL to open this one on load.',
 			payload: { ...payload, settings: { ...sampleSettings, openHash: 'share' } },
+		},
+		{
+			can: capabilities.desktop,
+			id: 'named-triggers',
+			label: 'Named triggers',
+			note: 'Each extra button opens the same dialog with its destination selected.',
+			payload,
+			triggers: [
+				{ destination: 'instagram', label: 'Share on Instagram' },
+				{ destination: 'reddit', label: 'Share on Reddit' },
+			],
+		},
+		{
+			can: capabilities.desktop,
+			id: 'single-destination',
+			label: 'Single destination',
+			note: 'Only Facebook, so there is no Post to row. Shares the #share hash with Desktop, which opens alone since it comes first.',
+			payload: {
+				...payload,
+				settings: {
+					...sampleSettings,
+					destinations: ['facebook'],
+					destinationsMore: [],
+					openHash: 'share',
+				},
+			},
 		},
 		{
 			can: capabilities.phone,
@@ -82,20 +108,6 @@ export function getSpecimens(): Array<Specimen> {
 						: asset,
 				),
 			},
-		},
-		{
-			can: capabilities.desktop,
-			id: 'no-photos',
-			label: 'No photos',
-			note: 'Only the cards, one per ideal format.',
-			payload: { ...payload, assets: cards },
-		},
-		{
-			can: capabilities.none,
-			id: 'no-sharing',
-			label: 'No sharing or image clipboard',
-			note: 'Images can only be saved.',
-			payload,
 		},
 		{
 			can: capabilities.desktop,
