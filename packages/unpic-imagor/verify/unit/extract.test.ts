@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { assert, describe, expect, test } from 'vitest';
 
 import type { ImagorOperations } from '../../src/index.js';
 
@@ -223,8 +223,7 @@ describe('extract: round-trips generate output', () => {
 		test(name, () => {
 			const generated = generate('photo.jpg', operations);
 			const extracted = extract(generated);
-			expect(extracted).not.toBeNull();
-			if (extracted === null) return;
+			assert(extracted !== null, 'extract returned null');
 			expect(generate(extracted.src, extracted.operations)).toBe(generated);
 		});
 	}

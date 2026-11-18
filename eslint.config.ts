@@ -2,7 +2,7 @@ import { getAstroConfig, getBrowserConfig, getConfig } from '@xsynaptic/eslint-c
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-export default getConfig([
+const projectConfig = [
 	{
 		ignores: ['**/dist/**', '**/node_modules/**', '**/.astro/**', '.claude/**'],
 	},
@@ -69,4 +69,12 @@ export default getConfig([
 			'perfectionist/sort-variable-declarations': 'off',
 		},
 	},
-]);
+] satisfies Parameters<typeof getConfig>[0];
+
+export default getConfig(projectConfig, {
+	// The project service builds a program per package tsconfig and runs out of heap
+	parserOptions: {
+		project: ['./tsconfig.json', './playground/*/tsconfig.json'],
+		tsconfigRootDir: import.meta.dirname,
+	},
+});

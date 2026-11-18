@@ -1,5 +1,5 @@
 import { fc, test } from '@fast-check/vitest';
-import { describe, expect } from 'vitest';
+import { assert, describe, expect } from 'vitest';
 
 import type { PathEntry } from '../../src/path-suggestions/score.js';
 
@@ -57,9 +57,7 @@ describe('getPathSuggestions', () => {
 	test('lists candidates over the threshold, best first', () => {
 		const result = getPathSuggestions({ entries, path: '/li', threshold: 0.1 });
 
-		expect(result?.type).toBe('list');
-
-		if (result?.type !== 'list') throw new Error('expected a list');
+		assert(result?.type === 'list', 'expected a list');
 
 		expect(result.items.at(0)?.url).toBe('/lifeboat-station-museum/');
 		expect(result.items.map(({ score }) => score)).toEqual(
@@ -70,7 +68,7 @@ describe('getPathSuggestions', () => {
 	test('caps the list at the limit', () => {
 		const result = getPathSuggestions({ entries, limit: 2, path: '/li', threshold: 0 });
 
-		if (result?.type !== 'list') throw new Error('expected a list');
+		assert(result?.type === 'list', 'expected a list');
 
 		expect(result.items).toHaveLength(2);
 	});

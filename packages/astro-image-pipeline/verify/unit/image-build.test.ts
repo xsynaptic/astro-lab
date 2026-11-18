@@ -143,7 +143,9 @@ describe('prepareRenditionRender', () => {
 			const metadata = await sharp(path.join(renditionsPath, name)).metadata();
 
 			expect(metadata.width).toBe(Number(width));
-			if (height) expect(metadata.height).toBe(Number(height));
+			expect(metadata.height).toBe(
+				height ? Number(height) : Math.round((Number(width) * 1000) / 1500),
+			);
 			expect(metadata.format).toBe(format === 'jpg' ? 'jpeg' : format);
 			expect(metadata.exif).toBeUndefined();
 		}
@@ -235,7 +237,7 @@ describe('prepareRenditionRender', () => {
 				},
 				signal: controller.signal,
 			}),
-		).rejects.toThrow();
+		).rejects.toThrow('This operation was aborted');
 
 		const { length: finished } = await listFiles();
 

@@ -482,7 +482,7 @@ describe('imagePipeline build manifests', () => {
 		const failed = createIntegration();
 
 		await startBuild(failed.hooks);
-		await expect(finishBuild(failed.hooks)).rejects.toThrow();
+		await expect(finishBuild(failed.hooks)).rejects.toThrow('No image names were recorded');
 
 		const builds = await listImageBuilds(root);
 

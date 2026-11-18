@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { describe, expect, test, vi } from 'vitest';
+import { assert, describe, expect, test, vi } from 'vitest';
 
 import type { ImageLoaderCacheValue } from '../../src/types.js';
 
@@ -135,7 +135,8 @@ describe('imageLoader', () => {
 		// Simulate a persisted entry whose image() fields produced asset imports
 		const entry = entries.get('a.jpg');
 
-		if (entry) entry.assetImports = ['./a.jpg'];
+		assert(entry);
+		entry.assetImports = ['./a.jpg'];
 
 		await loader.load(context);
 
