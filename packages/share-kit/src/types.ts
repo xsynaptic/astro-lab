@@ -46,11 +46,15 @@ export type ShareKitAction =
 	| 'share-link'
 	| 'share-text';
 
+// `shared` only means the share sheet took it: Windows resolves `navigator.share` when its picker opens, Android once an app takes over
+export type ShareKitActionOutcome = 'dismissed' | 'error' | 'retry' | 'saved' | 'shared';
+
 // The global event map can't take the host's id type, so the destination is any string
 export interface ShareKitActionDetail {
 	action: ShareKitAction;
 	asset?: string;
 	destination: string;
+	outcome?: ShareKitActionOutcome;
 }
 
 declare global {

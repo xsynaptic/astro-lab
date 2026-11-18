@@ -85,6 +85,71 @@ test('destination buttons show the icons the host passed', async ({ page }) => {
 	await expect(dialog.getByRole('radio', { name: 'Bluesky' }).locator('svg')).toBeVisible();
 });
 
+test('the link sits between the caption and the images', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await expect(dialog.locator('.share-kit-heading')).toHaveText([
+		'Post to',
+		'Caption',
+		'Link',
+		'Images',
+	]);
+});
+
+async function stubShareSheet(page: Page) {
+	await page.addInitScript(() => {
+		Object.defineProperty(navigator, 'share', {
+			configurable: true,
+			value: () =>
+				new Promise((resolve, reject) => {
+					addEventListener(
+						'share-stub',
+						(event) => {
+							const name = event instanceof CustomEvent ? String(event.detail) : '';
+
+							if (name) reject(new DOMException('Stubbed', name));
+							else resolve(undefined);
+						},
+						{ once: true },
+					);
+				}),
+		});
+	});
+}
+
+async function settleShareSheet(page: Page, errorName = '') {
+	await page.evaluate(
+		(name) => dispatchEvent(new CustomEvent('share-stub', { detail: name })),
+		errorName,
+	);
+}
+
+test('the share sheet reports its outcome once it settles', async ({ page }) => {
+	await stubShareSheet(page);
+
+	const dialog = await openSpecimen(page, 'phone');
+	const eventLog = page.locator('[data-event-log]');
+	const primary = dialog.locator('.share-kit-primary');
+
+	await expect(primary).toHaveText('Share');
+	await primary.click();
+	await expect(eventLog).toContainText('"action":"open"');
+
+	await settleShareSheet(page);
+	await expect(eventLog).toHaveText(
+		'{"action":"share-text","destination":"any","outcome":"shared"}',
+	);
+
+	await primary.click();
+	await settleShareSheet(page, 'AbortError');
+	await expect(eventLog).toContainText('"outcome":"dismissed"');
+
+	await primary.click();
+	await settleShareSheet(page, 'DataError');
+	await expect(eventLog).toContainText('"outcome":"error"');
+	await expect(dialog.getByRole('status')).toHaveText('Something went wrong. Try saving instead.');
+});
+
 test('a caption over the limit is counted and announced', async ({ page }) => {
 	const dialog = await openSpecimen(page, 'over-limit');
 
@@ -130,7 +195,7 @@ async function selectMore(dialog: Locator, name: string) {
 	await dialog.getByRole('radio', { name }).click();
 }
 
-test('a host-defined destination opens its desktop composer', async ({ context, page }) => {
+test('LINE opens its web share page on a desktop', async ({ context, page }) => {
 	await context.route('https://social-plugins.line.me/**', (route) =>
 		route.fulfill({ body: 'composer' }),
 	);
@@ -148,13 +213,11 @@ test('a host-defined destination opens its desktop composer', async ({ context, 
 
 	expect(composer.origin + composer.pathname).toBe('https://social-plugins.line.me/lineit/share');
 	expect(composer.searchParams.get('url')).toContain('utm_source=line');
+	expect(composer.searchParams.get('text')).toContain("The Lighthouse Keeper's Cat");
 	await expect(page.locator('[data-event-log]')).toContainText('"destination":"line"');
 });
 
-test('a host-defined destination opens its mobile composer on a phone', async ({
-	context,
-	page,
-}) => {
+test("LINE opens its app's share screen on a phone", async ({ context, page }) => {
 	await context.route('https://line.me/**', (route) => route.fulfill({ body: 'composer' }));
 
 	const dialog = await openSpecimen(page, 'phone');
@@ -171,21 +234,32 @@ test('a host-defined destination opens its mobile composer on a phone', async ({
 	expect(composer.searchParams.get('text')).toContain("The Lighthouse Keeper's Cat");
 });
 
-test('a mailto: composer hands off without opening a tab', async ({ context, page }) => {
-	const dialog = await openSpecimen(page, 'desktop');
-	let popups = 0;
+test(
+	'a mailto: composer hands off without opening a tab',
+	{ tag: ['@firefox', '@webkit'] },
+	async ({ context, page }) => {
+		const dialog = await openSpecimen(page, 'desktop');
+		const pageUrl = page.url();
+		const errors: Array<string> = [];
+		let popups = 0;
 
-	context.on('page', () => {
-		popups += 1;
-	});
-	await selectMore(dialog, 'Email');
-	await dialog.locator('.share-kit-primary').click();
+		context.on('page', () => {
+			popups += 1;
+		});
+		page.on('pageerror', (error) => {
+			errors.push(error.message);
+		});
+		await selectMore(dialog, 'Email');
+		await dialog.locator('.share-kit-primary').click();
 
-	await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
-	await expect(page.locator('[data-event-log]')).toContainText('"destination":"email"');
-	expect(popups).toBe(0);
-	await expect(dialog).toBeVisible();
-});
+		await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
+		await expect(page.locator('[data-event-log]')).toContainText('"destination":"email"');
+		expect(popups).toBe(0);
+		await expect(dialog).toBeVisible();
+		expect(page.url()).toBe(pageUrl);
+		expect(errors).toEqual([]);
+	},
+);
 
 test('icons from a slow loader patch into the open dialog without moving it', async ({ page }) => {
 	const { promise: released, resolve: release } = Promise.withResolvers<undefined>();
@@ -278,6 +352,8 @@ test(
 
 		expect(download.suggestedFilename()).toBe('lighthouse-cat-landscape.jpg');
 		expect(source).not.toBeNull();
+		await expect(page.locator('[data-event-log]')).toContainText('"action":"save"');
+		await expect(page.locator('[data-event-log]')).toContainText('"outcome":"saved"');
 
 		const served = await page.request.get(source ?? '');
 

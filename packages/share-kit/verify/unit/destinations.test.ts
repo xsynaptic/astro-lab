@@ -46,14 +46,14 @@ function getAction(destination: ShareKitDestination<string>, { device, ...input 
 	return getPrimaryAction(destination.actions[device], { ...input, composerUrl });
 }
 
-const line = defineShareKitDestination({
+const phoneOnly = defineShareKitDestination({
 	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
 	composer: ({ device, text }) =>
-		device === 'mobile' ? `https://line.me/R/share?text=${encodeURIComponent(text)}` : undefined,
+		device === 'mobile' ? `https://example.com/share?text=${encodeURIComponent(text)}` : undefined,
 	count: shareKitCountLength,
-	id: 'line',
+	id: 'phone-only',
 	images: [shareKitLandscapeFormat],
-	label: 'LINE',
+	label: 'Phone only',
 	shape: 'full',
 });
 
@@ -95,8 +95,8 @@ describe('primary action', () => {
 	});
 
 	test('a composer that returns no URL for the device falls through to copying', () => {
-		expect(getAction(line, phone)).toBe('open-composer');
-		expect(getAction(line, desktop)).toBe('copy-caption');
+		expect(getAction(phoneOnly, phone)).toBe('open-composer');
+		expect(getAction(phoneOnly, desktop)).toBe('copy-caption');
 	});
 
 	test('a destination without a composer skips open-composer for the next action', () => {

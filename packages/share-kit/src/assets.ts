@@ -1,8 +1,9 @@
 import type { ShareAssetSource } from './actions.js';
+import type { ShareKitActionOutcome } from './types.js';
 
 import { fetchFile, isDomError, saveFile } from './actions.js';
 
-export type ShareOutcome = 'dismissed' | 'error' | 'retry' | 'saved' | 'shared' | 'unsaved';
+export type ShareOutcome = 'unsaved' | ShareKitActionOutcome;
 
 interface ShareAssetFilesOptions {
 	canShare: boolean;

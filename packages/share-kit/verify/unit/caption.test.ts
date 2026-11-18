@@ -12,6 +12,7 @@ import {
 	shareKitFacebook,
 	shareKitInstagram,
 	shareKitInstagramStory,
+	shareKitLine,
 	shareKitLinkedin,
 	shareKitMastodon,
 	shareKitMessages,
@@ -38,6 +39,7 @@ const builtIns: Array<ShareKitDestination<string>> = [
 	shareKitFacebook,
 	shareKitInstagram,
 	shareKitInstagramStory,
+	shareKitLine,
 	shareKitLinkedin,
 	shareKitMastodon,
 	shareKitMessages,
@@ -236,6 +238,38 @@ describe('built-in counters', () => {
 		expect(twitter.parseTweet(text).weightedLength).toBe(expected);
 	});
 
+	// The last five disagree with twitter-text on purpose, so a change on either side fails the test
+	test.each([
+		['see example.com now', 31, 31],
+		['Example.COM', 23, 23],
+		['example.com/path/to/page', 23, 23],
+		['example.com.', 24, 24],
+		['example.com/a.', 24, 24],
+		['(example.com)', 25, 25],
+		['example.co.uk', 23, 23],
+		['sub.example.org', 23, 23],
+		['example.jp', 23, 23],
+		['my-site.dev', 23, 23],
+		['www.example.net', 23, 23],
+		['example.com and example.org', 51, 51],
+		['https://example.com/a and example.org', 51, 51],
+		['燈塔example.com', 27, 27],
+		['user@example.com', 16, 16],
+		['#example.com', 12, 12],
+		['-example.com', 12, 12],
+		['example.comet', 13, 13],
+		['e.g. this', 9, 9],
+		['v1.2.3', 6, 6],
+		['node.js', 23, 7],
+		['so.on', 23, 5],
+		['astro.build', 11, 23],
+		['a.museum', 8, 23],
+		['foo.bar', 7, 23],
+	])('X: %s is %i, and %i in twitter-text', (text, dialog, composer) => {
+		expect(shareKitX.count(text)).toBe(dialog);
+		expect(twitter.parseTweet(text).weightedLength).toBe(composer);
+	});
+
 	test.each([
 		['a short path is kept', 'https://example.com/tide-pools/', 23],
 		[
@@ -251,6 +285,7 @@ describe('built-in counters', () => {
 
 	test.each([
 		['any link is 23', 'https://example.com/lighthouse-keepers-cat/', 23],
+		['a bare domain is plain text', 'see example.com now', 19],
 		['Thai marks count apart, as the web composer counts them', 'ที่', 3],
 		['Latin combining marks fold into their letter', 'ệ'.normalize('NFD'), 1],
 		['an emoji sequence is one', '👨‍👩‍👧‍👦 👍🏽 🇹🇼 ❤️', 7],

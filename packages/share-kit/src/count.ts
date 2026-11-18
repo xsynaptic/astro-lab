@@ -1,5 +1,9 @@
 const urlPattern = /https?:\/\/[\w!#$%&'()*+,./:;=?@~-]+/giu;
 
+// X also treats a bare domain like `example.com` as a link; this short list of TLDs catches most of them
+export const xLinkPattern =
+	/https?:\/\/[\w!#$%&'()*+,./:;=?@~-]+|(?<![\w#./@-])(?:[\da-z][\da-z-]*\.)+(?:[a-z]{2}|com|org|net|edu|gov|info|biz|app|dev|xyz|site|online|blog|news|shop|store|page|tech|art|link|live|social|club|world|asia)(?![\w-])(?:\/[\w!#$%&'()*+,./:;=?@~-]*)?/giu;
+
 const urlTrailingPunctuation = /[!'),.:;?]+$/u;
 
 const graphemeSegmenter = new Intl.Segmenter(undefined, {
@@ -103,10 +107,10 @@ export function shareKitCountUtf8(text: string) {
 	return utf8Encoder.encode(text).length;
 }
 
-function splitLinks(text: string) {
+function splitLinks(text: string, pattern: RegExp) {
 	const links: Array<string> = [];
 
-	const rest = text.replaceAll(urlPattern, (match) => {
+	const rest = text.replaceAll(pattern, (match) => {
 		const trailing = urlTrailingPunctuation.exec(match)?.[0] ?? '';
 
 		links.push(match.slice(0, match.length - trailing.length));
@@ -119,16 +123,23 @@ function splitLinks(text: string) {
 
 export type ShareKitCounter = (text: string) => number;
 
-export function shareKitWithLinkCost(
+type LinkCost = ((link: string) => number) | number;
+
+export function withLinkCost(
 	count: ShareKitCounter,
-	cost: ((link: string) => number) | number,
+	cost: LinkCost,
+	pattern: RegExp,
 ): ShareKitCounter {
 	return (text) => {
-		const { links, rest } = splitLinks(text);
+		const { links, rest } = splitLinks(text, pattern);
 		let total = count(rest);
 
 		for (const link of links) total += typeof cost === 'number' ? cost : cost(link);
 
 		return total;
 	};
+}
+
+export function shareKitWithLinkCost(count: ShareKitCounter, cost: LinkCost) {
+	return withLinkCost(count, cost, urlPattern);
 }

@@ -8,9 +8,9 @@ import type { ShareKitAction, ShareKitActionDetail, ShareKitPayload } from './ty
 import {
 	clearOpenHash,
 	getShareCapabilities,
-	isDomError,
 	isOpenHash,
 	openComposer,
+	shareData,
 } from './actions.js';
 import { ShareAssetFiles } from './assets.js';
 import { fitCaption } from './caption.js';
@@ -27,6 +27,8 @@ import { syncCaptionView, syncDestinationView } from './sync.js';
 import { shareKitActionEventName } from './types.js';
 
 type DestinationLists = NonNullable<ReturnType<typeof getDestinationLists>>;
+
+type SettledAction = 'save' | 'share' | 'share-link' | 'share-text';
 
 const iconIntentEvents = ['focusin', 'pointerdown', 'pointerover'] as const;
 
@@ -92,10 +94,10 @@ export class ShareKitElement extends BaseElement {
 			this.#syncDestination();
 		},
 		save: (_button: HTMLElement, tile?: HTMLElement) => {
-			if (tile) void this.#saveAsset(tile);
+			if (tile) void this.#settle('save', this.#files?.save(tile), tile);
 		},
 		share: (_button: HTMLElement, tile?: HTMLElement) => {
-			if (tile) void this.#shareAssets([tile]);
+			if (tile) void this.#settle('share', this.#files?.share([tile]), tile);
 		},
 	};
 	#capabilities = new Set<ShareCapability>();
@@ -130,17 +132,17 @@ export class ShareKitElement extends BaseElement {
 			if (!tile) return;
 
 			void this.#copyCaption();
-			void this.#shareAssets([tile]);
+			void this.#settle('share', this.#files?.share([tile]), tile);
 		},
 		// The platform's app drops shared text too, so the caption rides on the clipboard as with an image
 		'share-link': () => {
 			void this.#copyCaption();
-			void this.#shareData('share-link', { url: this.#getUrl() });
+			void this.#settle('share-link', shareData({ url: this.#getUrl() }));
 		},
 		'share-text': () => {
 			const text = this.#parts?.caption.value;
 
-			if (text) void this.#shareData('share-text', { text });
+			if (text) void this.#settle('share-text', shareData({ text }));
 		},
 	} satisfies Record<ShareKitActionKind, () => void>;
 	#qr: ReturnType<typeof createShareQr>;
@@ -218,6 +220,12 @@ export class ShareKitElement extends BaseElement {
 		if (caption) await this.#feedback?.copyText(caption.value, button, caption);
 	}
 
+	#dispatch(detail: ShareKitActionDetail) {
+		this.dispatchEvent(
+			new CustomEvent(shareKitActionEventName, { bubbles: true, composed: true, detail }),
+		);
+	}
+
 	#getAssets() {
 		return (this.#parts?.tiles ?? []).filter((tile) => tile.dataset.shareKitState !== 'failed');
 	}
@@ -241,6 +249,16 @@ export class ShareKitElement extends BaseElement {
 			title: payload.title,
 			url: this.#getUrl(),
 		});
+	}
+
+	#getDetail(action: ShareKitAction, tile?: HTMLElement) {
+		if (!this.#destination) return;
+
+		const detail: ShareKitActionDetail = { action, destination: this.#destination.id };
+
+		if (tile?.dataset.shareKitAsset) detail.asset = tile.dataset.shareKitAsset;
+
+		return detail;
 	}
 
 	#getDevice() {
@@ -464,11 +482,6 @@ export class ShareKitElement extends BaseElement {
 		);
 	}
 
-	async #saveAsset(tile: HTMLElement) {
-		this.#track('save', tile);
-		this.#report(await this.#files?.save(tile));
-	}
-
 	// An edited caption keeps the reader's words but swaps in the new destination's tagged link
 	#selectDestination(destination: ShareKitDestination<string>) {
 		const previousUrl = this.#getUrl();
@@ -485,23 +498,20 @@ export class ShareKitElement extends BaseElement {
 		this.#syncDestination();
 	}
 
-	async #shareAssets(tiles: Array<HTMLElement>) {
-		const [first] = tiles;
+	// Read before the await, since the reader can pick another destination while a slow file loads
+	async #settle(
+		action: SettledAction,
+		pending: Promise<ShareOutcome> | undefined,
+		tile?: HTMLElement,
+	) {
+		const detail = this.#getDetail(action, tile);
+		const outcome = await pending;
 
-		if (!first) return;
+		this.#report(outcome);
 
-		this.#track('share', first);
-		this.#report(await this.#files?.share(tiles));
-	}
+		if (!detail || !outcome) return;
 
-	async #shareData(action: 'share-link' | 'share-text', data: ShareData) {
-		this.#track(action);
-
-		try {
-			await navigator.share(data);
-		} catch (error) {
-			if (!isDomError(error, 'AbortError')) this.#feedback?.announce(this.#strings.error);
-		}
+		this.#dispatch({ ...detail, outcome: outcome === 'unsaved' ? 'error' : outcome });
 	}
 
 	#showMore(button: HTMLElement) {
@@ -558,16 +568,10 @@ export class ShareKitElement extends BaseElement {
 		this.#prefetch();
 	}
 
-	#track(action: ShareKitAction, tile?: HTMLElement) {
-		if (!this.#destination) return;
+	#track(action: Exclude<ShareKitAction, SettledAction>, tile?: HTMLElement) {
+		const detail = this.#getDetail(action, tile);
 
-		const detail: ShareKitActionDetail = { action, destination: this.#destination.id };
-
-		if (tile?.dataset.shareKitAsset) detail.asset = tile.dataset.shareKitAsset;
-
-		this.dispatchEvent(
-			new CustomEvent(shareKitActionEventName, { bubbles: true, composed: true, detail }),
-		);
+		if (detail) this.#dispatch(detail);
 	}
 }
 

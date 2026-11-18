@@ -14,13 +14,13 @@ import { shareKitLandscapeFormat } from '../../src/formats.js';
 
 // The checks are the compile; `pnpm check-types` fails if an expectation or an expected error breaks
 
-const line = defineShareKitDestination({
+const email = defineShareKitDestination({
 	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
-	composer: ({ text }) => `https://line.me/R/share?text=${encodeURIComponent(text)}`,
+	composer: ({ text }) => `mailto:?body=${encodeURIComponent(text)}`,
 	count: shareKitCountLength,
-	id: 'line',
+	id: 'email',
 	images: [shareKitLandscapeFormat],
-	label: 'LINE',
+	label: 'Email',
 	shape: 'full',
 });
 
@@ -28,25 +28,25 @@ const destinations = [
 	shareKitAnywhere,
 	shareKitThreads,
 	{ ...shareKitMastodon, limit: 1000 },
-	line,
+	email,
 ] as const;
 
 type Destination = ShareKitDestinationIdOf<typeof destinations>;
 
 test('ids come out as literals, spreads and custom definitions included', () => {
-	expectTypeOf(destinations[3].id).toEqualTypeOf<'line'>();
-	expectTypeOf<Destination>().toEqualTypeOf<'any' | 'line' | 'mastodon' | 'threads'>();
+	expectTypeOf(destinations[3].id).toEqualTypeOf<'email'>();
+	expectTypeOf<Destination>().toEqualTypeOf<'any' | 'email' | 'mastodon' | 'threads'>();
 });
 
 test('a typo in the settings fails, and a computed row is accepted', () => {
-	const ids: ReadonlyArray<Destination> = ['any', 'line'];
+	const ids: ReadonlyArray<Destination> = ['any', 'email'];
 	const settings: ShareKitSettings<Destination> = {
 		destinations: ids.filter((id) => id !== 'any'),
-		// @ts-expect-error `lnie` is not a registered id
-		destinationsMore: ['lnie'],
+		// @ts-expect-error `emial` is not a registered id
+		destinationsMore: ['emial'],
 	};
 
-	expect(settings.destinations).toEqual(['line']);
+	expect(settings.destinations).toEqual(['email']);
 });
 
 test('the generics have no default for an id to widen to', () => {

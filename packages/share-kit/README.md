@@ -80,7 +80,15 @@ const payload: ShareKitPayload<Destination> = {
 </script>
 ```
 
-Every action in the dialog fires a `share-kit:action` event. Listen in the same script as `defineShareKit()`, before or after the call.
+Every action in the dialog fires a `share-kit:action` event whose `detail` holds the `action`, the selected `destination` and, for an image, its `asset` id. Listen in the same script as `defineShareKit()`, before or after the call.
+
+Sharing and saving fire once they finish, with an `outcome`:
+
+- `share`: `shared`, `dismissed`, `retry` (a slow download used up the tap), `saved` (the browser refused the file, so it downloaded instead) or `error`
+- `share-link`, `share-text`: `shared`, `dismissed` or `error`
+- `save`: `saved` or `error`
+
+`shared` means the share sheet took it, not that it was posted.
 
 If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fragment that no element id on the page uses, or the page also scrolls there.
 
@@ -88,16 +96,17 @@ If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fr
 
 ## Destinations
 
-The built-ins are `shareKitAnywhere`, `shareKitBluesky`, `shareKitFacebook`, `shareKitInstagram`, `shareKitInstagramStory`, `shareKitLinkedin`, `shareKitMastodon`, `shareKitMessages`, `shareKitPinterest`, `shareKitReddit`, `shareKitThreads` and `shareKitX`. Adjust one by spreading it (`{ ...shareKitMastodon, limit: 1000 }`), or write your own with `defineShareKitDestination`:
+The built-ins are `shareKitAnywhere`, `shareKitBluesky`, `shareKitFacebook`, `shareKitInstagram`, `shareKitInstagramStory`, `shareKitLine`, `shareKitLinkedin`, `shareKitMastodon`, `shareKitMessages`, `shareKitPinterest`, `shareKitReddit`, `shareKitThreads` and `shareKitX`. Adjust one by spreading it (`{ ...shareKitMastodon, limit: 1000 }`), or write your own with `defineShareKitDestination`:
 
 ```ts
-export const line = defineShareKitDestination({
+export const email = defineShareKitDestination({
 	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
-	composer: ({ text }) => `https://line.me/R/share?text=${encodeURIComponent(text)}`,
+	composer: ({ text, title }) =>
+		`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text)}`,
 	count: shareKitCountLength,
-	id: 'line',
+	id: 'email',
 	images: [shareKitLandscapeFormat],
-	label: 'LINE',
+	label: 'Email',
 	shape: 'full',
 });
 ```

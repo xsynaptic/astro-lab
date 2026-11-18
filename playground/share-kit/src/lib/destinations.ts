@@ -9,6 +9,7 @@ import {
 	shareKitInstagram,
 	shareKitInstagramStory,
 	shareKitLandscapeFormat,
+	shareKitLine,
 	shareKitLinkedin,
 	shareKitMastodon,
 	shareKitMessages,
@@ -17,20 +18,6 @@ import {
 	shareKitThreads,
 	shareKitX,
 } from '@xsynaptic/share-kit';
-
-// LINE's URL scheme isn't supported in LINE for PC, so a desktop gets the web share page instead
-export const line = defineShareKitDestination({
-	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
-	composer: ({ device, text, url }) =>
-		device === 'mobile'
-			? `https://line.me/R/share?text=${encodeURIComponent(text)}`
-			: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
-	count: shareKitCountLength,
-	id: 'line',
-	images: [shareKitLandscapeFormat],
-	label: 'LINE',
-	shape: 'full',
-});
 
 // `URLSearchParams` would write spaces as `+`, which mail clients show literally
 export const email = defineShareKitDestination({
@@ -57,7 +44,7 @@ export const destinations = [
 	shareKitReddit,
 	shareKitLinkedin,
 	shareKitMessages,
-	line,
+	shareKitLine,
 	email,
 ] as const;
 

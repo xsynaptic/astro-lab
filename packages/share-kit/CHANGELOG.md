@@ -1,5 +1,11 @@
 # @xsynaptic/share-kit
 
+## 0.4.0
+
+### Minor Changes
+
+- `share-kit:action` now fires when a share or save finishes, with an `outcome` that says how it went. LINE is built in as `shareKitLine`. Copy link moves up under the caption. X captions count a bare domain like `example.com` as a link, as X does.
+
 ## 0.3.0
 
 ### Minor Changes

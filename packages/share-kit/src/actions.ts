@@ -1,3 +1,5 @@
+import type { ShareKitActionOutcome } from './types.js';
+
 const shareCapabilities = ['files', 'link', 'copy-image', 'mobile'] as const;
 
 export type ShareCapability = (typeof shareCapabilities)[number];
@@ -52,6 +54,16 @@ export function getShareCapabilities(preset: string | undefined) {
 
 export function isDomError(error: unknown, name: string) {
 	return error instanceof DOMException && error.name === name;
+}
+
+export async function shareData(data: ShareData): Promise<ShareKitActionOutcome> {
+	try {
+		await navigator.share(data);
+
+		return 'shared';
+	} catch (error) {
+		return isDomError(error, 'AbortError') ? 'dismissed' : 'error';
+	}
 }
 
 // `no-cache` revalidates a copy cached without CORS headers, which this fetch would reject

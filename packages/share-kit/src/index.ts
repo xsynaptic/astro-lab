@@ -24,6 +24,7 @@ export {
 	shareKitFacebook,
 	shareKitInstagram,
 	shareKitInstagramStory,
+	shareKitLine,
 	shareKitLinkedin,
 	shareKitMastodon,
 	shareKitMessages,
@@ -48,6 +49,7 @@ export type { ShareKitStringKey, ShareKitStrings } from './strings.js';
 export type {
 	ShareKitAction,
 	ShareKitActionDetail,
+	ShareKitActionOutcome,
 	ShareKitAsset,
 	ShareKitClassRole,
 	ShareKitPayload,

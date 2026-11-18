@@ -9,6 +9,8 @@ import {
 	shareKitCountWeighted,
 	shareKitShortenedLinkCost,
 	shareKitWithLinkCost,
+	withLinkCost,
+	xLinkPattern,
 } from './count.js';
 import {
 	shareKitLandscapeFormat,
@@ -138,6 +140,21 @@ export const shareKitLinkedin = {
 	shape: 'full',
 } as const satisfies ShareKitDestination<'linkedin'>;
 
+// LINE for PC ignores the `line.me/R` scheme, so a desktop gets the web share page instead
+// Encoded by hand because nobody has checked whether LINE reads `+` as a space
+export const shareKitLine = {
+	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
+	composer: ({ device, text, url }) =>
+		device === 'mobile'
+			? `https://line.me/R/share?text=${encodeURIComponent(text)}`
+			: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+	count: shareKitCountLength,
+	id: 'line',
+	images: [shareKitLandscapeFormat],
+	label: 'LINE',
+	shape: 'full',
+} as const satisfies ShareKitDestination<'line'>;
+
 // Each reader posts from their own server, so there is no composer to open
 export const shareKitMastodon = {
 	actions: { desktop: [], mobile: ['share-image'] },
@@ -197,7 +214,7 @@ export const shareKitThreads = {
 export const shareKitX = {
 	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
 	composer: ({ text }) => withQuery('https://x.com/intent/tweet', { text }),
-	count: shareKitWithLinkCost(shareKitCountWeighted, fixedLinkCost),
+	count: withLinkCost(shareKitCountWeighted, fixedLinkCost, xLinkPattern),
 	id: 'x',
 	images: [shareKitLandscapeFormat, shareKitPortraitFormat],
 	label: 'X',

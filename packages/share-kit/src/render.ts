@@ -334,8 +334,8 @@ export function renderShareKit(input: RenderInput): ShareKitParts {
 				createElement('div', { class: 'share-kit-scroll' }, [
 					destinations.section,
 					caption.section,
-					images.section,
 					renderLink(context),
+					images.section,
 				]),
 				createElement('footer', { class: 'share-kit-footer' }, [status, primary]),
 			]),
