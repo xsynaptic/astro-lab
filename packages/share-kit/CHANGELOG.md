@@ -1,5 +1,11 @@
 # @xsynaptic/share-kit
 
+## 0.7.0
+
+### Minor Changes
+
+- Remove `shareKitMessages` and its icon; drop `messages` from your destinations, icons and strings, since Anywhere opens the same share sheet. The dialog widens to fit its destinations on one row, up to 52rem. Images take their shape when they all share one, a lone image drops its label, and the Images section hides when no image loads. Counts group digits for the payload's locale. Adds `--share-kit-backdrop`, `--share-kit-font-display` and the `ShareKitDestinationStringKey` type, and any host focus rule now overrides the focus ring.
+
 ## 0.6.0
 
 ### Minor Changes

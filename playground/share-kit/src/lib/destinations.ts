@@ -12,7 +12,6 @@ import {
 	shareKitLine,
 	shareKitLinkedin,
 	shareKitMastodon,
-	shareKitMessages,
 	shareKitPinterest,
 	shareKitReddit,
 	shareKitThreads,
@@ -43,7 +42,6 @@ export const destinations = [
 	shareKitPinterest,
 	shareKitReddit,
 	shareKitLinkedin,
-	shareKitMessages,
 	shareKitLine,
 	email,
 ] as const;

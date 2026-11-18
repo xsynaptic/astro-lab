@@ -2,6 +2,7 @@ import type { ShareKitActionKind, ShareKitDestination } from './destinations.js'
 import type { ShareKitParts } from './render.js';
 import type { ShareKitStrings } from './strings.js';
 
+import { getSharedRatio } from './formats.js';
 import { formatShareString, getDestinationHint, getDestinationLabel } from './strings.js';
 
 type ShareKitStringKey = keyof ShareKitStrings<string>;
@@ -29,12 +30,14 @@ interface SyncInput {
 
 interface SyncCaptionInput extends SyncInput {
 	isEdited: boolean;
+	numberFormat: Intl.NumberFormat;
 	primaryAction: ShareKitActionKind;
 }
 
 export function syncCaptionView({
 	destination,
 	isEdited,
+	numberFormat,
 	parts,
 	primaryAction,
 	strings,
@@ -43,10 +46,13 @@ export function syncCaptionView({
 	const count = destination.count(parts.caption.value);
 	const isOver = limit !== undefined && count > limit;
 	const label = getDestinationLabel(strings, destination);
-	const over = String(count - (limit ?? 0));
+	const over = numberFormat.format(count - (limit ?? 0));
 	const copyLabel = strings[copyLabels[destination.shape]];
 
-	const total = limit === undefined ? String(count) : `${String(count)} / ${String(limit)}`;
+	const total =
+		limit === undefined
+			? numberFormat.format(count)
+			: `${numberFormat.format(count)} / ${numberFormat.format(limit)}`;
 	const overNote = isOver ? ` · ${formatShareString(strings.countOver, { count: over })}` : '';
 
 	parts.count.textContent = `${total}${overNote}`;
@@ -97,9 +103,19 @@ export function syncDestinationView({
 	parts.link.textContent = url;
 	parts.link.title = url;
 
+	const ratio = getSharedRatio(assets.flatMap((tile) => parts.assets.get(tile) ?? []));
+
+	parts.imagesSection.hidden = assets.length === 0;
+
+	parts.grid.style.removeProperty('--share-kit-preview-ratio');
+
+	if (ratio) parts.grid.style.setProperty('--share-kit-preview-ratio', ratio);
+
 	for (const asset of assets) {
+		const label = asset.querySelector<HTMLElement>('.share-kit-tile-label');
 		const badge = asset.querySelector<HTMLElement>('.share-kit-badge');
 
+		if (label) label.hidden = assets.length === 1;
 		if (badge) badge.hidden = asset !== suggested;
 	}
 

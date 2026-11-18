@@ -46,7 +46,6 @@ export const sampleSettings = {
 		'pinterest',
 		'reddit',
 		'linkedin',
-		'messages',
 		'line',
 		'email',
 	],

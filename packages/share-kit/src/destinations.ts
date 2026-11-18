@@ -46,9 +46,13 @@ export interface ShareKitDestination<Id extends string> {
 	utmSource?: false | string;
 }
 
+export function defineShareKitDestination<const Id extends string, const Hint extends string>(
+	destination: ShareKitDestination<Id> & { hint: Hint },
+): ShareKitDestination<Id> & { hint: Hint };
 export function defineShareKitDestination<const Id extends string>(
 	destination: ShareKitDestination<Id>,
-) {
+): ShareKitDestination<Id>;
+export function defineShareKitDestination(destination: ShareKitDestination<string>) {
 	return destination;
 }
 
@@ -167,15 +171,6 @@ export const shareKitMastodon = {
 	limit: 500,
 	shape: 'full',
 } as const satisfies ShareKitDestination<'mastodon'>;
-
-export const shareKitMessages = {
-	actions: { desktop: ['share-text'], mobile: ['share-text'] },
-	count: shareKitCountLength,
-	id: 'messages',
-	images: [shareKitLandscapeFormat],
-	label: 'Messages',
-	shape: 'full',
-} as const satisfies ShareKitDestination<'messages'>;
 
 export const shareKitPinterest = {
 	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },

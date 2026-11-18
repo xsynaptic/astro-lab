@@ -94,11 +94,11 @@ A trigger can name a destination, as in `data-share-kit-trigger="instagram"`, to
 
 If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fragment that no element id on the page uses, or the page also scrolls there. When several elements share one, only the first on the page opens.
 
-`strings` in the payload overrides the dialog's wording by key, including `destination.<id>` and `hint.<id>`.
+`strings` in the payload overrides the dialog's wording by key, including `destination.<id>` and `hint.<id>`. `ShareKitStringKey` lists the interface keys, and `ShareKitDestinationStringKey<typeof destinations>` lists the destination keys that have English text: each label, and each hint.
 
 ## Destinations
 
-The built-ins are `shareKitAnywhere`, `shareKitBluesky`, `shareKitFacebook`, `shareKitInstagram`, `shareKitInstagramStory`, `shareKitLine`, `shareKitLinkedin`, `shareKitMastodon`, `shareKitMessages`, `shareKitPinterest`, `shareKitReddit`, `shareKitThreads` and `shareKitX`. Adjust one by spreading it (`{ ...shareKitMastodon, limit: 1000 }`), or write your own with `defineShareKitDestination`:
+The built-ins are `shareKitAnywhere`, `shareKitBluesky`, `shareKitFacebook`, `shareKitInstagram`, `shareKitInstagramStory`, `shareKitLine`, `shareKitLinkedin`, `shareKitMastodon`, `shareKitPinterest`, `shareKitReddit`, `shareKitThreads` and `shareKitX`. Adjust one by spreading it (`{ ...shareKitMastodon, limit: 1000 }`), or write your own with `defineShareKitDestination`:
 
 ```ts
 export const email = defineShareKitDestination({
@@ -123,7 +123,7 @@ The dialog downloads the images in `assets` to save, copy or share them, so serv
 
 ## Icons
 
-The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close`, or pass a function that returns a promise of that map to load them lazily. `shareKitInterfaceIcons` holds the three drawn for this package. For brand marks, [Simple Icons](https://simpleicons.org) has every built-in but LinkedIn.
+The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close`, or pass a function that returns a promise of that map to load them lazily. `shareKitInterfaceIcons` holds the two drawn for this package; without them Close shows `×` and Anywhere shows no icon. For brand marks, [Simple Icons](https://simpleicons.org) has every built-in but LinkedIn.
 
 ## Styles
 
@@ -131,9 +131,9 @@ The package ships no brand icons. Pass the ones you show to `defineShareKit({ ic
 @import '@xsynaptic/share-kit/styles.css';
 ```
 
-The dialog doesn't use a shadow root, so your CSS can reach it. If your stylesheets use cascade layers, import this one into an early layer, for example `layer(components)`, so classes you pass in `settings.classNames` take priority. If they don't, import it without a layer. A layered import would lose to every plain rule on your page. Also keep the element out of containers like `.prose` that style every `p` or `button` inside them.
+The dialog doesn't use a shadow root, so your CSS can reach it. If your stylesheets use cascade layers, import this one into an early layer, for example `layer(components)`, so classes you pass in `settings.classNames` take priority; when all your component stylesheets share that layer, import this one first among them. If your stylesheets don't use layers, import it without one. A layered import would lose to every plain rule on your page. Also keep the element out of containers like `.prose` that style every `p` or `button` inside them.
 
-To change colours and spacing, set custom properties on `share-kit` or a parent. Each name starts with `--share-kit-` and ends with one of `surface`, `text`, `muted`, `border`, `field`, `accent`, `accent-text`, `hover`, `hover-border`, `danger`, `radius`, `gap`, `shadow` or `font-mono`.
+To change colours and spacing, set custom properties on `share-kit` or a parent. Each name starts with `--share-kit-` and ends with one of `surface`, `text`, `muted`, `border`, `field`, `accent`, `accent-text`, `hover`, `hover-border`, `danger`, `radius`, `gap`, `shadow`, `backdrop`, `font-display` or `font-mono`. The focus ring has no specificity, so any focus rule of yours replaces it.
 
 ## Testing
 

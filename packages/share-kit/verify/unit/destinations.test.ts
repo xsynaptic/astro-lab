@@ -10,7 +10,6 @@ import {
 	shareKitBluesky,
 	shareKitFacebook,
 	shareKitLinkedin,
-	shareKitMessages,
 } from '../../src/destinations.js';
 import { shareKitLandscapeFormat } from '../../src/formats.js';
 
@@ -87,11 +86,6 @@ describe('primary action', () => {
 	test('a phone hands Anywhere to the share sheet; a desktop copies the caption', () => {
 		expect(getAction(shareKitAnywhere, phone)).toBe('share-text');
 		expect(getAction(shareKitAnywhere, desktop)).toBe('copy-caption');
-	});
-
-	test('a desktop hands Messages to the share sheet when it can share text', () => {
-		expect(getAction(shareKitMessages, { ...desktop, canShareText: true })).toBe('share-text');
-		expect(getAction(shareKitMessages, desktop)).toBe('copy-caption');
 	});
 
 	test('a composer that returns no URL for the device falls through to copying', () => {

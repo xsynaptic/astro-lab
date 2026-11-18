@@ -304,6 +304,7 @@ export interface ShareKitParts {
 	grid: HTMLElement;
 	heading: HTMLElement;
 	hint: HTMLElement;
+	imagesSection: HTMLElement;
 	link: HTMLElement;
 	primary: HTMLButtonElement;
 	reset: HTMLElement;
@@ -341,6 +342,8 @@ export function renderShareKit(input: RenderInput): ShareKitParts {
 		],
 	);
 
+	dialog.style.setProperty('--share-kit-destination-count', String(input.destinations.length));
+
 	return {
 		alert: caption.alert,
 		assets: images.assets,
@@ -353,6 +356,7 @@ export function renderShareKit(input: RenderInput): ShareKitParts {
 		grid: images.grid,
 		heading,
 		hint: destinations.hint,
+		imagesSection: images.section,
 		link: link.link,
 		primary,
 		reset: caption.reset,

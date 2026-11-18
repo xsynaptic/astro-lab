@@ -1,3 +1,5 @@
+import type { ShareKitDestination, ShareKitDestinationIdOf } from './destinations.js';
+
 export const shareKitStringDefaults = {
 	assetCopy: 'Copy',
 	assetSave: 'Save',
@@ -36,11 +38,15 @@ export const shareKitStringDefaults = {
 
 export type ShareKitStringKey = keyof typeof shareKitStringDefaults;
 
-type ShareKitDestinationStringKey<Id extends string> = `destination.${Id}` | `hint.${Id}`;
+type DestinationStringKey<Id extends string> = `destination.${Id}` | `hint.${Id}`;
 
-export type ShareKitStrings<Id extends string> = Partial<
-	Record<ShareKitDestinationStringKey<Id>, string>
-> &
+export type ShareKitDestinationStringKey<
+	Destinations extends ReadonlyArray<ShareKitDestination<string>>,
+> =
+	| `destination.${ShareKitDestinationIdOf<Destinations>}`
+	| `hint.${ShareKitDestinationIdOf<ReadonlyArray<Extract<Destinations[number], { hint: string }>>>}`;
+
+export type ShareKitStrings<Id extends string> = Partial<Record<DestinationStringKey<Id>, string>> &
 	Record<ShareKitStringKey, string>;
 
 const destinationStringPattern = /^(?:destination|hint)\.(.+)$/u;
@@ -52,7 +58,7 @@ function isShareStringKey(key: string): key is ShareKitStringKey {
 function isDestinationStringKey(
 	key: string,
 	ids: ReadonlySet<string>,
-): key is ShareKitDestinationStringKey<string> {
+): key is DestinationStringKey<string> {
 	const id = destinationStringPattern.exec(key)?.[1];
 
 	return id !== undefined && ids.has(id);
@@ -90,6 +96,14 @@ export function getDestinationHint(
 	{ hint, id }: LabelledDestination,
 ) {
 	return strings[`hint.${id}`] ?? hint;
+}
+
+export function createNumberFormat(locale: string) {
+	try {
+		return new Intl.NumberFormat(locale);
+	} catch {
+		return new Intl.NumberFormat();
+	}
 }
 
 export function formatShareString(template: string, values: Record<string, string>) {

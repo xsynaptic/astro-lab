@@ -526,6 +526,48 @@ test('a missing image hides its tile, and the nearest card is suggested instead'
 	await expect(dialog.locator('[data-share-kit-asset="pin"] .share-kit-badge')).toBeVisible();
 });
 
+test('the Images section disappears once every image fails', async ({ page }) => {
+	await page.route('**/og/**', (route) => route.abort());
+
+	const dialog = await openSpecimen(page, 'landscape-only');
+
+	await expect(dialog.locator('.share-kit-heading', { hasText: 'Images' })).toBeHidden();
+});
+
+test('an image left alone by failures drops its label and takes its own shape', async ({
+	page,
+}) => {
+	await page.route(/\.(?:avif|jpe?g|png|webp)(?:\?|$)/u, (route) =>
+		route.request().url().includes('landscape') ? route.continue() : route.abort(),
+	);
+
+	const dialog = await openSpecimen(page, 'desktop');
+	const tile = dialog.locator('.share-kit-tile:visible');
+
+	await expect(tile).toHaveCount(1);
+	await expect(tile.locator('.share-kit-tile-label')).toBeHidden();
+	await expect(tile.locator('.share-kit-preview')).toHaveCSS('aspect-ratio', '1200 / 630');
+});
+
+test('the count groups its digits for the payload locale', async ({ page }) => {
+	await page.goto('/');
+	await page.locator('#desktop share-kit').evaluate((element) => {
+		const script = element.querySelector('script[type="application/json"]');
+
+		if (!script?.textContent) return;
+
+		script.textContent = JSON.stringify({ ...JSON.parse(script.textContent), locale: 'de' });
+		element.parentElement?.append(element);
+	});
+	await page.locator('#desktop [data-share-kit-trigger]').click();
+
+	const dialog = page.locator('#desktop .share-kit-dialog');
+
+	await dialog.getByRole('radio', { name: 'Facebook' }).click();
+
+	await expect(dialog.locator('.share-kit-count')).toContainText('/ 63.206');
+});
+
 test('a phone gets no QR code and hands image posts to the share sheet', async ({ page }) => {
 	const dialog = await openSpecimen(page, 'phone');
 	const primary = dialog.locator('.share-kit-primary');

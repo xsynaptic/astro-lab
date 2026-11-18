@@ -1,6 +1,11 @@
 import { expect, expectTypeOf, test } from 'vitest';
 
-import type { ShareKitDestination, ShareKitDestinationIdOf } from '../../src/destinations.js';
+import type {
+	ShareKitDestination,
+	ShareKitDestinationIdOf,
+	shareKitLine,
+} from '../../src/destinations.js';
+import type { ShareKitDestinationStringKey } from '../../src/strings.js';
 import type { ShareKitPayload, ShareKitSettings } from '../../src/types.js';
 
 import { shareKitCountLength } from '../../src/count.js';
@@ -50,6 +55,24 @@ test('a typo in the settings fails, and a computed row is accepted', () => {
 
 	expect(settings.destinations).toEqual(['email']);
 	expect(typo.destinations).toEqual(['emial']);
+});
+
+test('destination string keys include a hint only where the destination has one', () => {
+	const sms = defineShareKitDestination({ ...email, hint: 'Opens your messages app.', id: 'sms' });
+
+	expectTypeOf(sms.hint).toEqualTypeOf<'Opens your messages app.'>();
+	expectTypeOf<
+		ShareKitDestinationStringKey<
+			readonly [typeof shareKitAnywhere, typeof shareKitLine, typeof email, typeof sms]
+		>
+	>().toEqualTypeOf<
+		| 'destination.any'
+		| 'destination.email'
+		| 'destination.line'
+		| 'destination.sms'
+		| 'hint.line'
+		| 'hint.sms'
+	>();
 });
 
 test('the generics have no default for an id to widen to', () => {

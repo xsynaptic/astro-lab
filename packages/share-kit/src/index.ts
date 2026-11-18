@@ -27,7 +27,6 @@ export {
 	shareKitLine,
 	shareKitLinkedin,
 	shareKitMastodon,
-	shareKitMessages,
 	shareKitPinterest,
 	shareKitReddit,
 	shareKitThreads,
@@ -45,7 +44,11 @@ export {
 export type { ShareKitIconName, ShareKitIcons, ShareKitIconsOption } from './icons.js';
 export { shareKitInterfaceIcons } from './icons.js';
 export { serializeShareKitPayload } from './payload.js';
-export type { ShareKitStringKey, ShareKitStrings } from './strings.js';
+export type {
+	ShareKitDestinationStringKey,
+	ShareKitStringKey,
+	ShareKitStrings,
+} from './strings.js';
 export type {
 	ShareKitAction,
 	ShareKitActionDetail,

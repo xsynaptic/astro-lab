@@ -31,21 +31,21 @@
 	{
 		"name": "share-kit, every built-in",
 		"path": "packages/share-kit/src/index.ts",
-		"import": "{ defineShareKit, shareKitAnywhere, shareKitBluesky, shareKitFacebook, shareKitInstagram, shareKitInstagramStory, shareKitLine, shareKitLinkedin, shareKitMastodon, shareKitMessages, shareKitPinterest, shareKitReddit, shareKitThreads, shareKitX }",
+		"import": "{ defineShareKit, shareKitAnywhere, shareKitBluesky, shareKitFacebook, shareKitInstagram, shareKitInstagramStory, shareKitLine, shareKitLinkedin, shareKitMastodon, shareKitPinterest, shareKitReddit, shareKitThreads, shareKitX }",
 		"entry": ["index"],
 		"limit": "9850 B"
 	},
 	{
 		"name": "share-kit, every built-in, with QR on demand",
 		"path": "packages/share-kit/src/index.ts",
-		"import": "{ defineShareKit, shareKitAnywhere, shareKitBluesky, shareKitFacebook, shareKitInstagram, shareKitInstagramStory, shareKitLine, shareKitLinkedin, shareKitMastodon, shareKitMessages, shareKitPinterest, shareKitReddit, shareKitThreads, shareKitX }",
+		"import": "{ defineShareKit, shareKitAnywhere, shareKitBluesky, shareKitFacebook, shareKitInstagram, shareKitInstagramStory, shareKitLine, shareKitLinkedin, shareKitMastodon, shareKitPinterest, shareKitReddit, shareKitThreads, shareKitX }",
 		"limit": "13850 B"
 	},
 	{
 		"name": "share-kit/styles.css",
 		"path": "packages/share-kit/src/styles.css",
 		"rolldown": false,
-		"limit": "2200 B"
+		"limit": "2250 B"
 	},
 	{
 		"name": "web-components/path-suggestions",

@@ -22,7 +22,7 @@ import { getSuggestedImage } from './formats.js';
 import { getShareAssets, getShareDestinations, readSharePayload } from './payload.js';
 import { createShareQr } from './qr.js';
 import { renderShareKit } from './render.js';
-import { getShareStrings, shareKitStringDefaults } from './strings.js';
+import { createNumberFormat, getShareStrings, shareKitStringDefaults } from './strings.js';
 import { syncCaptionView, syncDestinationView } from './sync.js';
 import { shareKitActionEventName } from './types.js';
 
@@ -105,6 +105,7 @@ export abstract class ShareKitElement extends BaseElement {
 	#isCaptionEdited = false;
 	#isIconsRequested = false;
 	#isOver = false;
+	#numberFormat = new Intl.NumberFormat();
 	#parts: ShareKitParts | undefined;
 	#payload: ShareKitPayload<string> | undefined;
 	#primaryActions = {
@@ -171,6 +172,7 @@ export abstract class ShareKitElement extends BaseElement {
 		this.#destinations = destinations;
 		this.#payload = { ...payload, assets: getShareAssets(payload.assets) };
 		this.#strings = getShareStrings(payload.strings ?? {}, new Set(this.catalogue.keys()));
+		this.#numberFormat = createNumberFormat(payload.locale);
 		this.#feedback = new ShareFeedback(() => this.#parts?.status, this.#strings);
 
 		const { signal } = this.#abortController;
@@ -557,6 +559,7 @@ export abstract class ShareKitElement extends BaseElement {
 		const { isOver, message } = syncCaptionView({
 			destination,
 			isEdited: this.#isCaptionEdited,
+			numberFormat: this.#numberFormat,
 			parts,
 			primaryAction: this.#getPrimaryAction(),
 			strings: this.#strings,

@@ -40,13 +40,24 @@ const fitTolerance = 0.02;
 
 function getRatioDistance(
 	image: Pick<ShareImage, 'height' | 'width'>,
-	format: ShareKitImageFormat,
+	format: Pick<ShareImage, 'height' | 'width'>,
 ) {
 	return Math.abs(Math.log(image.width / image.height / (format.width / format.height)));
 }
 
-function isFormatFit(image: Pick<ShareImage, 'height' | 'width'>, format: ShareKitImageFormat) {
+function isFormatFit(
+	image: Pick<ShareImage, 'height' | 'width'>,
+	format: Pick<ShareImage, 'height' | 'width'>,
+) {
 	return getRatioDistance(image, format) <= fitTolerance;
+}
+
+export function getSharedRatio(images: ReadonlyArray<Pick<ShareImage, 'height' | 'width'>>) {
+	const [first, ...rest] = images;
+
+	if (!first || rest.some((image) => !isFormatFit(image, first))) return;
+
+	return `${String(first.width)} / ${String(first.height)}`;
 }
 
 export function getSuggestedImage<Image extends ShareImage>(
