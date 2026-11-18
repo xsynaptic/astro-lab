@@ -1,5 +1,11 @@
 # @xsynaptic/eslint-config
 
+## 6.9.0
+
+### Minor Changes
+
+- Lint `*.test.{ts,tsx}` with a subset of `@vitest/eslint-plugin`, counting `test` from `@fast-check/vitest` as a test. `restrictedSyntaxDefaults` also reports `.only.prop`, `.skip.prop`, and a fast-check property that returns early instead of calling `fc.pre()`. Expect new reports: replace `if (!x) throw` guards in tests with `assert(x)` from `vitest`, and drop any local `vitest` plugin registration.
+
 ## 6.8.1
 
 ### Patch Changes

@@ -3,6 +3,7 @@ import type { Config, ConfigWithExtends, ConfigWithExtendsArray } from '@eslint/
 import eslintComments from '@eslint-community/eslint-plugin-eslint-comments';
 import { defineConfig } from '@eslint/config-helpers';
 import eslint from '@eslint/js';
+import vitestPlugin from '@vitest/eslint-plugin';
 import astroPlugin from 'eslint-plugin-astro';
 import perfectionist from 'eslint-plugin-perfectionist';
 import unicornPlugin from 'eslint-plugin-unicorn';
@@ -12,8 +13,22 @@ import tseslint from 'typescript-eslint';
 
 type RestrictedSyntaxOption = string | { message?: string; selector: string };
 
+// `@vitest/eslint-plugin` cannot see into fast-check properties
+const propertyBody =
+	":matches(CallExpression[callee.type='CallExpression'][callee.callee.property.name='prop'], CallExpression[callee.object.name='fc'][callee.property.name=/^(property|asyncProperty)$/]) > :function > BlockStatement";
+const propertyGuard = `${propertyBody} > IfStatement:not(ExpressionStatement:has(CallExpression[callee.name=/^(assert|expect)$/]) ~ IfStatement)`;
+
 // Exported because a scoped `no-restricted-syntax` replaces these wholesale; spread them back in
 export const restrictedSyntaxDefaults: Array<RestrictedSyntaxOption> = [
+	{
+		message: 'Remove `.only` or `.skip` from the property.',
+		selector: "MemberExpression[object.property.name=/^(only|skip)$/][property.name='prop']",
+	},
+	{
+		message:
+			'Skip the run with `fc.pre()` instead; fast-check fails a property that skips nearly every run.',
+		selector: `:matches(${propertyGuard} > ReturnStatement.consequent, ${propertyGuard} > BlockStatement.consequent[body.length=1] > ReturnStatement)[argument=null]`,
+	},
 	{
 		message: 'Re-export named symbols explicitly; `export *` obscures output.',
 		selector: 'ExportAllDeclaration',
@@ -177,6 +192,29 @@ export function getConfig(
 					'error',
 					{ ignore: ['eslint-enable'] },
 				],
+			},
+		},
+		{
+			files: ['**/*.test.{ts,tsx}'],
+			plugins: { vitest: vitestPlugin },
+			rules: {
+				'vitest/expect-expect': [
+					'error',
+					{ assertFunctionNames: ['assert', 'expect*', 'fc.assert'] },
+				],
+				'vitest/no-commented-out-tests': 'error',
+				'vitest/no-conditional-expect': 'error',
+				'vitest/no-conditional-in-test': 'error',
+				'vitest/no-disabled-tests': 'error',
+				'vitest/no-focused-tests': 'error',
+				'vitest/no-identical-title': 'error',
+				'vitest/require-awaited-expect-poll': 'error',
+				'vitest/require-to-throw-message': 'error',
+				'vitest/valid-expect': ['error', { maxArgs: 2 }],
+				'vitest/valid-expect-in-promise': 'error',
+			},
+			settings: {
+				vitest: { vitestImports: ['@fast-check/vitest'] },
 			},
 		},
 	] satisfies Array<ConfigWithExtends>;
