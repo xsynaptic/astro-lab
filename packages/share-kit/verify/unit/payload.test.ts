@@ -12,8 +12,8 @@ import {
 } from '../../src/destinations.js';
 import { shareKitLandscapeFormat } from '../../src/formats.js';
 import {
-	getDestinationLists,
 	getShareAssets,
+	getShareDestinations,
 	serializeShareKitPayload,
 } from '../../src/payload.js';
 import { getDestinationHint, getDestinationLabel, getShareStrings } from '../../src/strings.js';
@@ -37,9 +37,7 @@ const catalogue = new Map<string, ShareKitDestination<string>>(
 );
 
 function getIds(settings: string) {
-	const lists = getDestinationLists(JSON.parse(settings), catalogue);
-
-	return lists && { main: lists.main.map(({ id }) => id), more: lists.more.map(({ id }) => id) };
+	return getShareDestinations(JSON.parse(settings), catalogue)?.map(({ id }) => id);
 }
 
 afterEach(() => {
@@ -62,26 +60,17 @@ describe('serializeShareKitPayload', () => {
 	});
 });
 
-describe('getDestinationLists', () => {
-	test('drops unregistered and repeated ids, and anything already in the main row, with one warning', () => {
+describe('getShareDestinations', () => {
+	test('drops unregistered and repeated ids, with one warning', () => {
 		const warn = vi.spyOn(console, 'warn').mockReturnValue();
 
-		expect(
-			getIds(
-				'{"destinations":["x","x","nope","line"],"destinationsMore":["line","threads","threads","gone"]}',
-			),
-		).toEqual({ main: ['x', 'line'], more: ['threads'] });
+		expect(getIds('{"destinations":["x","x","nope","line","threads","gone"]}')).toEqual([
+			'x',
+			'line',
+			'threads',
+		]);
 		expect(warn).toHaveBeenCalledOnce();
 		expect(warn.mock.calls[0]?.[0]).toContain('nope, gone');
-	});
-
-	test('promotes the more row when nothing in the main row is registered', () => {
-		vi.spyOn(console, 'warn').mockReturnValue();
-
-		expect(getIds('{"destinations":["nope"],"destinationsMore":["bluesky","line"]}')).toEqual({
-			main: ['bluesky', 'line'],
-			more: [],
-		});
 	});
 
 	test('leaves nothing to render when no id is registered, and says so', () => {
@@ -89,7 +78,7 @@ describe('getDestinationLists', () => {
 
 		expect(getIds('{"destinations":"x"}')).toBeUndefined();
 		expect(warn).toHaveBeenLastCalledWith('share-kit: no registered destinations to show');
-		expect(getIds('{"destinations":["nope"],"destinationsMore":[]}')).toBeUndefined();
+		expect(getIds('{"destinations":["nope"]}')).toBeUndefined();
 	});
 });
 

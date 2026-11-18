@@ -16,7 +16,6 @@ export type ShareKitClassRole = 'action' | 'destination' | 'heading' | 'input' |
 export interface ShareKitSettings<Id extends string> {
 	classNames?: Partial<Record<ShareKitClassRole, string>>;
 	destinations: ReadonlyArray<Id>;
-	destinationsMore?: ReadonlyArray<Id>;
 	openHash?: string;
 	utmMedium?: string;
 }

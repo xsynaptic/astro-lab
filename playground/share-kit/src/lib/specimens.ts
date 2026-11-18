@@ -69,7 +69,6 @@ export function getSpecimens(): Array<Specimen> {
 				settings: {
 					...sampleSettings,
 					destinations: ['facebook'],
-					destinationsMore: [],
 					openHash: 'share',
 				},
 			},

@@ -1,5 +1,11 @@
 # @xsynaptic/share-kit
 
+## 0.6.0
+
+### Minor Changes
+
+- Drop the More button: `settings.destinations` is now the only list, so merge `destinationsMore` into it, and remove the `more` icon and string from your overrides. Buttons show a press, and a copy button's own Copied label is no longer repeated in the footer.
+
 ## 0.5.0
 
 ### Minor Changes

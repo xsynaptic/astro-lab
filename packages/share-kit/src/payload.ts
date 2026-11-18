@@ -44,30 +44,24 @@ function getIds(value: unknown) {
 }
 
 // The payload arrives as JSON, so ids are checked again; an empty row would leave the radio group unreachable
-export function getDestinationLists(
-	{ destinations, destinationsMore }: ShareKitSettings<string>,
+export function getShareDestinations(
+	{ destinations }: ShareKitSettings<string>,
 	catalogue: Catalogue,
 ) {
 	const unknown: Array<string> = [];
-	const resolve = (ids: Array<unknown>) =>
-		ids.flatMap((id) => {
-			const destination = typeof id === 'string' ? catalogue.get(id) : undefined;
+	const shown = getIds(destinations).flatMap((id) => {
+		const destination = typeof id === 'string' ? catalogue.get(id) : undefined;
 
-			if (!destination) unknown.push(String(id));
+		if (!destination) unknown.push(String(id));
 
-			return destination ? [destination] : [];
-		});
-	const shown = resolve(getIds(destinations));
-	const rest = resolve(getIds(destinationsMore)).filter(
-		(destination) => !shown.includes(destination),
-	);
+		return destination ? [destination] : [];
+	});
 
 	if (unknown.length > 0) {
 		console.warn(`share-kit: unregistered destinations dropped: ${unknown.join(', ')}`);
 	}
 
-	if (shown.length > 0) return { main: shown, more: rest };
-	if (rest.length > 0) return { main: rest, more: [] };
+	if (shown.length > 0) return shown;
 
 	console.warn('share-kit: no registered destinations to show');
 

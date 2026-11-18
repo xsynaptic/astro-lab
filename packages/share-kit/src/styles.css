@@ -392,6 +392,11 @@ share-kit {
 .share-kit-status {
 	min-width: 0;
 	font-size: 0.875rem;
+
+	/* Clipped rather than visually hidden, which would take it out of flow and pull the primary button left */
+	&[data-share-kit-hidden] {
+		clip-path: inset(50%);
+	}
 }
 
 .share-kit-primary {
@@ -403,6 +408,10 @@ share-kit {
 	cursor: pointer;
 	background-color: var(--share-kit-accent);
 	border-radius: calc(var(--share-kit-radius) * 0.5);
+}
+
+:where(.share-kit-dialog button:active) {
+	scale: 0.97;
 }
 
 .share-kit-dialog :is(button, textarea):focus-visible {

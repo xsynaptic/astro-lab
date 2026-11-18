@@ -51,16 +51,16 @@ describe('defineShareKit', () => {
 	});
 
 	test('refuses an id that collides with an interface icon without throwing', () => {
-		const more = defineShareKitDestination({
+		const close = defineShareKitDestination({
 			actions: { desktop: [], mobile: [] },
 			count: shareKitCountLength,
-			id: 'more',
+			id: 'close',
 			images: [shareKitLandscapeFormat],
-			label: 'More',
+			label: 'Close',
 			shape: 'url',
 		});
 
-		expectRefused(() => defineShareKit({ destinations: [shareKitThreads, more] }));
+		expectRefused(() => defineShareKit({ destinations: [shareKitThreads, close] }));
 	});
 
 	test('warns about open-composer with no composer, and still defines', () => {

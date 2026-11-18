@@ -45,7 +45,7 @@ const payload: ShareKitPayload<Destination> = {
 	assets: [],
 	description: 'On foggy nights the cat follows the keeper up the tower.',
 	locale: 'en',
-	settings: { destinations: ['any', 'bluesky', 'threads'], destinationsMore: ['x', 'mastodon'] },
+	settings: { destinations: ['any', 'bluesky', 'threads', 'x', 'mastodon'] },
 	title: "The Lighthouse Keeper's Cat",
 	url: 'https://example.com/lighthouse-keepers-cat/',
 };
@@ -123,7 +123,7 @@ The dialog downloads the images in `assets` to save, copy or share them, so serv
 
 ## Icons
 
-The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close` and `more`, or pass a function that returns a promise of that map to load them lazily. `shareKitInterfaceIcons` holds the four drawn for this package. For brand marks, [Simple Icons](https://simpleicons.org) has every built-in but LinkedIn.
+The package ships no brand icons. Pass the ones you show to `defineShareKit({ icons })` as 24×24 SVG path data, keyed by destination id or by `close`, or pass a function that returns a promise of that map to load them lazily. `shareKitInterfaceIcons` holds the three drawn for this package. For brand marks, [Simple Icons](https://simpleicons.org) has every built-in but LinkedIn.
 
 ## Styles
 

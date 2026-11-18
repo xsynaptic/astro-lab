@@ -10,7 +10,6 @@ export const shareKitStringDefaults = {
 	copyText: 'Copy text',
 	copyTitle: 'Copy title',
 	countOver: '{count} over',
-	destinationsMore: 'More',
 	destinationsTitle: 'Post to',
 	error: 'Something went wrong. Try saving instead.',
 	fieldText: 'Text',

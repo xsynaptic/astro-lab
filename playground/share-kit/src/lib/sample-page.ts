@@ -34,8 +34,12 @@ const title = "The Lighthouse Keeper's Cat";
 const filenamePrefix = 'lighthouse-cat';
 
 export const sampleSettings = {
-	destinations: ['any', 'bluesky', 'instagram', 'instagram-story', 'threads'],
-	destinationsMore: [
+	destinations: [
+		'any',
+		'bluesky',
+		'instagram',
+		'instagram-story',
+		'threads',
 		'mastodon',
 		'x',
 		'facebook',

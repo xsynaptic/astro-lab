@@ -10,7 +10,6 @@ import { getDestinationLabel } from './strings.js';
 interface RenderInput {
 	capabilities: ReadonlySet<ShareCapability>;
 	destinations: ReadonlyArray<ShareKitDestination<string>>;
-	destinationsMore: ReadonlyArray<ShareKitDestination<string>>;
 	icons: ShareKitIcons<string>;
 	id: string;
 	isIconsLoading: boolean;
@@ -122,58 +121,31 @@ function renderDestination(context: RenderContext, destination: ShareKitDestinat
 }
 
 function renderDestinationRow(context: RenderContext) {
-	const { destinations, destinationsMore, id, strings } = context;
+	const { destinations, id, strings } = context;
 	const headingId = `${id}-destinations`;
-	const more =
-		destinationsMore.length > 0
-			? createElement(
-					'button',
-					{
-						class: joinClasses('share-kit-destination', context.classNames.destination),
-						'data-share-kit-action': 'more',
-						type: 'button',
-					},
-					[
-						renderDestinationIcon(context, 'more'),
-						createElement('span', {}, [strings.destinationsMore]),
-					],
-				)
-			: undefined;
-	const extra = destinationsMore.map((destination) => {
-		const button = renderDestination(context, destination);
-
-		button.hidden = true;
-
-		return button;
-	});
 	const group = createElement(
 		'div',
 		{ 'aria-labelledby': headingId, class: 'share-kit-destinations', role: 'radiogroup' },
-		[...destinations.map((destination) => renderDestination(context, destination)), ...extra],
+		destinations.map((destination) => renderDestination(context, destination)),
 	);
 
-	return {
-		more,
-		nodes: [
-			renderHeading(context, [strings.destinationsTitle], headingId),
-			createElement('div', { class: 'share-kit-destinations-row' }, [group, more]),
-		],
-	};
+	return [
+		renderHeading(context, [strings.destinationsTitle], headingId),
+		createElement('div', { class: 'share-kit-destinations-row' }, [group]),
+	];
 }
 
 function renderDestinations(context: RenderContext) {
 	const hint = createElement('p', { class: 'share-kit-hint', id: `${context.id}-hint` });
 
-	if (context.destinations.length + context.destinationsMore.length === 1) {
-		return { hint, more: undefined, section: hint };
-	}
-
-	const { more, nodes } = renderDestinationRow(context);
+	if (context.destinations.length === 1) return { hint, section: hint };
 
 	return {
 		hint,
-		more,
-		section: createElement('section', { class: 'share-kit-section' }, [...nodes, hint]),
+		section: createElement('section', { class: 'share-kit-section' }, [
+			...renderDestinationRow(context),
+			hint,
+		]),
 	};
 }
 
@@ -333,7 +305,6 @@ export interface ShareKitParts {
 	heading: HTMLElement;
 	hint: HTMLElement;
 	link: HTMLElement;
-	more: HTMLElement | undefined;
 	primary: HTMLButtonElement;
 	reset: HTMLElement;
 	status: HTMLElement;
@@ -383,7 +354,6 @@ export function renderShareKit(input: RenderInput): ShareKitParts {
 		heading,
 		hint: destinations.hint,
 		link: link.link,
-		more: destinations.more,
 		primary,
 		reset: caption.reset,
 		status,

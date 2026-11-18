@@ -17,12 +17,13 @@ export class ShareFeedback {
 		this.#strings = strings;
 	}
 
-	announce(message: string) {
+	announce(message: string, isVisuallyHidden = false) {
 		const status = this.#getStatus();
 
 		if (!status) return;
 
 		status.textContent = message;
+		status.toggleAttribute('data-share-kit-hidden', isVisuallyHidden);
 
 		clearTimeout(this.#timeout);
 		this.#timeout = setTimeout(() => {
@@ -55,7 +56,7 @@ export class ShareFeedback {
 	}
 
 	#flash(button: HTMLElement | undefined) {
-		this.announce(this.#strings.copied);
+		this.announce(this.#strings.copied, button !== undefined);
 
 		if (!button || this.#flashing.has(button)) return;
 

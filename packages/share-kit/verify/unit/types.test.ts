@@ -42,11 +42,14 @@ test('a typo in the settings fails, and a computed row is accepted', () => {
 	const ids: ReadonlyArray<Destination> = ['any', 'email'];
 	const settings: ShareKitSettings<Destination> = {
 		destinations: ids.filter((id) => id !== 'any'),
+	};
+	const typo: ShareKitSettings<Destination> = {
 		// @ts-expect-error `emial` is not a registered id
-		destinationsMore: ['emial'],
+		destinations: ['emial'],
 	};
 
 	expect(settings.destinations).toEqual(['email']);
+	expect(typo.destinations).toEqual(['emial']);
 });
 
 test('the generics have no default for an id to widen to', () => {

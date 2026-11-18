@@ -19,14 +19,12 @@ import { patchIcons, polyfillLightDismiss, radioKeys } from './dom.js';
 import { ShareFeedback } from './feedback.js';
 import { getSuggestedImage } from './formats.js';
 import { ShareIconSource } from './icons.js';
-import { getDestinationLists, getShareAssets, readSharePayload } from './payload.js';
+import { getShareAssets, getShareDestinations, readSharePayload } from './payload.js';
 import { createShareQr } from './qr.js';
 import { renderShareKit } from './render.js';
 import { getShareStrings, shareKitStringDefaults } from './strings.js';
 import { syncCaptionView, syncDestinationView } from './sync.js';
 import { shareKitActionEventName } from './types.js';
-
-type DestinationLists = NonNullable<ReturnType<typeof getDestinationLists>>;
 
 type SettledAction = 'save' | 'share' | 'share-link' | 'share-text';
 
@@ -80,9 +78,6 @@ export class ShareKitElement extends BaseElement {
 			this.#selectDestination(destination);
 			this.#track('destination');
 		},
-		more: () => {
-			this.#showMore()[0]?.focus();
-		},
 		primary: () => {
 			this.#primaryActions[this.#getPrimaryAction()]();
 		},
@@ -104,12 +99,12 @@ export class ShareKitElement extends BaseElement {
 	};
 	#capabilities = new Set<ShareCapability>();
 	#destination: ShareKitDestination<string> | undefined;
+	#destinations: ReadonlyArray<ShareKitDestination<string>> | undefined;
 	#feedback: ShareFeedback | undefined;
 	#files: ShareAssetFiles | undefined;
 	#isCaptionEdited = false;
 	#isIconsRequested = false;
 	#isOver = false;
-	#lists: DestinationLists | undefined;
 	#parts: ShareKitParts | undefined;
 	#payload: ShareKitPayload<string> | undefined;
 	#primaryActions = {
@@ -168,12 +163,12 @@ export class ShareKitElement extends BaseElement {
 			return;
 		}
 
-		const lists = getDestinationLists(payload.settings, this.catalogue);
+		const destinations = getShareDestinations(payload.settings, this.catalogue);
 
-		if (!lists) return;
+		if (!destinations) return;
 
 		this.#abortController = new AbortController();
-		this.#lists = lists;
+		this.#destinations = destinations;
 		this.#payload = { ...payload, assets: getShareAssets(payload.assets) };
 		this.#strings = getShareStrings(payload.strings ?? {}, new Set(this.catalogue.keys()));
 		this.#feedback = new ShareFeedback(() => this.#parts?.status, this.#strings);
@@ -219,7 +214,7 @@ export class ShareKitElement extends BaseElement {
 		this.#files?.dispose();
 		this.#files = undefined;
 		this.#destination = undefined;
-		this.#lists = undefined;
+		this.#destinations = undefined;
 		this.#isCaptionEdited = false;
 		this.#isIconsRequested = false;
 		this.#isOver = false;
@@ -295,11 +290,9 @@ export class ShareKitElement extends BaseElement {
 	}
 
 	#getRendered(id: string | undefined) {
-		const lists = this.#lists;
+		if (!id) return;
 
-		if (!id || !lists) return;
-
-		return [...lists.main, ...lists.more].find((destination) => destination.id === id);
+		return this.#destinations?.find((destination) => destination.id === id);
 	}
 
 	#getSuggestedAsset() {
@@ -364,7 +357,7 @@ export class ShareKitElement extends BaseElement {
 
 		if (!move || !(event.target instanceof HTMLElement) || event.target.role !== 'radio') return;
 
-		const radios = [...this.querySelectorAll<HTMLElement>('[role="radio"]:not([hidden])')];
+		const radios = [...this.querySelectorAll<HTMLElement>('[role="radio"]')];
 		const next = radios[move(radios.indexOf(event.target), radios.length)];
 		const destination = this.#getRendered(next?.dataset.shareKitDestination);
 
@@ -411,7 +404,6 @@ export class ShareKitElement extends BaseElement {
 		const destination = this.#getRendered(destinationId);
 
 		if (destination) this.#selectDestination(destination);
-		if (destination && this.#lists?.more.includes(destination)) this.#showMore();
 
 		parts.dialog.showModal();
 		// Focusing the heading lets a screen reader start from the dialog's name
@@ -458,12 +450,11 @@ export class ShareKitElement extends BaseElement {
 
 	#render() {
 		const payload = this.#payload;
-		const lists = this.#lists;
+		const destinations = this.#destinations;
 		const signal = this.#abortController?.signal;
 
-		if (!payload || !lists || !signal) return;
+		if (!payload || !destinations || !signal) return;
 
-		const { main, more } = lists;
 		const { icons, isLoading } = this.iconSource;
 
 		dialogCount += 1;
@@ -471,8 +462,7 @@ export class ShareKitElement extends BaseElement {
 		const id = `share-kit-${String(dialogCount)}`;
 		const parts = renderShareKit({
 			capabilities: this.#capabilities,
-			destinations: main,
-			destinationsMore: more,
+			destinations,
 			icons,
 			id,
 			isIconsLoading: isLoading,
@@ -495,7 +485,7 @@ export class ShareKitElement extends BaseElement {
 		polyfillLightDismiss(parts.dialog, signal);
 		this.append(parts.dialog);
 		this.#parts = parts;
-		this.#destination = main[0];
+		this.#destination = destinations[0];
 		this.#syncDestination();
 
 		return parts;
@@ -550,16 +540,6 @@ export class ShareKitElement extends BaseElement {
 		if (!detail || !outcome) return;
 
 		this.#dispatch({ ...detail, outcome: outcome === 'unsaved' ? 'error' : outcome });
-	}
-
-	#showMore() {
-		const hidden = [...this.querySelectorAll<HTMLElement>('[role="radio"][hidden]')];
-
-		for (const radio of hidden) radio.hidden = false;
-
-		if (this.#parts?.more) this.#parts.more.hidden = true;
-
-		return hidden;
 	}
 
 	#syncCaption() {

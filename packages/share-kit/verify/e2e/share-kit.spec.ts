@@ -1,4 +1,4 @@
-import type { BrowserContext, Locator, Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -238,11 +238,6 @@ test(
 	},
 );
 
-async function selectMore(dialog: Locator, name: string) {
-	await dialog.getByRole('button', { name: 'More' }).click();
-	await dialog.getByRole('radio', { name }).click();
-}
-
 test('LINE opens its web share page on a desktop', async ({ context, page }) => {
 	await context.route('https://social-plugins.line.me/**', (route) =>
 		route.fulfill({ body: 'composer' }),
@@ -250,7 +245,7 @@ test('LINE opens its web share page on a desktop', async ({ context, page }) => 
 
 	const dialog = await openSpecimen(page, 'desktop');
 
-	await selectMore(dialog, 'LINE');
+	await dialog.getByRole('radio', { name: 'LINE' }).click();
 
 	const primary = dialog.locator('.share-kit-primary');
 
@@ -275,7 +270,7 @@ test('Mastodon opens its hosted composer with the text in the fragment', async (
 
 	const dialog = await openSpecimen(page, 'desktop');
 
-	await selectMore(dialog, 'Mastodon');
+	await dialog.getByRole('radio', { name: 'Mastodon' }).click();
 
 	const caption = await dialog.getByRole('textbox', { name: 'Text' }).inputValue();
 	const [popup] = await Promise.all([
@@ -294,7 +289,7 @@ test("LINE opens its app's share screen on a phone", async ({ context, page }) =
 
 	const dialog = await openSpecimen(page, 'phone');
 
-	await selectMore(dialog, 'LINE');
+	await dialog.getByRole('radio', { name: 'LINE' }).click();
 
 	const [popup] = await Promise.all([
 		page.waitForEvent('popup'),
@@ -319,7 +314,7 @@ test('a mailto: composer hands off without opening a tab', async ({ context, pag
 	page.on('pageerror', (error) => {
 		errors.push(error.message);
 	});
-	await selectMore(dialog, 'Email');
+	await dialog.getByRole('radio', { name: 'Email' }).click();
 	await dialog.locator('.share-kit-primary').click();
 
 	await expect(page.locator('[data-event-log]')).toContainText('"action":"open-composer"');
@@ -389,6 +384,8 @@ test('Story drops the text field and copies its tagged link', async ({
 
 	expect(new URL(clipboard).searchParams.get('utm_source')).toBe('instagram-story');
 	await expect(dialog.locator('.share-kit-link')).toHaveText(clipboard);
+	await expect(dialog.getByRole('button', { name: 'Copied' })).toBeVisible();
+	await expect(dialog.locator('.share-kit-status')).toHaveAttribute('data-share-kit-hidden');
 });
 
 test('Instagram on a desktop saves the suggested image and copies the text', async ({
@@ -515,20 +512,6 @@ test("an edited caption keeps the reader's words and swaps in the new destinatio
 	await expect(caption).toHaveValue(/^Edited\. /u);
 	await expect(caption).toHaveValue(/utm_source=threads/u);
 	await expect(caption).not.toHaveValue(/utm_source=bluesky/u);
-});
-
-test('More reveals the remaining destinations, and arrow keys reach them', async ({ page }) => {
-	const dialog = await openSpecimen(page, 'desktop');
-	const mastodon = dialog.getByRole('radio', { name: 'Mastodon' });
-
-	await expect(mastodon).toBeHidden();
-	await dialog.getByRole('button', { name: 'More' }).click();
-	await expect(mastodon).toBeFocused();
-
-	await dialog.getByRole('radio', { name: 'Threads' }).focus();
-	await page.keyboard.press('ArrowRight');
-	await expect(mastodon).toBeFocused();
-	await expect(mastodon).toHaveAttribute('aria-checked', 'true');
 });
 
 // The 2:3 pin card is the nearest to Bluesky's 4:5 once the portrait card is gone
