@@ -1,5 +1,15 @@
 # @xsynaptic/eslint-config
 
+## 6.10.0
+
+### Minor Changes
+
+- Bump `eslint-plugin-unicorn` `^79.0` → `^80.0` and `typescript-eslint` to 8.73.0. New preset rules `unicorn/prefer-options-parameter` and `@typescript-eslint/no-unsafe-class-instance-assignment` may report existing code. `getConfig` now requires its config array.
+
+### Patch Changes
+
+- Disable typescript-eslint's single-run inference by default, which ran out of heap in repos with many tsconfigs.
+
 ## 6.9.0
 
 ### Minor Changes

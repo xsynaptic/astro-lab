@@ -93,7 +93,7 @@ export function getBrowserConfig(files: Array<string>): ConfigWithExtends {
 }
 
 export function getConfig(
-	customConfig?: ConfigWithExtendsArray,
+	customConfig: ConfigWithExtendsArray,
 	options?: {
 		customGlobals?: Record<string, 'readonly' | 'writeable'>;
 		parserOptions?: NonNullable<Config['languageOptions']>['parserOptions'];
@@ -118,6 +118,8 @@ export function getConfig(
 				},
 				parser: tseslint.parser,
 				parserOptions: options?.parserOptions ?? {
+					// Since typescript-eslint 8.72.1 a CLI run otherwise holds a separate Program per tsconfig
+					disallowAutomaticSingleRunInference: true,
 					projectService: true,
 				},
 			},
@@ -235,7 +237,7 @@ export function getConfig(
 		},
 	} satisfies ConfigWithExtends;
 
-	return defineConfig(...baseConfig, ...(customConfig ?? []), untypedConfig, testConfig);
+	return defineConfig(...baseConfig, ...customConfig, untypedConfig, testConfig);
 }
 
 export function getWebComponentConfig(files: Array<string>): ConfigWithExtends {

@@ -71,10 +71,4 @@ const projectConfig = [
 	},
 ] satisfies Parameters<typeof getConfig>[0];
 
-export default getConfig(projectConfig, {
-	// The project service builds a program per package tsconfig and runs out of heap
-	parserOptions: {
-		project: ['./tsconfig.json', './playground/*/tsconfig.json'],
-		tsconfigRootDir: import.meta.dirname,
-	},
-});
+export default getConfig(projectConfig);
