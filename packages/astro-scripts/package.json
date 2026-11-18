@@ -60,7 +60,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^24.19.2",
-		"astro": "^7.4.11",
+		"astro": "^7.4.12",
 		"satteri": "^0.11.7",
 		"vite": "^8.3.8",
 		"zx": "^8.8.5"

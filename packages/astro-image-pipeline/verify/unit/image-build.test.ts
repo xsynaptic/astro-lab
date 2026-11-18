@@ -49,10 +49,10 @@ function getNames(sizes: ReadonlyArray<string>) {
 	return sizes.map((size) => `${stem}-${size}`);
 }
 
-async function writeBuild(
-	sizes: ReadonlyArray<string> = allSizes,
-	{ limitInputPixels = 268_402_689 } = {},
-) {
+async function writeBuild({
+	limitInputPixels = 268_402_689,
+	sizes = allSizes,
+}: { limitInputPixels?: number; sizes?: ReadonlyArray<string> } = {}) {
 	const names = getNames(sizes);
 	const manifest = {
 		buildId: `build-${String(++buildCount)}`,
@@ -176,7 +176,7 @@ describe('prepareRenditionRender', () => {
 	});
 
 	test('every file records its source digest, fresh ones included, keeping its age', async () => {
-		const [name = ''] = await writeBuild(['450.webp']);
+		const [name = ''] = await writeBuild({ sizes: ['450.webp'] });
 
 		await render();
 
@@ -277,7 +277,7 @@ describe('prepareRenditionRender', () => {
 
 describe('prepareRenditionRender failure policy', () => {
 	test('a source over the pixel limit fails the run without writing a file', async () => {
-		await writeBuild(allSizes, { limitInputPixels: 1_000_000 });
+		await writeBuild({ limitInputPixels: 1_000_000 });
 
 		await expect(render()).rejects.toThrow(/16 files failed to render:\n.+exceeds pixel limit/);
 		expect(await listFiles()).toEqual([]);

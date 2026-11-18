@@ -18,7 +18,7 @@
 		"type": "git",
 		"url": "git+https://github.com/xsynaptic/astro-lab.git"
 	},
-	"packageManager": "pnpm@12.14.0",
+	"packageManager": "pnpm@12.21.0",
 	"engines": {
 		"node": ">=24.0.0"
 	},
@@ -40,12 +40,12 @@
 		"@changesets/cli": "^3.0.3",
 		"@fast-check/vitest": "^0.5.0",
 		"@manypkg/get-packages": "^3.1.0",
-		"@playwright/test": "^1.65.0",
+		"@playwright/test": "^1.65.1",
 		"@size-limit/preset-small-lib": "^14.3.0",
 		"@size-limit/rolldown-why": "^14.3.0",
 		"@types/node": "^24.19.2",
 		"@xsynaptic/eslint-config": "workspace:*",
-		"eslint": "^10.14.0",
+		"eslint": "^10.15.0",
 		"globals": "^17.14.0",
 		"jiti": "^2.7.0",
 		"knip": "^6.45.1",
@@ -56,7 +56,7 @@
 		"size-limit": "^14.3.0",
 		"tsdown": "^0.23.7",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.72.2",
+		"typescript-eslint": "^8.73.0",
 		"vitest": "^5.1.0"
 	}
 }

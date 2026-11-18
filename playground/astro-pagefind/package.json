@@ -11,7 +11,7 @@
 	"dependencies": {
 		"@pagefind/component-ui": "^1.6.0",
 		"@xsynaptic/astro-pagefind": "*",
-		"astro": "^7.4.11",
+		"astro": "^7.4.12",
 		"pagefind": "^1.6.0"
 	}
 }

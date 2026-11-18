@@ -74,6 +74,6 @@
 	"devDependencies": {
 		"@astrojs/rss": "^4.0.19",
 		"@types/hast": "^3.0.5",
-		"astro": "^7.4.11"
+		"astro": "^7.4.12"
 	}
 }
