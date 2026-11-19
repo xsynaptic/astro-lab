@@ -55,7 +55,6 @@ export type {
 	ShareKitActionDetail,
 	ShareKitActionOutcome,
 	ShareKitAsset,
-	ShareKitClassRole,
 	ShareKitPayload,
 	ShareKitSettings,
 } from './types.js';

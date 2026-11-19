@@ -1,5 +1,11 @@
 # @xsynaptic/share-kit
 
+## 0.9.0
+
+### Minor Changes
+
+- Remove `classNames`; restyle the dialog through its `share-kit-*` classes instead. Tokens now work when set on any ancestor, and `--share-kit-focus-ring` sets the focus ring.
+
 ## 0.8.0
 
 ### Minor Changes

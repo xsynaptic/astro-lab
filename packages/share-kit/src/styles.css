@@ -6,29 +6,38 @@ share-kit {
 	}
 }
 
-/* Zero specificity, so a host sets any of these on `share-kit` without a fight */
-:where(share-kit) {
-	--share-kit-surface: Canvas;
-	--share-kit-text: CanvasText;
-	--share-kit-muted: GrayText;
-	--share-kit-border: color-mix(in srgb, currentcolor 20%, transparent);
-	--share-kit-field: color-mix(in srgb, currentcolor 8%, transparent);
-	--share-kit-accent: #2563eb;
-	--share-kit-accent-text: Canvas;
-	--share-kit-hover: color-mix(in srgb, var(--share-kit-accent) 8%, transparent);
-	--share-kit-hover-border: color-mix(in srgb, var(--share-kit-accent) 45%, transparent);
-	--share-kit-danger: #c2410c;
-	--share-kit-radius: 0.5rem;
-	--share-kit-gap: 1rem;
-	--share-kit-shadow: 0 20px 25px -5px rgb(0 0 0 / 20%);
-	--share-kit-font-mono: ui-monospace, monospace;
+.share-kit-dialog {
+	--_share-kit-surface: var(--share-kit-surface, Canvas);
+	--_share-kit-text: var(--share-kit-text, CanvasText);
+	--_share-kit-muted: var(--share-kit-muted, GrayText);
+	--_share-kit-border: var(--share-kit-border, color-mix(in srgb, currentcolor 20%, transparent));
+	--_share-kit-field: var(--share-kit-field, color-mix(in srgb, currentcolor 8%, transparent));
+	--_share-kit-accent: var(--share-kit-accent, #2563eb);
+	--_share-kit-accent-text: var(--share-kit-accent-text, Canvas);
+	--_share-kit-hover: var(
+		--share-kit-hover,
+		color-mix(in srgb, var(--_share-kit-accent) 8%, transparent)
+	);
+	--_share-kit-hover-border: var(
+		--share-kit-hover-border,
+		color-mix(in srgb, var(--_share-kit-accent) 45%, transparent)
+	);
+	--_share-kit-danger: var(--share-kit-danger, #c2410c);
+	--_share-kit-radius: var(--share-kit-radius, 0.5rem);
+	--_share-kit-gap: var(--share-kit-gap, 1rem);
+	--_share-kit-shadow: var(--share-kit-shadow, 0 20px 25px -5px rgb(0 0 0 / 20%));
+	--_share-kit-font-mono: var(--share-kit-font-mono, ui-monospace, monospace);
+	--_share-kit-focus-ring: var(
+		--share-kit-focus-ring,
+		0 0 0 2px var(--_share-kit-surface),
+		0 0 0 4px var(--_share-kit-accent)
+	);
 
 	@supports (color: light-dark(red, red)) {
-		--share-kit-accent: light-dark(#2563eb, #60a5fa);
+		--_share-kit-accent: var(--share-kit-accent, light-dark(#2563eb, #60a5fa));
 	}
 }
 
-/* Class-level, so a host's bare element rules don't reach the dialog, and a host without a reset still gets bare controls */
 :is(.share-kit-dialog, .share-kit-qr-dialog) {
 	& :where(*, *::before, *::after) {
 		box-sizing: border-box;
@@ -43,9 +52,12 @@ share-kit {
 		list-style: none;
 	}
 
-	/* A host class that sets `display` would otherwise reveal hidden controls */
 	& [hidden] {
 		display: none !important;
+	}
+
+	& [inert] {
+		visibility: hidden;
 	}
 
 	& :where(button, textarea) {
@@ -64,10 +76,10 @@ share-kit {
 	max-height: 100dvh;
 	padding: 0;
 	margin: 0;
-	color: var(--share-kit-text);
-	background-color: var(--share-kit-surface);
+	color: var(--_share-kit-text);
+	background-color: var(--_share-kit-surface);
 	border: 0;
-	box-shadow: var(--share-kit-shadow);
+	box-shadow: var(--_share-kit-shadow);
 
 	&[open] {
 		display: flex;
@@ -75,14 +87,14 @@ share-kit {
 
 	@media (width >= 40rem) {
 		width: min(
-			max(40rem, var(--share-kit-destination-count) * 5.25rem + 2 * var(--share-kit-gap) + 1rem),
+			max(40rem, var(--_share-kit-destination-count) * 5.25rem + 2 * var(--_share-kit-gap) + 1rem),
 			52rem,
 			100% - 2rem
 		);
 		height: auto;
 		max-height: min(90dvh, 52rem);
 		margin: auto;
-		border-radius: var(--share-kit-radius);
+		border-radius: var(--_share-kit-radius);
 	}
 
 	@media (prefers-reduced-motion: no-preference) {
@@ -116,22 +128,21 @@ share-kit {
 .share-kit-header,
 .share-kit-footer {
 	display: flex;
-	gap: var(--share-kit-gap);
+	gap: var(--_share-kit-gap);
 	align-items: center;
 	justify-content: space-between;
-	padding: calc(var(--share-kit-gap) * 0.75) var(--share-kit-gap);
+	padding: calc(var(--_share-kit-gap) * 0.75) var(--_share-kit-gap);
 }
 
 .share-kit-header {
-	border-bottom: 1px solid var(--share-kit-border);
+	border-bottom: 1px solid var(--_share-kit-border);
 }
 
 .share-kit-footer {
-	padding-bottom: max(calc(var(--share-kit-gap) * 0.75), env(safe-area-inset-bottom));
-	border-top: 1px solid var(--share-kit-border);
+	padding-bottom: max(calc(var(--_share-kit-gap) * 0.75), env(safe-area-inset-bottom));
+	border-top: 1px solid var(--_share-kit-border);
 }
 
-/* Unset, the face is inherited */
 .share-kit-title,
 .share-kit-heading {
 	font-family: var(--share-kit-font-display);
@@ -149,10 +160,9 @@ share-kit {
 	margin: -0.25rem;
 	color: inherit;
 	cursor: pointer;
-	border-radius: calc(var(--share-kit-radius) * 0.5);
+	border-radius: calc(var(--_share-kit-radius) * 0.5);
 }
 
-/* Sized before a lazy icon lands, so it shifts nothing */
 .share-kit-icon {
 	display: inline-flex;
 	flex: none;
@@ -167,9 +177,9 @@ share-kit {
 	display: flex;
 	flex: 1;
 	flex-direction: column;
-	gap: calc(var(--share-kit-gap) * 1.5);
+	gap: calc(var(--_share-kit-gap) * 1.5);
 	min-height: 0;
-	padding: var(--share-kit-gap);
+	padding: var(--_share-kit-gap);
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	container-type: inline-size;
@@ -179,38 +189,37 @@ share-kit {
 	margin-bottom: 0.5rem;
 	font-size: 0.75rem;
 	font-weight: 600;
-	color: var(--share-kit-muted);
+	color: var(--_share-kit-muted);
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 }
 
-/* Bleeds to the dialog's edges so the row scrolls under a fade as wide as the gutter; scroll padding keeps snapped and focused items inside it */
 .share-kit-destinations-row {
 	display: flex;
 	gap: 0.25rem;
-	padding: 0.25rem var(--share-kit-gap);
-	margin: -0.25rem calc(var(--share-kit-gap) * -1);
+	padding: 0.25rem var(--_share-kit-gap);
+	margin: -0.25rem calc(var(--_share-kit-gap) * -1);
 	overflow-x: auto;
 	scroll-snap-type: x proximity;
-	scroll-padding-inline: var(--share-kit-gap);
+	scroll-padding-inline: var(--_share-kit-gap);
 	scrollbar-width: none;
 	mask-image: linear-gradient(
 		to right,
 		transparent,
-		#000 var(--share-kit-gap),
-		#000 calc(100% - var(--share-kit-gap)),
+		#000 var(--_share-kit-gap),
+		#000 calc(100% - var(--_share-kit-gap)),
 		transparent
 	);
 }
 
 .share-kit-destinations {
-	--share-kit-peek: 3.5;
+	--_share-kit-peek: 3.5;
 
 	display: flex;
 	gap: 0.25rem;
 
 	@container (width >= 22.625rem) {
-		--share-kit-peek: 4.5;
+		--_share-kit-peek: 4.5;
 	}
 
 	@container share-kit (width >= 30rem) {
@@ -233,22 +242,31 @@ share-kit {
 	user-select: none;
 	scroll-snap-align: start;
 	border: 1px solid transparent;
-	border-radius: var(--share-kit-radius);
+	border-radius: var(--_share-kit-radius);
 
 	@container share-kit (width < 30rem) {
-		width: calc((100cqi + var(--share-kit-gap)) / var(--share-kit-peek) - 0.25rem);
+		width: calc((100cqi + var(--_share-kit-gap)) / var(--_share-kit-peek) - 0.25rem);
 		min-width: min-content;
 		overflow-wrap: normal;
 	}
 
+	&:focus-visible {
+		background-color: var(--_share-kit-hover);
+	}
+
+	@media (hover: hover) {
+		&:hover {
+			background-color: var(--_share-kit-hover);
+		}
+	}
+
 	&[aria-checked='true'] {
-		color: var(--share-kit-accent);
-		background-color: var(--share-kit-hover);
-		border-color: var(--share-kit-hover-border);
+		color: var(--_share-kit-accent);
+		background-color: var(--_share-kit-hover);
+		border-color: var(--_share-kit-hover-border);
 	}
 }
 
-/* iOS zooms into any field under 16px */
 .share-kit-caption {
 	display: block;
 	width: 100%;
@@ -256,12 +274,12 @@ share-kit {
 	font-size: 1rem;
 	color: inherit;
 	resize: vertical;
-	background-color: var(--share-kit-field);
-	border: 1px solid var(--share-kit-border);
-	border-radius: calc(var(--share-kit-radius) * 0.5);
+	background-color: var(--_share-kit-field);
+	border: 1px solid var(--_share-kit-border);
+	border-radius: calc(var(--_share-kit-radius) * 0.5);
 
 	&[aria-invalid='true'] {
-		border-color: var(--share-kit-danger);
+		border-color: var(--_share-kit-danger);
 	}
 }
 
@@ -274,20 +292,18 @@ share-kit {
 	justify-content: space-between;
 }
 
-/* Keeps the count still as its buttons come and go */
 .share-kit-caption-meta {
-	min-height: 1.75rem;
 	margin-top: 0.5rem;
 }
 
 .share-kit-count {
 	font-size: 0.75rem;
 	font-variant-numeric: tabular-nums;
-	color: var(--share-kit-muted);
+	color: var(--_share-kit-muted);
 
 	&[data-share-kit-over] {
 		font-weight: 600;
-		color: var(--share-kit-danger);
+		color: var(--_share-kit-danger);
 	}
 }
 
@@ -302,31 +318,31 @@ share-kit {
 	font-size: 0.8125rem;
 	font-weight: 500;
 	line-height: 1.25;
-	color: var(--share-kit-accent);
+	color: var(--_share-kit-accent);
 	white-space: nowrap;
 	cursor: pointer;
-	border: 1px solid var(--share-kit-border);
-	border-radius: calc(var(--share-kit-radius) * 0.5);
+	border: 1px solid var(--_share-kit-border);
+	border-radius: calc(var(--_share-kit-radius) * 0.5);
 	transition:
 		background-color 150ms linear,
 		border-color 150ms linear;
 
 	&:focus-visible {
-		background-color: var(--share-kit-hover);
-		border-color: var(--share-kit-hover-border);
+		background-color: var(--_share-kit-hover);
+		border-color: var(--_share-kit-hover-border);
 	}
 
 	@media (hover: hover) {
 		&:hover {
-			background-color: var(--share-kit-hover);
-			border-color: var(--share-kit-hover-border);
+			background-color: var(--_share-kit-hover);
+			border-color: var(--_share-kit-hover-border);
 		}
 	}
 }
 
 .share-kit-hint {
 	font-size: 0.875rem;
-	color: var(--share-kit-muted);
+	color: var(--_share-kit-muted);
 }
 
 .share-kit-destinations-row + .share-kit-hint {
@@ -336,7 +352,7 @@ share-kit {
 .share-kit-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-	gap: var(--share-kit-gap);
+	gap: var(--_share-kit-gap);
 	margin-top: 0.5rem;
 }
 
@@ -351,26 +367,24 @@ share-kit {
 	}
 }
 
-/* Cards come in three shapes, so a shared box keeps the rows level */
 .share-kit-preview {
 	width: 100%;
 	height: auto;
-	aspect-ratio: var(--share-kit-preview-ratio, 4 / 5);
+	aspect-ratio: var(--_share-kit-preview-ratio, 4 / 5);
 	object-fit: contain;
-	background-color: var(--share-kit-field);
-	border-radius: calc(var(--share-kit-radius) * 0.5);
+	background-color: var(--_share-kit-field);
+	border-radius: calc(var(--_share-kit-radius) * 0.5);
 }
 
 .share-kit-tile-label {
-	min-height: 1.25rem;
-	color: var(--share-kit-muted);
+	color: var(--_share-kit-muted);
 }
 
 .share-kit-badge {
 	padding: 0 0.375rem;
 	font-size: 0.6875rem;
-	color: var(--share-kit-accent);
-	border: 1px solid var(--share-kit-hover-border);
+	color: var(--_share-kit-accent);
+	border: 1px solid var(--_share-kit-hover-border);
 	border-radius: 999px;
 }
 
@@ -380,9 +394,9 @@ share-kit {
 
 .share-kit-link {
 	min-width: 0;
-	font-family: var(--share-kit-font-mono);
+	font-family: var(--_share-kit-font-mono);
 	font-size: 0.8125rem;
-	color: var(--share-kit-muted);
+	color: var(--_share-kit-muted);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	overflow: hidden;
@@ -391,19 +405,18 @@ share-kit {
 .share-kit-qr-dialog {
 	padding: 0;
 	margin: auto;
-	color: var(--share-kit-text);
-	background-color: var(--share-kit-surface);
+	color: var(--_share-kit-text);
+	background-color: var(--_share-kit-surface);
 	border: 0;
-	border-radius: var(--share-kit-radius);
-	box-shadow: var(--share-kit-shadow);
+	border-radius: var(--_share-kit-radius);
+	box-shadow: var(--_share-kit-shadow);
 }
 
 .share-kit-qr-image {
 	display: block;
 	width: 12.5rem;
 	height: auto;
-	margin: var(--share-kit-gap) auto;
-	background-color: #fff;
+	margin: var(--_share-kit-gap) auto;
 }
 
 .share-kit-visually-hidden {
@@ -419,7 +432,6 @@ share-kit {
 	min-width: 0;
 	font-size: 0.875rem;
 
-	/* Clipped rather than visually hidden, which would take it out of flow and pull the primary button left */
 	&[data-share-kit-hidden] {
 		clip-path: inset(50%);
 	}
@@ -430,10 +442,10 @@ share-kit {
 	padding: 0.5rem 1rem;
 	font-size: 0.875rem;
 	font-weight: 600;
-	color: var(--share-kit-accent-text);
+	color: var(--_share-kit-accent-text);
 	cursor: pointer;
-	background-color: var(--share-kit-accent);
-	border-radius: calc(var(--share-kit-radius) * 0.5);
+	background-color: var(--_share-kit-accent);
+	border-radius: calc(var(--_share-kit-radius) * 0.5);
 }
 
 :where(.share-kit-dialog button:active) {
@@ -441,6 +453,6 @@ share-kit {
 }
 
 :where(.share-kit-dialog :is(button, textarea):focus-visible) {
-	outline: 2px solid var(--share-kit-accent);
-	outline-offset: 2px;
+	outline: 2px solid transparent;
+	box-shadow: var(--_share-kit-focus-ring);
 }

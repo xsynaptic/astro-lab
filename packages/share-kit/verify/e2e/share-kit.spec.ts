@@ -1,4 +1,4 @@
-import type { BrowserContext, Page } from '@playwright/test';
+import type { BrowserContext, Locator, Page } from '@playwright/test';
 
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -41,7 +41,7 @@ test('the trigger opens the dialog, focuses its heading and reports the action',
 	await expect(page.locator('[data-event-log]')).toContainText('"action":"open"');
 });
 
-test('a keyboard open leaves no focus ring on the heading @webkit', async ({ page }) => {
+test('a keyboard open leaves no focus ring on the heading @firefox @webkit', async ({ page }) => {
 	await page.goto('/');
 
 	const trigger = page.locator('#desktop [data-share-kit-trigger]');
@@ -54,16 +54,6 @@ test('a keyboard open leaves no focus ring on the heading @webkit', async ({ pag
 	await page.keyboard.press('Enter');
 	await expect(heading).toBeFocused();
 	expect(await heading.evaluate((element) => element.matches(':focus-visible'))).toBe(false);
-});
-
-test('the title class reaches both dialog titles', async ({ page }) => {
-	const dialog = await openSpecimen(page, 'retheme');
-
-	await expect(dialog.getByRole('heading', { name: 'Share this page' })).toHaveClass(/\bheavy\b/u);
-	await dialog.getByRole('button', { name: 'Open on phone' }).click();
-	await expect(dialog.getByRole('heading', { name: 'Scan to continue on your phone' })).toHaveClass(
-		/\bheavy\b/u,
-	);
 });
 
 test('the open hash opens the first dialog that claims it, and closing clears the hash', async ({
@@ -161,6 +151,55 @@ test('a desktop gets no Share button on its images', async ({ page }) => {
 
 	await expect(dialog.locator('[data-share-kit-action="share"]')).toHaveCount(0);
 	await expect(dialog.locator('[data-share-kit-action="copy"]').first()).toBeVisible();
+});
+
+async function getHeight(locator: Locator) {
+	const box = await locator.boundingBox();
+
+	return box?.height;
+}
+
+test('Reset and the badge keep their rows the same height when they appear', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+	const meta = dialog.locator('.share-kit-caption-meta');
+	const reset = dialog.getByRole('button', { name: 'Reset' });
+	const portraitLabel = dialog.locator('[data-share-kit-asset="portrait"] .share-kit-tile-label');
+	const badge = portraitLabel.locator('.share-kit-badge');
+	const before = await Promise.all([getHeight(meta), getHeight(portraitLabel)]);
+
+	await expect(reset).toBeHidden();
+	await expect(badge).toBeHidden();
+	await dialog.getByRole('textbox', { name: 'Text' }).pressSequentially('Edited');
+	await dialog.getByRole('radio', { name: 'Bluesky' }).click();
+	await expect(reset).toBeVisible();
+	await expect(badge).toBeVisible();
+
+	expect(await Promise.all([getHeight(meta), getHeight(portraitLabel)])).toEqual(before);
+});
+
+async function setRootToken(page: Page, name: string, value: string) {
+	await page.evaluate(
+		([tokenName, tokenValue]) => {
+			document.documentElement.style.setProperty(tokenName, tokenValue);
+		},
+		[name, value] as const,
+	);
+}
+
+test('a token set on the root reaches the dialog', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+
+	await setRootToken(page, '--share-kit-accent', 'rgb(1, 2, 3)');
+	await expect(dialog.locator('.share-kit-primary')).toHaveCSS('background-color', 'rgb(1, 2, 3)');
+});
+
+test('the focus ring comes from its token', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'desktop');
+	const caption = dialog.getByRole('textbox', { name: 'Text' });
+
+	await setRootToken(page, '--share-kit-focus-ring', '0 0 0 3px rgb(255, 0, 0)');
+	await caption.click();
+	await expect(caption).toHaveCSS('box-shadow', 'rgb(255, 0, 0) 0px 0px 0px 3px');
 });
 
 async function stubShareSheet(page: Page) {

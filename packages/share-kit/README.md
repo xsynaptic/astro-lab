@@ -131,9 +131,9 @@ The package ships no brand icons. Pass the ones you show to `defineShareKit({ ic
 @import '@xsynaptic/share-kit/styles.css';
 ```
 
-The dialog doesn't use a shadow root, so your CSS can reach it. If any of your CSS uses cascade layers (Tailwind 4 does), import this into a layer of its own, declared before your component and utility layers. Otherwise import it unlayered, before your own styles. Keep the element out of containers like `.prose` that style every `p` or `button` inside them.
+The dialog doesn't use a shadow root, so your CSS can reach it. If any of your CSS uses cascade layers (Tailwind 4 does), import this into a sublayer of your components layer, as in `layer(components.share-kit)`. Rules placed directly in a layer outrank its sublayers, so your component classes and utilities win over the dialog's defaults whatever their specificity, with no layer order to declare. Otherwise import it unlayered, before your own styles. Keep the element out of containers like `.prose` that style every `p` or `button` inside them.
 
-To change colours and spacing, set custom properties on `share-kit` or a parent. Each name starts with `--share-kit-` and ends with one of `surface`, `text`, `muted`, `border`, `field`, `accent`, `accent-text`, `hover`, `hover-border`, `danger`, `radius`, `gap`, `shadow`, `backdrop`, `backdrop-filter`, `font-display` or `font-mono`. Most take a colour; `radius` and `gap` take a length, `shadow` a box shadow, `backdrop-filter` a filter such as `blur(4px)`, and the fonts a family. Scope your own focus rule to controls, as in `.share-kit-dialog :is(button, textarea):focus-visible`, since the dialog focuses its title on open.
+Restyle it with rules on its `share-kit-*` classes, or set its `--share-kit-*` custom properties on `share-kit` or any ancestor; `styles.css` lists both.
 
 ## Testing
 

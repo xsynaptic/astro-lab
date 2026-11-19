@@ -1,4 +1,4 @@
-@layer share-kit, page, utilities;
+@layer share-kit, page;
 @import '@xsynaptic/share-kit/styles.css' layer(share-kit);
 
 @layer page {
@@ -86,15 +86,13 @@
 		--share-kit-accent-text: light-dark(#fff, #1c1410);
 		--share-kit-radius: 1rem;
 	}
-}
 
-@layer utilities {
-	.pill {
+	.retheme .share-kit-primary {
 		padding-inline: 1.5rem;
 		border-radius: 999px;
 	}
 
-	.heavy {
+	.retheme .share-kit-title {
 		font-weight: 800;
 	}
 }

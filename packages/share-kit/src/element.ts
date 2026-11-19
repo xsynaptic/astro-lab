@@ -84,7 +84,7 @@ export abstract class ShareKitElement extends BaseElement {
 		qr: () => {
 			void this.#openQr();
 		},
-		// Reset hides itself, which would drop focus to the page
+		// Reset goes inert, which would drop focus to the page
 		reset: () => {
 			this.#isCaptionEdited = false;
 			this.#syncDestination();

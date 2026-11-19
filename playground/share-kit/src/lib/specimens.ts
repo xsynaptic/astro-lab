@@ -167,11 +167,8 @@ export function getSpecimens(): Array<Specimen> {
 			class: 'retheme',
 			id: 'retheme',
 			label: 'Custom theme',
-			note: 'Sets its own --share-kit-* colours and radius, and passes classes to round the main button and thicken the title.',
-			payload: {
-				...payload,
-				settings: { ...sampleSettings, classNames: { primary: 'pill', title: 'heavy' } },
-			},
+			note: 'Sets its own --share-kit-* colours and radius, and restyles the main button and title through their classes.',
+			payload,
 		},
 	];
 }

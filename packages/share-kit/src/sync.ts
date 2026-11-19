@@ -61,7 +61,7 @@ export function syncCaptionView({
 	parts.caption.setAttribute('aria-invalid', String(isOver));
 	parts.captionCopy.textContent = copyLabel;
 	parts.captionCopy.hidden = primaryAction === 'copy-caption';
-	parts.reset.hidden = !isEdited;
+	parts.reset.inert = !isEdited;
 	parts.primary.textContent =
 		primaryAction === 'copy-caption'
 			? copyLabel
@@ -107,16 +107,16 @@ export function syncDestinationView({
 
 	parts.imagesSection.hidden = assets.length === 0;
 
-	parts.grid.style.removeProperty('--share-kit-preview-ratio');
+	parts.grid.style.removeProperty('--_share-kit-preview-ratio');
 
-	if (ratio) parts.grid.style.setProperty('--share-kit-preview-ratio', ratio);
+	if (ratio) parts.grid.style.setProperty('--_share-kit-preview-ratio', ratio);
 
 	for (const asset of assets) {
 		const label = asset.querySelector<HTMLElement>('.share-kit-tile-label');
 		const badge = asset.querySelector<HTMLElement>('.share-kit-badge');
 
 		if (label) label.hidden = assets.length === 1;
-		if (badge) badge.hidden = asset !== suggested;
+		if (badge) badge.inert = asset !== suggested;
 	}
 
 	parts.grid.append(...parts.tiles);

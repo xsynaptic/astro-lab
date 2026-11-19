@@ -18,10 +18,6 @@ export function createElement<Tag extends keyof HTMLElementTagNameMap>(
 	return element;
 }
 
-export function joinClasses(...classes: Array<string | undefined>) {
-	return classes.filter(Boolean).join(' ');
-}
-
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
 const iconSize = 24;

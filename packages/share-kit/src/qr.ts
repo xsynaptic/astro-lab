@@ -2,14 +2,13 @@ import type { ShareCapability } from './actions.js';
 import type { ShareKitStrings } from './strings.js';
 import type { ShareKitPayload } from './types.js';
 
-import { createElement, createIconSlot, joinClasses, polyfillLightDismiss } from './dom.js';
+import { createElement, createIconSlot, polyfillLightDismiss } from './dom.js';
 
 interface ShareQrInput {
 	closeIcon: string | undefined;
 	id: string;
 	signal: AbortSignal;
 	strings: Pick<ShareKitStrings<string>, 'close' | 'qrAlt' | 'qrTitle'>;
-	titleClass: string | undefined;
 	url: string;
 }
 
@@ -30,7 +29,7 @@ class ShareQrDialog {
 	#image: HTMLImageElement;
 	#url: string;
 
-	constructor({ closeIcon, id, signal, strings, titleClass, url }: ShareQrInput) {
+	constructor({ closeIcon, id, signal, strings, url }: ShareQrInput) {
 		const titleId = `${id}-title`;
 
 		this.#url = url;
@@ -45,9 +44,7 @@ class ShareQrDialog {
 			{ 'aria-labelledby': titleId, class: 'share-kit-qr-dialog', closedby: 'any', id },
 			[
 				createElement('form', { class: 'share-kit-header', method: 'dialog' }, [
-					createElement('h2', { class: joinClasses('share-kit-title', titleClass), id: titleId }, [
-						strings.qrTitle,
-					]),
+					createElement('h2', { class: 'share-kit-title', id: titleId }, [strings.qrTitle]),
 					createElement(
 						'button',
 						{
@@ -71,7 +68,7 @@ class ShareQrDialog {
 	}
 }
 
-interface ShareQrOptions extends Omit<ShareQrInput, 'titleClass' | 'url'> {
+interface ShareQrOptions extends Omit<ShareQrInput, 'url'> {
 	capabilities: ReadonlySet<ShareCapability>;
 	payload: ShareKitPayload<string>;
 }
@@ -90,9 +87,5 @@ function getQrUrl(url: string, openHash: string | undefined) {
 export function createShareQr({ capabilities, payload, ...input }: ShareQrOptions) {
 	if (capabilities.has('mobile')) return;
 
-	return new ShareQrDialog({
-		...input,
-		titleClass: payload.settings.classNames?.title,
-		url: getQrUrl(payload.url, payload.settings.openHash),
-	});
+	return new ShareQrDialog({ ...input, url: getQrUrl(payload.url, payload.settings.openHash) });
 }
