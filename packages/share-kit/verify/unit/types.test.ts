@@ -5,7 +5,10 @@ import type {
 	ShareKitDestinationIdOf,
 	shareKitLine,
 } from '../../src/destinations.js';
-import type { ShareKitDestinationStringKey } from '../../src/strings.js';
+import type {
+	ShareKitDestinationHintKey,
+	ShareKitDestinationStringKey,
+} from '../../src/strings.js';
 import type { ShareKitPayload, ShareKitSettings } from '../../src/types.js';
 
 import { shareKitCountLength } from '../../src/count.js';
@@ -59,13 +62,18 @@ test('a typo in the settings fails, and a computed row is accepted', () => {
 
 test('destination string keys include a hint only where the destination has one', () => {
 	const sms = defineShareKitDestination({ ...email, hint: 'Opens your messages app.', id: 'sms' });
+	type Destinations = readonly [
+		typeof shareKitAnywhere,
+		typeof shareKitLine,
+		typeof email,
+		typeof sms,
+	];
 
 	expectTypeOf(sms.hint).toEqualTypeOf<'Opens your messages app.'>();
-	expectTypeOf<
-		ShareKitDestinationStringKey<
-			readonly [typeof shareKitAnywhere, typeof shareKitLine, typeof email, typeof sms]
-		>
-	>().toEqualTypeOf<
+	expectTypeOf<ShareKitDestinationHintKey<Destinations>>().toEqualTypeOf<
+		'hint.line' | 'hint.sms'
+	>();
+	expectTypeOf<ShareKitDestinationStringKey<Destinations>>().toEqualTypeOf<
 		| 'destination.any'
 		| 'destination.email'
 		| 'destination.line'

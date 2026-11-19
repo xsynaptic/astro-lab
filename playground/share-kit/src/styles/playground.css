@@ -74,6 +74,10 @@
 		}
 	}
 
+	.wide-face share-kit {
+		font-family: 'Plus Jakarta Sans Variable', sans-serif;
+	}
+
 	.retheme share-kit {
 		--share-kit-surface: light-dark(#fdf6ec, #1c1410);
 		--share-kit-text: light-dark(#3b2a1a, #f0e2cf);
@@ -88,5 +92,9 @@
 	.pill {
 		padding-inline: 1.5rem;
 		border-radius: 999px;
+	}
+
+	.heavy {
+		font-weight: 800;
 	}
 }

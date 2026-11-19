@@ -1,5 +1,11 @@
 # @xsynaptic/share-kit
 
+## 0.8.0
+
+### Minor Changes
+
+- Destination labels no longer break mid-word, and on phones the destination row always shows part of the next tile, so it's clear the row scrolls. The title no longer shows a focus ring when the dialog opens. Adds a `title` class role, `--share-kit-backdrop-filter` and the `ShareKitDestinationHintKey` type. Browser support now starts at Chrome 122 and Safari 17.4, the first versions where `--share-kit-backdrop` reaches the backdrop.
+
 ## 0.7.0
 
 ### Minor Changes

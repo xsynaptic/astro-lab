@@ -45,6 +45,7 @@ export type { ShareKitIconName, ShareKitIcons, ShareKitIconsOption } from './ico
 export { shareKitInterfaceIcons } from './icons.js';
 export { serializeShareKitPayload } from './payload.js';
 export type {
+	ShareKitDestinationHintKey,
 	ShareKitDestinationStringKey,
 	ShareKitStringKey,
 	ShareKitStrings,

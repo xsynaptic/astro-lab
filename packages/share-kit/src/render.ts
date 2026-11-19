@@ -80,10 +80,10 @@ function renderIconButton(
 }
 
 function renderHeader(context: RenderContext) {
-	const { id, strings } = context;
+	const { classNames, id, strings } = context;
 	const heading = createElement(
 		'h2',
-		{ class: 'share-kit-title', id: `${id}-title`, tabindex: '-1' },
+		{ class: joinClasses('share-kit-title', classNames.title), id: `${id}-title` },
 		[strings.title],
 	);
 	const close = renderIconButton(context, {

@@ -73,13 +73,9 @@ share-kit {
 		display: flex;
 	}
 
-	&::backdrop {
-		background-color: var(--share-kit-backdrop, rgb(0 0 0 / 50%));
-	}
-
 	@media (width >= 40rem) {
 		width: min(
-			max(40rem, var(--share-kit-destination-count) * 4.75rem + 2 * var(--share-kit-gap) + 1rem),
+			max(40rem, var(--share-kit-destination-count) * 5.25rem + 2 * var(--share-kit-gap) + 1rem),
 			52rem,
 			100% - 2rem
 		);
@@ -94,6 +90,11 @@ share-kit {
 			animation: share-kit-rise 200ms ease-out;
 		}
 	}
+}
+
+:is(.share-kit-dialog, .share-kit-qr-dialog)::backdrop {
+	background-color: var(--share-kit-backdrop, rgb(0 0 0 / 50%));
+	backdrop-filter: var(--share-kit-backdrop-filter, none);
 }
 
 @keyframes share-kit-rise {
@@ -171,6 +172,7 @@ share-kit {
 	padding: var(--share-kit-gap);
 	overflow-y: auto;
 	overscroll-behavior: contain;
+	container-type: inline-size;
 }
 
 .share-kit-heading {
@@ -202,13 +204,19 @@ share-kit {
 }
 
 .share-kit-destinations {
+	--share-kit-peek: 3.5;
+
 	display: flex;
 	gap: 0.25rem;
+
+	@container (width >= 22.625rem) {
+		--share-kit-peek: 4.5;
+	}
 
 	@container share-kit (width >= 30rem) {
 		display: grid;
 		flex: 1;
-		grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
 	}
 }
 
@@ -218,7 +226,6 @@ share-kit {
 	flex-direction: column;
 	gap: 0.375rem;
 	align-items: center;
-	min-width: 4.5rem;
 	padding: 0.625rem 0.5rem;
 	font-size: 0.75rem;
 	overflow-wrap: anywhere;
@@ -227,6 +234,12 @@ share-kit {
 	scroll-snap-align: start;
 	border: 1px solid transparent;
 	border-radius: var(--share-kit-radius);
+
+	@container share-kit (width < 30rem) {
+		width: calc((100cqi + var(--share-kit-gap)) / var(--share-kit-peek) - 0.25rem);
+		min-width: min-content;
+		overflow-wrap: normal;
+	}
 
 	&[aria-checked='true'] {
 		color: var(--share-kit-accent);
@@ -383,10 +396,6 @@ share-kit {
 	border: 0;
 	border-radius: var(--share-kit-radius);
 	box-shadow: var(--share-kit-shadow);
-
-	&::backdrop {
-		background-color: var(--share-kit-backdrop, rgb(0 0 0 / 50%));
-	}
 }
 
 .share-kit-qr-image {

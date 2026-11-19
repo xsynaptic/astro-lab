@@ -94,7 +94,7 @@ A trigger can name a destination, as in `data-share-kit-trigger="instagram"`, to
 
 If `settings.openHash` matches the URL hash, the dialog opens on load. Pick a fragment that no element id on the page uses, or the page also scrolls there. When several elements share one, only the first on the page opens.
 
-`strings` in the payload overrides the dialog's wording by key, including `destination.<id>` and `hint.<id>`. `ShareKitStringKey` lists the interface keys, and `ShareKitDestinationStringKey<typeof destinations>` lists the destination keys that have English text: each label, and each hint.
+`strings` in the payload overrides the dialog's wording by key, including `destination.<id>` and `hint.<id>`. `ShareKitStringKey` lists the interface keys, and `ShareKitDestinationStringKey<typeof destinations>` lists the destination keys that have English text: each label, and each hint. `ShareKitDestinationHintKey` lists just the hints.
 
 ## Destinations
 
@@ -131,9 +131,9 @@ The package ships no brand icons. Pass the ones you show to `defineShareKit({ ic
 @import '@xsynaptic/share-kit/styles.css';
 ```
 
-The dialog doesn't use a shadow root, so your CSS can reach it. If your stylesheets use cascade layers, import this one into an early layer, for example `layer(components)`, so classes you pass in `settings.classNames` take priority; when all your component stylesheets share that layer, import this one first among them. If your stylesheets don't use layers, import it without one. A layered import would lose to every plain rule on your page. Also keep the element out of containers like `.prose` that style every `p` or `button` inside them.
+The dialog doesn't use a shadow root, so your CSS can reach it. If any of your CSS uses cascade layers (Tailwind 4 does), import this into a layer of its own, declared before your component and utility layers. Otherwise import it unlayered, before your own styles. Keep the element out of containers like `.prose` that style every `p` or `button` inside them.
 
-To change colours and spacing, set custom properties on `share-kit` or a parent. Each name starts with `--share-kit-` and ends with one of `surface`, `text`, `muted`, `border`, `field`, `accent`, `accent-text`, `hover`, `hover-border`, `danger`, `radius`, `gap`, `shadow`, `backdrop`, `font-display` or `font-mono`. The focus ring has no specificity, so any focus rule of yours replaces it.
+To change colours and spacing, set custom properties on `share-kit` or a parent. Each name starts with `--share-kit-` and ends with one of `surface`, `text`, `muted`, `border`, `field`, `accent`, `accent-text`, `hover`, `hover-border`, `danger`, `radius`, `gap`, `shadow`, `backdrop`, `backdrop-filter`, `font-display` or `font-mono`. Most take a colour; `radius` and `gap` take a length, `shadow` a box shadow, `backdrop-filter` a filter such as `blur(4px)`, and the fonts a family. Scope your own focus rule to controls, as in `.share-kit-dialog :is(button, textarea):focus-visible`, since the dialog focuses its title on open.
 
 ## Testing
 
@@ -141,7 +141,7 @@ The element checks what the browser supports: sharing files (`files`), sharing l
 
 ## Browser support
 
-Chrome 120, Safari 17.2 and Firefox 125 or later.
+Chrome 122, Safari 17.4 and Firefox 125 or later.
 
 ## License
 

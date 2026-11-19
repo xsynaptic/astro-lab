@@ -156,13 +156,21 @@ export function getSpecimens(): Array<Specimen> {
 		},
 		{
 			can: capabilities.desktop,
+			class: 'wide-face',
+			id: 'wide-face',
+			label: 'Wide face',
+			note: 'Set in Plus Jakarta Sans, which runs wider than the system font, with every built-in listed.',
+			payload,
+		},
+		{
+			can: capabilities.desktop,
 			class: 'retheme',
 			id: 'retheme',
 			label: 'Custom theme',
-			note: 'Sets its own --share-kit-* colours and radius, and rounds the main button with a class passed in classNames.',
+			note: 'Sets its own --share-kit-* colours and radius, and passes classes to round the main button and thicken the title.',
 			payload: {
 				...payload,
-				settings: { ...sampleSettings, classNames: { primary: 'pill' } },
+				settings: { ...sampleSettings, classNames: { primary: 'pill', title: 'heavy' } },
 			},
 		},
 	];

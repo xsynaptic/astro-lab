@@ -45,7 +45,7 @@
 		"name": "share-kit/styles.css",
 		"path": "packages/share-kit/src/styles.css",
 		"rolldown": false,
-		"limit": "2250 B"
+		"limit": "2350 B"
 	},
 	{
 		"name": "web-components/path-suggestions",

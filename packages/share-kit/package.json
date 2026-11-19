@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/share-kit",
-	"version": "0.7.0",
+	"version": "0.8.0",
 	"description": "A share dialog custom element for posting a page to social platforms",
 	"type": "module",
 	"license": "MIT",

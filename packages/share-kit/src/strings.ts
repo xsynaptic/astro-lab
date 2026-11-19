@@ -40,11 +40,15 @@ export type ShareKitStringKey = keyof typeof shareKitStringDefaults;
 
 type DestinationStringKey<Id extends string> = `destination.${Id}` | `hint.${Id}`;
 
+export type ShareKitDestinationHintKey<
+	Destinations extends ReadonlyArray<ShareKitDestination<string>>,
+> =
+	`hint.${ShareKitDestinationIdOf<ReadonlyArray<Extract<Destinations[number], { hint: string }>>>}`;
+
 export type ShareKitDestinationStringKey<
 	Destinations extends ReadonlyArray<ShareKitDestination<string>>,
 > =
-	| `destination.${ShareKitDestinationIdOf<Destinations>}`
-	| `hint.${ShareKitDestinationIdOf<ReadonlyArray<Extract<Destinations[number], { hint: string }>>>}`;
+	`destination.${ShareKitDestinationIdOf<Destinations>}` | ShareKitDestinationHintKey<Destinations>;
 
 export type ShareKitStrings<Id extends string> = Partial<Record<DestinationStringKey<Id>, string>> &
 	Record<ShareKitStringKey, string>;

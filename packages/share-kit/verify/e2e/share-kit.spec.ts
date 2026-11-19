@@ -41,6 +41,31 @@ test('the trigger opens the dialog, focuses its heading and reports the action',
 	await expect(page.locator('[data-event-log]')).toContainText('"action":"open"');
 });
 
+test('a keyboard open leaves no focus ring on the heading @webkit', async ({ page }) => {
+	await page.goto('/');
+
+	const trigger = page.locator('#desktop [data-share-kit-trigger]');
+	const heading = page
+		.locator('#desktop')
+		.getByRole('heading', { level: 2, name: 'Share this page' });
+
+	await expect(trigger).toBeEnabled();
+	await trigger.focus();
+	await page.keyboard.press('Enter');
+	await expect(heading).toBeFocused();
+	expect(await heading.evaluate((element) => element.matches(':focus-visible'))).toBe(false);
+});
+
+test('the title class reaches both dialog titles', async ({ page }) => {
+	const dialog = await openSpecimen(page, 'retheme');
+
+	await expect(dialog.getByRole('heading', { name: 'Share this page' })).toHaveClass(/\bheavy\b/u);
+	await dialog.getByRole('button', { name: 'Open on phone' }).click();
+	await expect(dialog.getByRole('heading', { name: 'Scan to continue on your phone' })).toHaveClass(
+		/\bheavy\b/u,
+	);
+});
+
 test('the open hash opens the first dialog that claims it, and closing clears the hash', async ({
 	page,
 }) => {

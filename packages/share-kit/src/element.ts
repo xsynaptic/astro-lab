@@ -407,9 +407,12 @@ export abstract class ShareKitElement extends BaseElement {
 
 		if (destination) this.#selectDestination(destination);
 
+		// `showModal` would focus the heading itself, with a keyboard ring `focusVisible` can't remove
+		parts.heading.removeAttribute('tabindex');
 		parts.dialog.showModal();
 		// Focusing the heading lets a screen reader start from the dialog's name
-		parts.heading.focus();
+		parts.heading.tabIndex = -1;
+		parts.heading.focus({ focusVisible: false });
 		this.#track('open');
 		// Synced again once open, since a status written to a closed dialog goes unannounced
 		this.#isOver = false;

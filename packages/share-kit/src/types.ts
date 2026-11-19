@@ -11,7 +11,8 @@ export interface ShareKitAsset extends ShareKitImageFormat {
 	type: string;
 }
 
-export type ShareKitClassRole = 'action' | 'destination' | 'heading' | 'input' | 'primary';
+export type ShareKitClassRole =
+	'action' | 'destination' | 'heading' | 'input' | 'primary' | 'title';
 
 export interface ShareKitSettings<Id extends string> {
 	classNames?: Partial<Record<ShareKitClassRole, string>>;
