@@ -1,5 +1,5 @@
-export type { ContentEntry } from './astro.js';
-export { findAstroRoot, getCollectionEntries, withAstroContent } from './astro.js';
+export type { AstroPaths, ContentEntry } from './astro.js';
+export { findAstroRoot, getAstroPaths, getCollectionEntries, withAstroContent } from './astro.js';
 export { createCommandRunner, parseNumberOption } from './command.js';
 export type { Command, CommandContext } from './command.js';
 export type { ComponentProp, ComponentTag } from './content-checks.js';

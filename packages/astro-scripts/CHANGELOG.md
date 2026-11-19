@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.17.0
+
+### Minor Changes
+
+- `getAstroPaths()` returns the resolved `outDir`, `clientDir` and `cacheDir`
+
 ## 0.16.2
 
 ### Patch Changes

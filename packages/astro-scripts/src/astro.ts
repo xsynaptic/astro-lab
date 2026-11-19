@@ -5,6 +5,7 @@ import type { ModuleRunner } from 'vite/module-runner';
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import type { CommandScope } from './command.js';
 
@@ -88,27 +89,91 @@ export async function getCollectionEntries<C extends CollectionKey>(
 	return flattened;
 }
 
-async function startAstroServer() {
+export interface AstroPaths {
+	cacheDir: string;
+	clientDir: string;
+	outDir: string;
+}
+
+function toDirectoryPath(url: URL) {
+	return path.resolve(fileURLToPath(url));
+}
+
+// Astro exports no config resolver; an inline integration reads the resolved one
+async function resolveAstroConfig() {
 	// An unrooted config resolves against `process.cwd()`, finds none, and reads every collection back empty
 	const root = findAstroRoot();
+	const { getViteConfig } = await import('astro/config');
+	const captured: { paths?: AstroPaths } = {};
 
-	findContentStore(root);
-
-	const [{ getViteConfig }, { createLogger, createServer }] = await Promise.all([
-		import('astro/config'),
-		importVite(),
-	]);
-
-	const config = await getViteConfig(
+	const viteConfig = await getViteConfig(
 		{},
-		{ logLevel: 'silent', root },
+		{
+			integrations: [
+				{
+					hooks: {
+						'astro:config:done': ({ buildOutput, config }) => {
+							const outDir = toDirectoryPath(config.outDir);
+
+							captured.paths = {
+								cacheDir: toDirectoryPath(config.cacheDir),
+								clientDir: buildOutput === 'server' ? toDirectoryPath(config.build.client) : outDir,
+								outDir,
+							};
+						},
+					},
+					name: '@xsynaptic/astro-scripts',
+				},
+			],
+			logLevel: 'silent',
+			root,
+		},
 	)({
 		command: 'serve',
 		mode: 'development',
 	});
 
+	if (captured.paths === undefined) {
+		throw new Error('Astro resolved its config without running `astro:config:done`');
+	}
+
+	return { paths: captured.paths, viteConfig };
+}
+
+type ResolvedAstroConfig = Awaited<ReturnType<typeof resolveAstroConfig>>;
+
+const commandConfigs = new WeakMap<CommandScope, Promise<ResolvedAstroConfig>>();
+
+function getAstroConfig(scope: CommandScope | undefined) {
+	if (!scope) return resolveAstroConfig();
+
+	const existing = commandConfigs.get(scope);
+
+	if (existing) return existing;
+
+	const config = resolveAstroConfig();
+
+	commandConfigs.set(scope, config);
+
+	return config;
+}
+
+export async function getAstroPaths() {
+	const { paths } = await getAstroConfig(getCommandScope());
+
+	return paths;
+}
+
+async function startAstroServer(scope: CommandScope | undefined) {
+	findContentStore(findAstroRoot());
+
+	const [{ viteConfig }, { createLogger, createServer }] = await Promise.all([
+		getAstroConfig(scope),
+		importVite(),
+	]);
+
 	return createServer({
-		...config,
+		...viteConfig,
 		// Astro's config sets a `customLogger` that writes to stdout and ignores `logLevel`
 		customLogger: createLogger('silent'),
 		logLevel: 'silent',
@@ -123,7 +188,7 @@ function getCommandServer(scope: CommandScope) {
 
 	if (existing) return existing;
 
-	const server = startAstroServer();
+	const server = startAstroServer(scope);
 
 	commandServers.set(scope, server);
 	scope.onEnd.push(async () => {
@@ -161,7 +226,7 @@ async function withAstroModules<T>(callback: (runner: ModuleRunner) => Promise<T
 
 	if (scope) return runInServer(await getCommandServer(scope), callback);
 
-	const server = await startAstroServer();
+	const server = await startAstroServer(undefined);
 
 	try {
 		return await runInServer(server, callback);

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { withAstroContent } from '../../src/astro.js';
+import { getAstroPaths, withAstroContent } from '../../src/astro.js';
 import { createCommandRunner } from '../../src/command.js';
 import { UserError } from '../../src/user-error.js';
 
@@ -33,7 +33,29 @@ const vite = vi.hoisted(() => {
 });
 
 vi.mock('../../src/astro-dependency.js', () => ({ importVite: () => Promise.resolve(vite) }));
-vi.mock('astro/config', () => ({ getViteConfig: () => () => Promise.resolve({}) }));
+const astroConfig = vi.hoisted(() => {
+	interface InlineConfig {
+		integrations: Array<{ hooks: { 'astro:config:done': (options: unknown) => void } }>;
+	}
+
+	return {
+		getViteConfig: vi.fn((_vite: unknown, { integrations }: InlineConfig) => () => {
+			const config = {
+				build: { client: new URL('file:///site/dist/client/') },
+				cacheDir: new URL('file:///site/node_modules/.astro/'),
+				outDir: new URL('file:///site/dist/'),
+			};
+
+			for (const integration of integrations) {
+				integration.hooks['astro:config:done']({ buildOutput: 'static', config });
+			}
+
+			return Promise.resolve({});
+		}),
+	};
+});
+
+vi.mock('astro/config', () => astroConfig);
 
 const originalArgv = process.argv;
 const resolveNothing = () => Promise.resolve();
@@ -53,6 +75,7 @@ beforeEach(() => {
 	vite.servers.length = 0;
 	vite.runners.length = 0;
 	vite.createServer.mockClear();
+	astroConfig.getViteConfig.mockClear();
 });
 
 afterEach(() => {
@@ -136,5 +159,38 @@ describe('withAstroContent', () => {
 
 		await expect(withAstroContent(resolveNothing)).rejects.toThrow(UserError);
 		expect(vite.createServer).not.toHaveBeenCalled();
+	});
+});
+
+describe('getAstroPaths', () => {
+	test('resolves the config once for a command that reads paths and content', async () => {
+		const { runCommand } = createCommandRunner();
+
+		await runCommand({
+			name: 'probe',
+			async run() {
+				await getAstroPaths();
+				await withAstroContent(resolveNothing);
+				await getAstroPaths();
+			},
+			summary: 'Probe',
+			title: 'Probe',
+		});
+
+		expect(process.exitCode).toBeUndefined();
+		expect(astroConfig.getViteConfig).toHaveBeenCalledTimes(1);
+	});
+
+	test('outside a command, resolves the config on each call', async () => {
+		await getAstroPaths();
+		await getAstroPaths();
+
+		expect(astroConfig.getViteConfig).toHaveBeenCalledTimes(2);
+	});
+
+	test('needs no content store', async () => {
+		rmSync(path.join(astroRoot, '.astro'), { recursive: true });
+
+		await expect(getAstroPaths()).resolves.toMatchObject({ outDir: '/site/dist' });
 	});
 });
