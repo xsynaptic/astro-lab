@@ -28,7 +28,7 @@ export interface ImageManifest {
 	version: typeof imageManifestVersion;
 }
 
-export interface ImageRenderTarget {
+export interface RenderPaths {
 	distPath: string;
 	storePath: string;
 }
@@ -152,7 +152,7 @@ export async function dropImageManifests(storePath: string, buildIds: ReadonlyAr
 	await Promise.all(buildIds.map((buildId) => fs.rm(getManifestPath(storePath, buildId))));
 }
 
-export async function findDistManifest({ distPath, storePath }: ImageRenderTarget) {
+export async function findDistManifest({ distPath, storePath }: RenderPaths) {
 	const buildId = await readBuildId(distPath);
 
 	if (!buildId) return;
@@ -160,7 +160,7 @@ export async function findDistManifest({ distPath, storePath }: ImageRenderTarge
 	return readImageManifest(path.resolve(storePath), buildId);
 }
 
-export async function readDistManifest({ distPath, storePath }: ImageRenderTarget) {
+export async function readDistManifest({ distPath, storePath }: RenderPaths) {
 	const buildId = await readBuildId(distPath);
 
 	if (!buildId) throw new UserError(`${distPath} has no ${imageBuildIdFile}; build first`);

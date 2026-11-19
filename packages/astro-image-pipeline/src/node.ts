@@ -12,7 +12,7 @@ export type { ImagePlaceholderRequest } from './image-placeholders.js';
 export { getPlaceholder } from './image-placeholders.js';
 export { engineVersions, openImageSource, readSourceSize } from './image-render.js';
 export { listImageSources } from './image-sources.js';
-export type { ImageBuild, ImageManifest, ImageRenderTarget } from './image-state.js';
+export type { ImageBuild, ImageManifest, RenderPaths } from './image-state.js';
 export {
 	findDistManifest,
 	getImageStorePaths,

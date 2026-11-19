@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 import type { Card, CardImage, CardInput } from './card-name.js';
-import type { ImageRenderTarget } from './image-state.js';
+import type { RenderPaths } from './image-state.js';
 import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
@@ -22,7 +22,7 @@ export type CardRenderRunOptions = Pick<
 
 type MissingImagePolicy = 'fail' | 'omit';
 
-export interface CardRenderOptions<Decoded> extends ImageRenderTarget {
+export interface CardRenderOptions<Decoded> extends RenderPaths {
 	decode: (source: CardSource) => Promise<Decoded>;
 	missingImage?: MissingImagePolicy;
 	render: (input: CardInput, decoded?: Decoded) => Promise<Uint8Array>;

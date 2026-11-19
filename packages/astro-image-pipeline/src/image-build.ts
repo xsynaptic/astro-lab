@@ -6,7 +6,7 @@ import pLimit from 'p-limit';
 
 import type { ImageFormat } from './image-formats.js';
 import type { RenditionName } from './image-name.js';
-import type { ImageManifest, ImageRenderTarget } from './image-state.js';
+import type { ImageManifest, RenderPaths } from './image-state.js';
 import type { RenderJob, RenderJobOptions } from './run-render-jobs.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
@@ -200,7 +200,7 @@ async function encodeRendition(rendition: ImageRendition, manifest: ImageManifes
 	return data;
 }
 
-async function readImageJobs({ distPath, storePath }: ImageRenderTarget, concurrency: number) {
+async function readImageJobs({ distPath, storePath }: RenderPaths, concurrency: number) {
 	const { renditionsPath } = getStoreLayout(storePath);
 	const manifest = await readDistManifest({ distPath, storePath });
 	const renditions = getManifestRenditions(manifest);
@@ -216,7 +216,7 @@ async function readImageJobs({ distPath, storePath }: ImageRenderTarget, concurr
 	}
 }
 
-export async function prepareRenditionRender({ distPath, storePath }: ImageRenderTarget) {
+export async function prepareRenditionRender({ distPath, storePath }: RenderPaths) {
 	const resolvedStorePath = path.resolve(storePath);
 	const concurrency = getDefaultConcurrency();
 	const { directory, jobs } = await readImageJobs(

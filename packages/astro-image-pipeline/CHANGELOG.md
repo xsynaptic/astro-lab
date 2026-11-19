@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.16.0
+
+### Minor Changes
+
+- `ImageRenderTarget` is renamed `RenderPaths`
+
 ## 0.15.0
 
 ### Minor Changes
