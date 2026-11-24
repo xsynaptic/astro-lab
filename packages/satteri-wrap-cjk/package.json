@@ -1,7 +1,7 @@
 {
 	"name": "@xsynaptic/satteri-wrap-cjk",
 	"version": "0.3.1",
-	"description": "Sätteri hast plugin that wraps CJK character runs in an element with a configurable attribute for styling or language tagging.",
+	"description": "Sätteri hast plugin that wraps CJK character runs in an element with a configurable attribute for styling or language tagging",
 	"type": "module",
 	"license": "MIT",
 	"author": "Alexander Synaptic <x@synapticism.com>",

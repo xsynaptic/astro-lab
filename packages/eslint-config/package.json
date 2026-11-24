@@ -1,7 +1,7 @@
 {
 	"name": "@xsynaptic/eslint-config",
 	"version": "6.10.0",
-	"description": "An ESLint config factory for TypeScript projects",
+	"description": "An ESLint flat-config factory for TypeScript projects",
 	"type": "module",
 	"license": "MIT",
 	"author": "Alexander Synaptic <x@synapticism.com>",

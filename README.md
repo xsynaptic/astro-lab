@@ -9,6 +9,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 - [`@xsynaptic/astro-image-loader`](packages/astro-image-loader): Astro loader treating images as content entries, with incremental sync, caching, and pluggable EXIF/dimensions extraction
 - [`@xsynaptic/astro-image-pipeline`](packages/astro-image-pipeline): Astro integration that records the images each build uses and renders them with sharp outside the bundler
 - [`@xsynaptic/astro-pagefind`](packages/astro-pagefind): Pagefind search for Astro, with a versioned bundle
+- [`@xsynaptic/astro-scripts`](packages/astro-scripts): toolkit for an Astro project's scripts package, with a command runner, swappable output reporters, and a bridge into the content layer
 - [`@xsynaptic/astro-sitemap-lastmod`](packages/astro-sitemap-lastmod): Astro integration that adds `lastmod` dates to the sitemap from `@astrojs/sitemap`, recorded by a script or your content loaders
 - [`@xsynaptic/astro-syndication`](packages/astro-syndication): Helpers for standardizing syndication: a shared item model, off-page rendering, feed-safe HTML, and an RSS writer
 
@@ -43,6 +44,7 @@ A collection of reusable plugins, utilities, and configs for Astro projects. Bui
 ## Other
 
 - [`@xsynaptic/analytics`](packages/analytics): typed analytics events with a Umami adapter
+- [`@xsynaptic/remark-prose-rules`](packages/remark-prose-rules): remark plugin for mdxlint that reports and fixes diacritics, terminology, and pattern issues in prose
 - [`@xsynaptic/unpic-imagor`](packages/unpic-imagor): unpic URL provider for the imagor image server
 - [`@xsynaptic/word-count`](packages/word-count): fast, dependency-free multilingual word counter
 

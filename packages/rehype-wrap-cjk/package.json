@@ -1,7 +1,7 @@
 {
 	"name": "@xsynaptic/rehype-wrap-cjk",
 	"version": "3.1.0",
-	"description": "Rehype plugin for wrapping CJK character sequences in an HTML element with a configurable attribute for styling or language tagging.",
+	"description": "Rehype plugin for wrapping CJK character sequences in an HTML element with a configurable attribute for styling or language tagging",
 	"type": "module",
 	"license": "MIT",
 	"author": "Alexander Synaptic <x@synapticism.com>",
