@@ -147,7 +147,10 @@ async function readRecorded({
 		};
 	}
 
-	if (recorded.renditions.size === 0 && recorded.cards.size === 0 && pageCount > 0) {
+	const isEmpty =
+		recorded.renditions.size === 0 && recorded.cards.size === 0 && !recorded.hasPlaceholders;
+
+	if (isEmpty && pageCount > 0) {
 		throw new Error(
 			`No image names were recorded while building ${String(pageCount)} pages; build image URLs with getRenditionName at render time, in a runtime that has node:fs`,
 		);

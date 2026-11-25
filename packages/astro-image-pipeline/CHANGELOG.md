@@ -1,5 +1,11 @@
 # @xsynaptic/astro-image-pipeline
 
+## 0.17.0
+
+### Minor Changes
+
+- Placeholders take sharp's WebP options as `webp`, replacing `quality`. A build that only uses placeholders no longer fails for recording no image names.
+
 ## 0.16.0
 
 ### Minor Changes

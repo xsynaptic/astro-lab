@@ -12,6 +12,7 @@ import type { RenditionSize } from '../../src/image-name.js';
 
 import imagePipeline from '../../src/astro-integration.js';
 import { getCardName } from '../../src/card-name.js';
+import { getPlaceholder, imagePlaceholdersVariable } from '../../src/image-placeholders.js';
 import { imageRecordsVariable } from '../../src/image-recorder.js';
 import { getRenditionName } from '../../src/image-sizes.js';
 import {
@@ -90,6 +91,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+	Reflect.deleteProperty(process.env, imagePlaceholdersVariable);
 	Reflect.deleteProperty(process.env, imageRecordsVariable);
 	await fs.rm(root, { force: true, recursive: true });
 });
@@ -296,6 +298,20 @@ describe('imagePipeline recording', () => {
 		await startBuild(hooks);
 
 		await expect(finishBuild(hooks)).rejects.toThrow(/No image names were recorded/);
+	});
+
+	test('a build that only resolves placeholders passes', async () => {
+		const mediaPath = path.join(root, 'media');
+		const { hooks } = imagePipeline({ mediaPath, placeholders: { pixels: 16 }, storePath: root });
+
+		await fs.mkdir(mediaPath);
+		await sharp({ create: { background: '#cc3311', channels: 3, height: 8, width: 8 } })
+			.png()
+			.toFile(path.join(mediaPath, 'a.png'));
+		await startBuild(hooks);
+		await getPlaceholder({ height: 8, id: 'a.png', width: 8 });
+
+		await expect(finishBuild(hooks)).resolves.toBeUndefined();
 	});
 
 	test('an incremental build that renders no page keeps the previous names', async () => {

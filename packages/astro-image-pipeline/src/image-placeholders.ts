@@ -1,4 +1,4 @@
-import type { Sharp } from 'sharp';
+import type { Sharp, WebpOptions } from 'sharp';
 
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -10,6 +10,8 @@ import type { ImageSize } from './image-name.js';
 import type { ImageDimensions, ImageSource } from './image-sizes.js';
 import type { SourceFingerprints } from './source-fingerprints.js';
 
+import { serializeEncoding } from './image-encoding.js';
+import { recordPlaceholder } from './image-recorder.js';
 import { openImageSource } from './image-render.js';
 import { formatSize, getSourcePath, isPixelCount, isWholeSize } from './image-sizes.js';
 import { getStoreLayout } from './image-state.js';
@@ -24,10 +26,8 @@ const placeholderRevision = 1;
 export const placeholderOptionsSchema = z.strictObject({
 	blur: z.number().min(0.3).max(1000).optional(),
 	pixels: z.number().refine(isPixelCount, { error: 'Expected a whole, positive pixel count' }),
-	quality: z.number().refine((value) => Number.isSafeInteger(value) && value >= 1 && value <= 100, {
-		error: 'Expected a whole quality from 1 to 100',
-	}),
 	saturation: z.number().min(0).optional(),
+	webp: z.custom<WebpOptions>((value) => typeof value === 'object' && value !== null).optional(),
 });
 
 export type ImagePlaceholderOptions = z.input<typeof placeholderOptionsSchema>;
@@ -71,14 +71,14 @@ export function getPlaceholderKey({
 	blur,
 	digest,
 	grid,
-	quality,
 	saturation = 1,
+	webp = {},
 }: PlaceholderLook & { digest: string; grid: ImageDimensions }) {
 	return hashRenderKey([
 		digest,
 		grid.width,
 		grid.height,
-		quality,
+		serializeEncoding(webp),
 		blur ?? '',
 		saturation,
 		placeholderRevision,
@@ -151,10 +151,10 @@ function getPlaceholderStore() {
 	return store;
 }
 
-function encodePlaceholder(image: Sharp, { blur, quality, saturation = 1 }: PlaceholderLook) {
+function encodePlaceholder(image: Sharp, { blur, saturation = 1, webp }: PlaceholderLook) {
 	const blurred = blur === undefined ? image : image.blur(blur);
 
-	return blurred.modulate({ saturation }).webp({ quality });
+	return blurred.modulate({ saturation }).webp(webp);
 }
 
 async function renderPlaceholder(
@@ -237,6 +237,8 @@ export async function getPlaceholder(
 
 	const placeholderStore = getPlaceholderStore();
 	const { config, inFlight } = placeholderStore;
+
+	recordPlaceholder();
 	const aspectRatio =
 		size?.height === undefined ? source.width / source.height : size.width / size.height;
 	const grid = getPlaceholderGrid(aspectRatio, pixels ?? config.pixels);

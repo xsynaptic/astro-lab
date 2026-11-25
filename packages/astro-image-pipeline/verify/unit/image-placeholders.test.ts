@@ -24,7 +24,11 @@ const mtime = new Date('2024-01-01T00:00:00Z');
 let root: string;
 let mediaPath: string;
 
-const mosaic = { pixels: 250, quality: 10, saturation: 1.2 } satisfies ImagePlaceholderOptions;
+const mosaic = {
+	pixels: 250,
+	saturation: 1.2,
+	webp: { quality: 10 },
+} satisfies ImagePlaceholderOptions;
 
 async function startDev(
 	placeholders: ImagePlaceholderOptions | undefined,
@@ -105,7 +109,6 @@ describe('getPlaceholder', () => {
 
 	test.each([
 		[{ pixels: 2.5 }, 'Expected a whole, positive pixel count\n  → at placeholders.pixels'],
-		[{ quality: 2.5 }, 'Expected a whole quality from 1 to 100\n  → at placeholders.quality'],
 		[{ saturaton: 1.2 }, 'Unrecognized key: "saturaton"\n  → at placeholders'],
 	])('refuses %j at setup', (override, message) => {
 		expect(() =>
@@ -128,7 +131,7 @@ describe('getPlaceholder', () => {
 	});
 
 	test('blur reproduces known bytes', async () => {
-		await startDev({ blur: 3, pixels: 250, quality: 25, saturation: 1.2 });
+		await startDev({ blur: 3, pixels: 250, saturation: 1.2, webp: { quality: 25 } });
 
 		const source = await writeSource('blocks.png', await createBlockImage());
 
@@ -137,8 +140,22 @@ describe('getPlaceholder', () => {
 		);
 	});
 
+	test('lossless keeps a colour that lossy WebP shifts', async () => {
+		await startDev({ pixels: 16, webp: { lossless: true } });
+
+		const source = await writeSource(
+			'solid.png',
+			sharp({ create: { background: '#cc3311', channels: 3, height: 80, width: 80 } }).png(),
+		);
+		const { data } = await decodeDataUrl(await getPlaceholder(source))
+			.raw()
+			.toBuffer({ resolveWithObject: true });
+
+		expect([...data.subarray(0, 3)]).toEqual([0xcc, 0x33, 0x11]);
+	});
+
 	test('a size with a height sets the grid ratio, and pixels override the configured count', async () => {
-		await startDev({ blur: 3, pixels: 1024, quality: 25, saturation: 1.2 });
+		await startDev({ blur: 3, pixels: 1024, saturation: 1.2, webp: { quality: 25 } });
 
 		const source = await writeSource('blocks.png', await createBlockImage());
 		const cropped = await decodeDataUrl(
@@ -253,11 +270,11 @@ describe('getPlaceholder', () => {
 });
 
 describe('getPlaceholderKey', () => {
-	const fixed = { digest: 'a'.repeat(64), grid: { height: 13, width: 19 }, quality: 10 };
+	const fixed = { digest: 'a'.repeat(64), grid: { height: 13, width: 19 }, webp: { quality: 10 } };
 
 	test('stays pinned for a fixed input', () => {
 		expect(getPlaceholderKey({ ...fixed, saturation: 1.2 })).toMatchInlineSnapshot(
-			`"1458a0d6f6bea4a5"`,
+			`"fe1256adac8a27dd"`,
 		);
 	});
 
@@ -267,5 +284,11 @@ describe('getPlaceholderKey', () => {
 
 	test('a blur keys apart from none', () => {
 		expect(getPlaceholderKey({ ...fixed, blur: 3 })).not.toBe(getPlaceholderKey(fixed));
+	});
+
+	test('switching to lossless keys apart, so the lossy placeholder is not served from cache', () => {
+		expect(getPlaceholderKey({ ...fixed, webp: { lossless: true } })).not.toBe(
+			getPlaceholderKey(fixed),
+		);
 	});
 });

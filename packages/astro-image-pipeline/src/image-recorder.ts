@@ -50,6 +50,10 @@ export function recordRendition(name: string, sourcePath: string) {
 	writeRecord({ kind: 'rendition', name, sourcePath });
 }
 
+export function recordPlaceholder() {
+	writeRecord({ kind: 'placeholder' });
+}
+
 // Page code and the integration load separate module instances in one realm, so dev cards hang off `globalThis`
 const devCardsKey = Symbol.for('@xsynaptic/astro-image-pipeline/dev-cards');
 

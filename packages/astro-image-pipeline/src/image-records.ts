@@ -12,6 +12,10 @@ interface CardRecord {
 	name: string;
 }
 
+interface PlaceholderRecord {
+	kind: 'placeholder';
+}
+
 interface RenditionRecord {
 	kind: 'rendition';
 	name: string;
@@ -92,6 +96,7 @@ export async function resetImageRecords(recordsPath: string) {
 export async function readImageRecords(recordsPath: string) {
 	const renditions = createRecordedValues();
 	const cards = createRecordedValues();
+	let hasPlaceholders = false;
 
 	const recordFiles = await listRecordFiles(recordsPath);
 
@@ -99,13 +104,15 @@ export async function readImageRecords(recordsPath: string) {
 		const text = await fs.readFile(path.join(recordsPath, recordFile), 'utf8');
 
 		for (const line of text.split('\n')) {
-			type ImageRecord = CardRecord | RenditionRecord;
+			type ImageRecord = CardRecord | PlaceholderRecord | RenditionRecord;
 
 			if (line === '') continue;
 
 			const record = JSON.parse(line) as ImageRecord;
 
-			if (record.kind === 'rendition') {
+			if (record.kind === 'placeholder') {
+				hasPlaceholders = true;
+			} else if (record.kind === 'rendition') {
 				addRecordedValue(renditions, record.name, record.sourcePath);
 			} else {
 				addRecordedValue(cards, record.name, JSON.stringify(record.card));
@@ -121,6 +128,7 @@ export async function readImageRecords(recordsPath: string) {
 		cards: sortByName(
 			[...cards.values].map(([name, value]): [string, Card] => [name, JSON.parse(value) as Card]),
 		),
+		hasPlaceholders,
 		renditions: sortByName(renditions.values),
 	};
 }
