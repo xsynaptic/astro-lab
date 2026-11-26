@@ -1,5 +1,11 @@
 # @xsynaptic/unified-tools
 
+## 5.1.6
+
+### Patch Changes
+
+- `wrapCjk` and the language wrappers no longer prefix an `id`, `name`, `aria-describedby` or `aria-labelledby` value twice when given their own output; wrapping already-wrapped HTML now returns it unchanged.
+
 ## 5.1.5
 
 ### Patch Changes

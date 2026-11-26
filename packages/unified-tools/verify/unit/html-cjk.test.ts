@@ -51,6 +51,15 @@ describe('wrapCjk properties', () => {
 		expect(wrapDefault('<span class="note cjk">中</span>')).toBe('<span class="cjk">中</span>');
 	});
 
+	test('prefixes an id once, however often it is wrapped', () => {
+		const once = wrapDefault('<a id="note" aria-describedby="a b">中</a>');
+
+		expect(once).toBe(
+			'<a id="user-content-note" aria-describedby="user-content-a user-content-b"><span class="cjk">中</span></a>',
+		);
+		expect(wrapDefault(once)).toBe(once);
+	});
+
 	test.prop([htmlFragment, wrapperOptions])('is idempotent', (input, wrapCjkOptions) => {
 		const once = wrapCjk({ input, wrapCjkOptions });
 

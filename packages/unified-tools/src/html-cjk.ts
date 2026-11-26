@@ -1,4 +1,5 @@
 import type { RehypeWrapCjkOptions } from '@xsynaptic/rehype-wrap-cjk';
+import type { Properties, Root } from 'hast';
 import type { Options as RehypeSanitizeOptions } from 'rehype-sanitize';
 
 import { rehypeWrapCjk, resolveWrapper } from '@xsynaptic/rehype-wrap-cjk';
@@ -7,9 +8,40 @@ import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
+import { visit } from 'unist-util-visit';
 
 // Cache frozen processors by options hash
 const processorCache = new Map<string, unknown>();
+
+const clobber = defaultSchema.clobber ?? [];
+const clobberPrefix = defaultSchema.clobberPrefix ?? '';
+
+function removePrefix<Value>(value: Value) {
+	return typeof value === 'string' && value.startsWith(clobberPrefix)
+		? value.slice(clobberPrefix.length)
+		: value;
+}
+
+function removeClobberPrefix(value: Properties[string]) {
+	if (Array.isArray(value)) return value.map((item) => removePrefix(item));
+
+	return removePrefix(value);
+}
+
+function removeClobberPrefixes(tree: Root) {
+	visit(tree, 'element', (element) => {
+		for (const property of clobber) {
+			const value = element.properties[property];
+
+			if (value !== undefined) element.properties[property] = removeClobberPrefix(value);
+		}
+	});
+}
+
+// Sanitizing prefixes these properties unconditionally, so wrapped output fed back in would carry the prefix twice
+function rehypeRemoveClobberPrefix() {
+	return removeClobberPrefixes;
+}
 
 function createWrapperSchema(wrapCjkOptions: Partial<RehypeWrapCjkOptions>) {
 	const { element, property, value } = resolveWrapper(wrapCjkOptions);
@@ -27,6 +59,7 @@ function createWrapperSchema(wrapCjkOptions: Partial<RehypeWrapCjkOptions>) {
 function createProcessor(wrapCjkOptions: Partial<RehypeWrapCjkOptions>) {
 	return unified()
 		.use(rehypeParse, { fragment: true })
+		.use(rehypeRemoveClobberPrefix)
 		.use(rehypeSanitize, createWrapperSchema(wrapCjkOptions))
 		.use(rehypeWrapCjk, wrapCjkOptions)
 		.use(rehypeStringify)
