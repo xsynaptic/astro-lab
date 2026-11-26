@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.17.1
+
+### Patch Changes
+
+- `formatError` follows the `cause` chain, so a failed `fetch` reads `fetch failed: read ECONNRESET`
+
 ## 0.17.0
 
 ### Minor Changes

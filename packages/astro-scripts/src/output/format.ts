@@ -21,7 +21,23 @@ export function formatBytes(bytes: number) {
 }
 
 export function formatError(error: unknown) {
-	return error instanceof Error ? error.message : String(error);
+	const messages: Array<string> = [];
+	const seen = new Set<unknown>();
+	let current = error;
+
+	while (!seen.has(current)) {
+		seen.add(current);
+
+		const message = current instanceof Error ? current.message : String(current);
+
+		if (message !== '' && !messages.includes(message)) messages.push(message);
+
+		if (!(current instanceof Error) || current.cause === undefined) break;
+
+		current = current.cause;
+	}
+
+	return messages.join(': ');
 }
 
 export function formatDuration(milliseconds: number) {
