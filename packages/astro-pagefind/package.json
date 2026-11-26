@@ -70,8 +70,8 @@
 	"devDependencies": {
 		"@pagefind/component-ui": "^1.6.0",
 		"@playwright/test": "^1.65.1",
-		"@types/node": "^24.19.2",
-		"astro": "^7.4.12",
+		"@types/node": "^24.19.4",
+		"astro": "^7.4.13",
 		"pagefind": "^1.6.0"
 	}
 }

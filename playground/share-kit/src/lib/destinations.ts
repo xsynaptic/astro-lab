@@ -19,7 +19,7 @@ import {
 } from '@xsynaptic/share-kit';
 
 // `URLSearchParams` would write spaces as `+`, which mail clients show literally
-export const email = defineShareKitDestination({
+const email = defineShareKitDestination({
 	actions: { desktop: ['open-composer'], mobile: ['open-composer'] },
 	composer: ({ text, title }) =>
 		`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(text)}`,

@@ -67,9 +67,9 @@
 		}
 	},
 	"devDependencies": {
-		"@types/node": "^24.19.2",
+		"@types/node": "^24.19.4",
 		"@types/picomatch": "^4.0.2",
-		"astro": "^7.4.12",
+		"astro": "^7.4.13",
 		"exiftool-vendored": "^39.4.0",
 		"sharp": "^0.35.5",
 		"zod": "^4.6.7"

@@ -58,8 +58,8 @@
 		"sharp": "^0.35"
 	},
 	"devDependencies": {
-		"@types/node": "^24.19.2",
-		"astro": "^7.4.12",
+		"@types/node": "^24.19.4",
+		"astro": "^7.4.13",
 		"sharp": "^0.35.5"
 	}
 }

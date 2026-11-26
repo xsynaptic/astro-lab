@@ -1,5 +1,11 @@
 # @xsynaptic/astro-syndication
 
+## 0.2.1
+
+### Patch Changes
+
+- Bump `hast-util-to-html` to 9.0.7.
+
 ## 0.2.0
 
 ### Minor Changes

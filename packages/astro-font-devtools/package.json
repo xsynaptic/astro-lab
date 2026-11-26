@@ -51,9 +51,9 @@
 		"astro": "^6.3.8 || ^7.0.0"
 	},
 	"devDependencies": {
-		"@csstools/css-tokenizer": "^4.0.2",
+		"@csstools/css-tokenizer": "^4.0.3",
 		"@playwright/test": "^1.65.1",
-		"astro": "^7.4.12",
+		"astro": "^7.4.13",
 		"vite": "^8.3.8"
 	}
 }

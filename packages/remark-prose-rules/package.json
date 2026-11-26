@@ -51,7 +51,7 @@
 		"unified": "^11.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.19.2",
+		"@types/node": "^24.19.4",
 		"remark-frontmatter": "^5.0.0",
 		"remark-mdx": "^3.1.1",
 		"remark-parse": "^11.0.0",

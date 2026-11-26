@@ -1,6 +1,6 @@
 {
 	"name": "@xsynaptic/stylelint-config",
-	"version": "1.1.7",
+	"version": "1.1.8",
 	"description": "A shared Stylelint config for Astro projects using Tailwind CSS v4",
 	"type": "module",
 	"license": "MIT",
@@ -42,7 +42,7 @@
 	"dependencies": {
 		"@double-great/stylelint-a11y": "^3.8.3",
 		"postcss-html": "^2.0.1",
-		"stylelint-config-recess-order": "^7.10.0",
+		"stylelint-config-recess-order": "^7.10.1",
 		"stylelint-config-standard": "^40.0.0",
 		"stylelint-plugin-defensive-css": "^2.10.0"
 	}
