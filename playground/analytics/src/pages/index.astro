@@ -2,19 +2,4 @@
 import BaseLayout from '../layouts/base-layout.astro';
 ---
 
-<BaseLayout title="First page">
-	<button type="button">Mode</button>
-	<script>
-		import { createUmamiAttributes } from '@xsynaptic/analytics/umami';
-
-		const { setSendEventAttributes } = createUmamiAttributes<{
-			'mode-toggle': undefined | { mode: string };
-		}>();
-		const button = document.querySelector('button');
-
-		if (button) {
-			setSendEventAttributes(button, 'mode-toggle', { mode: 'dark' });
-			setSendEventAttributes(button, 'mode-toggle');
-		}
-	</script>
-</BaseLayout>
+<BaseLayout title="First page" />

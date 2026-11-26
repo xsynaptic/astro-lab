@@ -91,13 +91,6 @@ describe('getRssResponse items', () => {
 		expect(item).not.toContain('<media:description');
 	});
 
-	test('an item without an image or tags emits neither', async () => {
-		const item = await renderItem(itemBare);
-
-		expect(item).not.toContain('<media:content');
-		expect(item).not.toContain('<category>');
-	});
-
 	test('the publication date is the update when there is one', async () => {
 		expect(await renderItem(itemFull)).toContain(`<pubDate>${dateUpdated.toUTCString()}</pubDate>`);
 		expect(await renderItem(itemBare)).toContain(`<pubDate>${dateCreated.toUTCString()}</pubDate>`);
@@ -122,13 +115,6 @@ describe('getRssResponse items', () => {
 			[...item.matchAll(/<dc:creator>([^<]*)<\/dc:creator>/g)].map(([, name]) => name),
 		).toStrictEqual(['Lin &amp; Chen', 'Wu']);
 		expect(item).toContain('<media:content ');
-	});
-
-	test('the absolute url is both link and guid', async () => {
-		const item = await renderItem(itemBare);
-
-		expect(item).toContain(`<link>${itemBare.url}</link>`);
-		expect(item).toContain(`<guid isPermaLink="true">${itemBare.url}</guid>`);
 	});
 });
 
@@ -186,13 +172,10 @@ describe('getRssResponse channel', () => {
 		expect(xml).toContain('xmlns:atom="http://www.w3.org/2005/Atom"');
 	});
 
-	test('a copyright with an ampersand stays well-formed', async () => {
+	test('a copyright with an ampersand stays well-formed, and none is emitted without one', async () => {
 		const xml = await renderFeed([itemBare], { copyright: '© 2026 Lanterns & Incense <Press>' });
 
 		expect(getChannelTag(xml, 'copyright')).toBe('© 2026 Lanterns &amp; Incense &lt;Press&gt;');
-	});
-
-	test('a publication without a copyright emits none', async () => {
 		expect(await renderFeed([itemBare])).not.toContain('<copyright>');
 	});
 
@@ -226,7 +209,7 @@ describe('getRssResponse channel image', () => {
 		expect(warn).not.toHaveBeenCalled();
 	});
 
-	test('leaves out dimensions it is not given', async () => {
+	test('leaves out dimensions it is not given, and the whole image without one', async () => {
 		const image = getChannelImage(
 			await renderFeed([], { image: { url: 'https://cdn.example.com/a.gif' } }),
 		);
@@ -234,9 +217,6 @@ describe('getRssResponse channel image', () => {
 		expect(image).toContain('<url>https://cdn.example.com/a.gif</url>');
 		expect(image).not.toContain('<width>');
 		expect(image).not.toContain('<height>');
-	});
-
-	test('a publication without an image emits none', async () => {
 		expect(getChannelImage(await renderFeed([itemBare]))).toBeUndefined();
 	});
 

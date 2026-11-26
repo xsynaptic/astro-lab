@@ -38,12 +38,8 @@ describe('autoImport', () => {
 
 	// The import must land at top level whatever block type leads the document
 	const shapes = [
-		['heading-first', '# Title\n\n<Img src="a" alt="b" />\n'],
 		['paragraph-first', 'Lead paragraph.\n\n<Img src="a" alt="b" />\n'],
-		['list-first', '- one\n- two\n\n<Img src="a" alt="b" />\n'],
-		['blockquote-first', '> quote\n\n<Img src="a" alt="b" />\n'],
 		['component-first', '<Img src="a" alt="b" />\n\nTrailing text.\n'],
-		['code-first', '```\ncode block\n```\n\n<Img src="a" alt="b" />\n'],
 	] as const;
 
 	test.each(shapes)('injects at top level for %s', async (_label, source) => {

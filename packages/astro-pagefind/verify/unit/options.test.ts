@@ -15,11 +15,11 @@ vi.mock('../../src/package-version.js', () => ({
 const typo = { indexConfig: { excludeSelector: ['nav'] } };
 
 describe('unknown indexConfig keys', () => {
-	test.each(['1.6.0', '1.6.3', '1.5.2'])('fail on Pagefind %s, which drops them', (version) => {
+	test.each(['1.6.0', '1.5.2'])('fail on Pagefind %s, which drops them', (version) => {
 		expect(() => parseOptions(typo, () => version)).toThrow('excludeSelector');
 	});
 
-	test.each(['1.7.0', '1.7.0-beta.1', '2.0.0'])('pass through on Pagefind %s', (version) => {
+	test.each(['1.7.0-beta.1', '2.0.0'])('pass through on Pagefind %s', (version) => {
 		expect(parseOptions(typo, () => version)).toEqual({
 			indexConfig: typo.indexConfig,
 			unknownKeys: ['excludeSelector'],

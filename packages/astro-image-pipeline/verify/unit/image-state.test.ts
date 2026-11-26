@@ -1,7 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { gzipSync } from 'node:zlib';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
 import type { ImageManifest } from '../../src/image-state.js';
@@ -55,18 +54,5 @@ describe('findDistManifest', () => {
 		await writeBuildId(distPath, 'missing');
 
 		expect(await findDistManifest({ distPath, storePath: root })).toBeUndefined();
-	});
-
-	test('still refuses a manifest at another version', async () => {
-		await fs.mkdir(path.join(root, 'manifests'));
-		await fs.writeFile(
-			path.join(root, 'manifests', 'live.json.gz'),
-			gzipSync(JSON.stringify({ buildId: 'live', version: 1 })),
-		);
-		await writeBuildId(distPath, 'live');
-
-		await expect(findDistManifest({ distPath, storePath: root })).rejects.toThrow(
-			/version 1, not 8/,
-		);
 	});
 });

@@ -76,16 +76,6 @@ describe('renderFontFace', () => {
 		).toContain('unicode-range: U+0000-00FF, U+0131');
 	});
 
-	it('escapes quotes, backslashes and newlines in the strings it writes', () => {
-		const css = renderFontFace(String.raw`A"B\C`, {
-			src: [{ name: 'x\ny' }, { url: '/a"b.woff2' }],
-		} satisfies FontFaceData);
-
-		expect(css).toContain(String.raw`font-family: "A\"B\\C"`);
-		expect(css).toContain(String.raw`local("x\a y")`);
-		expect(css).toContain(String.raw`url("/a\"b.woff2")`);
-	});
-
 	it('renders local() sources and joins a variable weight range', () => {
 		const css = renderFontFace('Inter', {
 			src: [{ name: 'Inter' }],

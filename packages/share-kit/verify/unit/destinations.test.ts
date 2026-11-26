@@ -9,7 +9,9 @@ import {
 	shareKitAnywhere,
 	shareKitBluesky,
 	shareKitFacebook,
+	shareKitLine,
 	shareKitLinkedin,
+	shareKitMastodon,
 } from '../../src/destinations.js';
 import { shareKitLandscapeFormat } from '../../src/formats.js';
 
@@ -96,5 +98,33 @@ describe('primary action', () => {
 	test('a destination without a composer skips open-composer for the next action', () => {
 		expect(getAction(composerless, { ...desktop, canShareText: true })).toBe('share-text');
 		expect(getAction(composerless, phone)).toBe('copy-caption');
+	});
+});
+
+describe('composers', () => {
+	const input = { text: 'A caption', title: 'Title', url: 'https://example.com/a/' };
+
+	test.each([
+		['LINE on a desktop', shareKitLine, 'desktop', 'https://social-plugins.line.me/lineit/share'],
+		['LINE on a phone', shareKitLine, 'mobile', 'https://line.me/R/share'],
+	] as const)('%s opens its own share page', (_label, destination, device, page) => {
+		const composer = new URL(destination.composer({ ...input, device }));
+
+		expect(composer.origin + composer.pathname).toBe(page);
+		expect(composer.searchParams.get('text')).toBe(input.text);
+	});
+
+	test('LINE on a desktop takes the link apart from the text', () => {
+		const composer = new URL(shareKitLine.composer({ ...input, device: 'desktop' }));
+
+		expect(composer.searchParams.get('url')).toBe(input.url);
+	});
+
+	test('Mastodon carries the text in the fragment, never the query', () => {
+		const composer = new URL(shareKitMastodon.composer({ ...input, device: 'desktop' }));
+
+		expect(composer.origin + composer.pathname).toBe('https://share.joinmastodon.org/');
+		expect(composer.search).toBe('');
+		expect(new URLSearchParams(composer.hash.slice(1)).get('text')).toBe(input.text);
 	});
 });

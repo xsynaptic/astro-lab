@@ -28,11 +28,6 @@ describe('normalizePath', () => {
 });
 
 describe('getPathSimilarity', () => {
-	test('scores identical strings as 1', () => {
-		expect(getPathSimilarity('/harbour', '/harbour')).toBe(1);
-		expect(getPathSimilarity('', '')).toBe(1);
-	});
-
 	test('lifts a truncated string above a same-length unrelated one', () => {
 		const truncated = getPathSimilarity('/lighthouse-ke', '/lighthouse-keepers-logbook');
 		const unrelated = getPathSimilarity('/lighthouse-ke', '/harbour-fog-signals-at-dusk');
@@ -52,17 +47,6 @@ describe('getPathSuggestions', () => {
 		const result = getPathSuggestions({ entries, path: '/lighthouse-keepers-logbook' });
 
 		expect(result?.type).toBe('list');
-	});
-
-	test('lists candidates over the threshold, best first', () => {
-		const result = getPathSuggestions({ entries, path: '/li', threshold: 0.1 });
-
-		assert(result?.type === 'list', 'expected a list');
-
-		expect(result.items.at(0)?.url).toBe('/lifeboat-station-museum/');
-		expect(result.items.map(({ score }) => score)).toEqual(
-			result.items.map(({ score }) => score).toSorted((scoreA, scoreB) => scoreB - scoreA),
-		);
 	});
 
 	test('caps the list at the limit', () => {

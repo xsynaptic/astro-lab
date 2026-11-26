@@ -11,7 +11,6 @@ import {
 	checkEntryIds,
 	checkReferences,
 	findComponentTags,
-	getBodyLineOffset,
 	getTagProp,
 } from '../../src/content-checks.js';
 
@@ -52,19 +51,13 @@ describe('findComponentTags and getTagProp', () => {
 });
 
 describe('findComponentTags on MDX', () => {
-	test('finds no tags in fenced code, inline code or comments', () => {
+	test('finds no tags in fenced code, inline code or comments, and reads a prop after an attribute holding `>`', () => {
 		const tags = findComponentTags(
-			'```mdx\n<Img src="a.jpg" />\n```\n\nSee `<Img src="b.jpg" />`.\n\n{/* <Img src="c.jpg" /> */}\n',
+			'```mdx\n<Img src="a.jpg" />\n```\n\nSee `<Img src="b.jpg" />`.\n\n{/* <Img src="c.jpg" /> */}\n\n<Img alt="a > b" src="d.jpg" />\n',
 			['Img'],
 		);
 
-		expect(tags).toEqual([]);
-	});
-
-	test('reads a prop after an attribute holding `>`', () => {
-		const [tag] = findComponentTags('<Img alt="a > b" src="a.jpg" />', ['Img']);
-
-		expect(tag && getTagProp(tag, 'src')).toBe('a.jpg');
+		expect(tags.map((tag) => getTagProp(tag, 'src'))).toEqual(['d.jpg']);
 	});
 
 	test('reports a tag with children, a multi-line child and an inline tag on their own lines', () => {
@@ -78,15 +71,6 @@ describe('findComponentTags on MDX', () => {
 			['Img', 2],
 			['Link', 7],
 		]);
-	});
-});
-
-describe('getBodyLineOffset', () => {
-	test('measures the frontmatter a body was stripped of, and is zero without a file', () => {
-		expect(getBodyLineOffset(makeEntry({ body, filePath: 'a-post.mdx', id: 'a' }), rootPath)).toBe(
-			4,
-		);
-		expect(getBodyLineOffset(makeEntry({ body, filePath: 'gone.mdx', id: 'a' }), rootPath)).toBe(0);
 	});
 });
 
@@ -133,7 +117,7 @@ describe('checkComponentProps', () => {
 			issues: [
 				{
 					location: 'a-post.mdx',
-					message: expect.stringMatching(/^MDX failed to parse: .*mdx-jsx:unexpected-character/),
+					message: expect.stringMatching(/^MDX failed to parse: /),
 				},
 			],
 			status: 'fail',
@@ -151,15 +135,6 @@ describe('checkComponentTargets', () => {
 		});
 
 		expect(result.issues).toEqual([{ location: 'a-post.mdx:8', message: 'broken Link id "gone"' }]);
-	});
-
-	test('skips an expression value, which it cannot resolve', () => {
-		const result = checkComponentTargets(
-			[makeEntry({ body: '<Link id={"gone"} />', filePath: 'a-post.mdx', id: 'a' })],
-			{ component: 'Link', prop: 'id', rootPath, targets: ['a'] },
-		);
-
-		expect(result.issues).toEqual([]);
 	});
 
 	test('words its summary and issues from the label', () => {

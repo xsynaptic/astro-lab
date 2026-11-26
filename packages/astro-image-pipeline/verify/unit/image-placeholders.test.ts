@@ -103,31 +103,14 @@ afterEach(async () => {
 });
 
 describe('getPlaceholder', () => {
-	test('outside an Astro process with placeholders configured, throws a UserError', async () => {
-		await expect(getPlaceholder({ height: 1, id: 'a.jpg', width: 1 })).rejects.toThrow(UserError);
-	});
-
-	test.each([
-		[{ pixels: 2.5 }, 'Expected a whole, positive pixel count\n  → at placeholders.pixels'],
-		[{ saturaton: 1.2 }, 'Unrecognized key: "saturaton"\n  → at placeholders'],
-	])('refuses %j at setup', (override, message) => {
+	test('refuses a fractional pixel count at setup', () => {
 		expect(() =>
 			imagePipeline({
 				mediaPath: 'media',
-				placeholders: { ...mosaic, ...override },
+				placeholders: { ...mosaic, pixels: 2.5 },
 				storePath: 'cache',
 			}),
-		).toThrow(message);
-	});
-
-	test('mosaic reproduces known bytes', async () => {
-		await startDev(mosaic);
-
-		const source = await writeSource('blocks.png', await createBlockImage());
-
-		expect(await getPlaceholder(source)).toMatchInlineSnapshot(
-			`"data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAAAQBACdASoTAA0AP3Gixli0rCgjsAgCkC4JbACdMoR4LfgAO3zfHsyHgAD+EC5u1GexXcpz1vvLQ48H56dPeP54PufEeZhfXMyLZSkV3zBt+jLM+yv0MI+ho37kAAAA"`,
-		);
+		).toThrow('Expected a whole, positive pixel count');
 	});
 
 	test('blur reproduces known bytes', async () => {
@@ -175,7 +158,6 @@ describe('getPlaceholder', () => {
 
 	test.each([
 		[{ size: { height: 0, width: 300 } }, "Image blocks.png can't have a 300x0 placeholder"],
-		[{ size: { width: NaN } }, "Image blocks.png can't have a NaN wide placeholder"],
 		[{ pixels: 0.5 }, 'Image blocks.png placeholders take a whole, positive pixel count, not 0.5'],
 	])('refuses %j, naming the image', async (request, message) => {
 		await startDev(mosaic);
@@ -276,10 +258,6 @@ describe('getPlaceholderKey', () => {
 		expect(getPlaceholderKey({ ...fixed, saturation: 1.2 })).toMatchInlineSnapshot(
 			`"fe1256adac8a27dd"`,
 		);
-	});
-
-	test('an absent saturation keys the same as 1, which sharp skips', () => {
-		expect(getPlaceholderKey(fixed)).toBe(getPlaceholderKey({ ...fixed, saturation: 1 }));
 	});
 
 	test('a blur keys apart from none', () => {

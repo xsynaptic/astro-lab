@@ -37,6 +37,8 @@ function createHarness(build: (streams: { stderr: Writable; stdout: Writable }) 
 	};
 }
 
+const terminalReporters: Array<Reporter> = [];
+
 function createTerminalHarness({ isStdoutTerminal }: { isStdoutTerminal: boolean }) {
 	const transcript: Array<string> = [];
 
@@ -68,6 +70,8 @@ function createTerminalHarness({ isStdoutTerminal }: { isStdoutTerminal: boolean
 		stderr: createStream('stderr', true),
 		stdout: createStream('stdout', isStdoutTerminal),
 	});
+
+	terminalReporters.push(reporter);
 
 	return {
 		emit: (...events: Array<OutputEvent>) => {
@@ -204,25 +208,23 @@ describe('pretty reporter', () => {
 		expect(harness.stderr()).toEqual(['⚠ Interrupted', '✗ Force quit']);
 	});
 
-	test('writes data to stdout, a string raw and anything else as indented JSON', () => {
+	test('writes data to stdout, a string raw, formatted data as painted, and anything else as indented JSON', () => {
 		const harness = createHarness(createPrettyReporter);
 
-		harness.emit({ type: 'data', value: 'orphan.jpg' }, { type: 'data', value: { count: 2 } });
+		harness.emit(
+			{ type: 'data', value: 'orphan.jpg' },
+			{ type: 'data', value: { count: 2 } },
+			{ render: () => '\u{1B}[31mMissing 2\u{1B}[39m', type: 'data', value: { missing: 2 } },
+		);
 
-		expect(harness.stdout()).toEqual(['orphan.jpg', '{', '  "count": 2', '}']);
+		expect(harness.stdout()).toEqual([
+			'orphan.jpg',
+			'{',
+			'  "count": 2',
+			'}',
+			'\u{1B}[31mMissing 2\u{1B}[39m',
+		]);
 		expect(harness.stderr()).toEqual([]);
-	});
-
-	test('writes formatted data to stdout as the formatter painted it', () => {
-		const harness = createHarness(createPrettyReporter);
-
-		harness.emit({
-			render: () => '\u{1B}[31mMissing 2\u{1B}[39m',
-			type: 'data',
-			value: { missing: 2 },
-		});
-
-		expect(harness.stdout()).toEqual(['\u{1B}[31mMissing 2\u{1B}[39m']);
 	});
 
 	test('indents every line of a multi-line failure detail', () => {
@@ -252,6 +254,11 @@ describe('pretty reporter on a terminal', () => {
 	});
 
 	afterEach(() => {
+		for (const reporter of terminalReporters) {
+			reporter.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
+		}
+
+		terminalReporters.length = 0;
 		vi.unstubAllEnvs();
 	});
 
@@ -270,24 +277,9 @@ describe('pretty reporter on a terminal', () => {
 			'stdout: orphan.jpg',
 			spinnerFrame('Scanning'),
 		]);
-
-		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
 	});
 
-	test('leaves the spinner alone when stdout is piped', () => {
-		const harness = createTerminalHarness({ isStdoutTerminal: false });
-
-		harness.emit(
-			{ id: 1, state: 'start', text: 'Scanning', type: 'status' },
-			{ type: 'data', value: 'orphan.jpg' },
-		);
-
-		expect(harness.transcript).toEqual([spinnerFrame('Scanning'), 'stdout: orphan.jpg']);
-
-		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
-	});
-
-	test('hands the terminal to a subprocess step, then resumes the outer spinner', () => {
+	test('hands the terminal to a step, heads its inner spinner, then resumes the outer spinner', () => {
 		const harness = createTerminalHarness({ isStdoutTerminal: false });
 
 		harness.emit(
@@ -301,36 +293,21 @@ describe('pretty reporter on a terminal', () => {
 				type: 'status',
 			},
 			{ id: 2, stream: 'stdout', text: 'built 3 pages', type: 'output' },
+			{ id: 3, state: 'start', text: 'Reading git', type: 'status' },
+			{ id: 3, state: 'succeed', text: 'Read 40 dates', type: 'status' },
 			{ durationMs: 3000, id: 2, state: 'succeed', text: 'Building', type: 'status' },
 		);
 
-		const step = harness.transcript.indexOf('stderr: Building');
+		const transcript = harness.transcript.filter((line) => !line.endsWith('clear'));
+		const step = transcript.indexOf('stderr: Building');
 
-		expect(harness.transcript.slice(step, step + 4)).toEqual([
+		expect(transcript.slice(step)).toEqual([
 			'stderr: Building',
 			'stderr: built 3 pages',
-			'stderr: ✓ Building · 3.0s',
-			spinnerFrame('Deploying'),
-		]);
-
-		harness.emit({ durationMs: 1, exitCode: 0, status: 'ok', type: 'end' });
-	});
-
-	test('heads an in-process step over its inner spinner and closes it after', () => {
-		const harness = createTerminalHarness({ isStdoutTerminal: false });
-
-		harness.emit(
-			{ id: 1, state: 'start', step: true, text: 'Sitemap lastmod', type: 'status' },
-			{ id: 2, state: 'start', text: 'Reading git', type: 'status' },
-			{ id: 2, state: 'succeed', text: 'Read 40 dates', type: 'status' },
-			{ durationMs: 1200, id: 1, state: 'succeed', text: 'Sitemap lastmod', type: 'status' },
-		);
-
-		expect(harness.transcript.filter((line) => !line.endsWith('clear'))).toEqual([
-			'stderr: Sitemap lastmod',
 			spinnerFrame('Reading git'),
 			'stderr: ✓ Read 40 dates',
-			'stderr: ✓ Sitemap lastmod · 1.2s',
+			'stderr: ✓ Building · 3.0s',
+			spinnerFrame('Deploying'),
 		]);
 	});
 
@@ -584,39 +561,20 @@ describe('json reporter', () => {
 			{ line: nested, type: 'nested' },
 		);
 
-		expect(harness.stdout()).toEqual([
-			'{"type":"status","command":"deploy-site","time":"1970-01-01T00:00:00.000Z","argv":["pnpm","validate-content"],"id":1,"state":"start","text":"Validating"}',
-			'{"type":"output","command":"deploy-site","time":"1970-01-01T00:00:00.000Z","id":1,"stream":"stdout","text":"[WARN] slow"}',
-			nested,
-		]);
-	});
+		const envelope = { command: 'deploy-site', time: '1970-01-01T00:00:00.000Z' };
 
-	test('wraps each event with its type, command, and time, colour stripped', () => {
-		const harness = createHarness((streams) =>
-			createJsonReporter(streams, { command: 'render-images', now: () => 0 }),
-		);
-
-		harness.emit({ level: 'warn', text: '\u{1B}[33mslow\u{1B}[39m', type: 'message' });
-
-		expect(harness.stdout()).toEqual([
-			'{"type":"message","command":"render-images","time":"1970-01-01T00:00:00.000Z","level":"warn","text":"slow"}',
-		]);
-	});
-
-	test('keeps summary rows as ordered pairs', () => {
-		const harness = createHarness(createJsonReporter);
-
-		harness.emit({
-			rows: [
-				['Renditions', 4000],
-				['Rendered', 120],
-			],
-			type: 'summary',
-		});
-
-		expect(parse(harness.stdout())[0]?.rows).toEqual([
-			['Renditions', 4000],
-			['Rendered', 120],
+		expect(harness.stdout().at(-1)).toBe(nested);
+		expect(parse(harness.stdout())).toEqual([
+			{
+				...envelope,
+				argv: ['pnpm', 'validate-content'],
+				id: 1,
+				state: 'start',
+				text: 'Validating',
+				type: 'status',
+			},
+			{ ...envelope, id: 1, stream: 'stdout', text: '[WARN] slow', type: 'output' },
+			JSON.parse(nested),
 		]);
 	});
 
@@ -667,8 +625,13 @@ describe('json reporter', () => {
 
 		harness.emit({ render, type: 'data', value: { generated: 0 } });
 
-		expect(harness.stdout()).toEqual([
-			'{"type":"data","command":"lqip","time":"1970-01-01T00:00:00.000Z","value":{"generated":0}}',
+		expect(parse(harness.stdout())).toEqual([
+			{
+				command: 'lqip',
+				time: '1970-01-01T00:00:00.000Z',
+				type: 'data',
+				value: { generated: 0 },
+			},
 		]);
 		expect(harness.stderr()).toEqual([]);
 		expect(render).not.toHaveBeenCalled();

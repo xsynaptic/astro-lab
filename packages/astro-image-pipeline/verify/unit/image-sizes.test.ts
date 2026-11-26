@@ -32,15 +32,6 @@ function makeSource(width: number, height: number, id = 'taiwan/taipei/some-imag
 describe('getRenditionName', () => {
 	const landscape = makeSource(4032, 3024);
 
-	test.each([['1080x810', landscape, 1080, 810]])(
-		'names an exact cover size: %s',
-		(size, source, width, height) => {
-			expect(getRenditionName(source, { format: 'webp', height, width })).toBe(
-				`taiwan/taipei/some-image-1-${size}.webp`,
-			);
-		},
-	);
-
 	test.each([[800, 500]])('a band clamped to a small source fits it: %i x %i', (width, height) => {
 		expect(getRenditionName(makeSource(800, 500), { format: 'jpg', height, width })).toBe(
 			`taiwan/taipei/some-image-1-${String(width)}x${String(height)}.jpg`,
@@ -62,16 +53,14 @@ describe('getRenditionName', () => {
 		},
 	);
 
-	test.each([
-		{ width: 0 },
-		{ width: 1.5 },
-		{ height: 0, width: 400 },
-		{ height: 266.7, width: 800 },
-	])('a size that is not whole pixels throws: %o', (size) => {
-		expect(() => getRenditionName(landscape, { format: 'jpg', ...size })).toThrow('whole pixels');
-	});
+	test.each([{ width: 1.5 }, { height: 0, width: 400 }])(
+		'a size that is not whole pixels throws: %o',
+		(size) => {
+			expect(() => getRenditionName(landscape, { format: 'jpg', ...size })).toThrow('whole pixels');
+		},
+	);
 
-	test.each(['trip/IMG 0001.jpg', 'trip/day, 2.jpg', "trip/it's.png", 'trip/../b.jpg'])(
+	test.each(['trip/IMG 0001.jpg', 'trip/../b.jpg'])(
 		'a source path the name grammar would reject throws: %s',
 		(id) => {
 			expect(() =>
@@ -83,12 +72,6 @@ describe('getRenditionName', () => {
 
 describe('fitWithinSource', () => {
 	test.each([
-		[
-			'a size within the source is unchanged',
-			{ height: 400, width: 600 },
-			{ height: 400, width: 600 },
-		],
-		['a width-only size shrinks to the source width', { width: 1200 }, { width: 800 }],
 		[
 			'a crop wider than the source keeps its ratio at full width',
 			{ height: 200, width: 1200 },

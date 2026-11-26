@@ -1,7 +1,28 @@
 import type { LoaderContext } from 'astro/loaders';
 
 import { EventEmitter } from 'node:events';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { vi } from 'vitest';
+
+export async function createFixtureDir(files: Array<string>) {
+	const dir = await mkdtemp(path.join(tmpdir(), 'image-loader-'));
+
+	for (const file of files) {
+		const filePath = path.join(dir, file);
+
+		await mkdir(path.dirname(filePath), { recursive: true });
+		// The loader never reads image contents, so plain text stands in for image data
+		await writeFile(filePath, `fixture:${file}`);
+	}
+
+	// Astro's config.root always carries a trailing slash
+	const root = new URL(`${pathToFileURL(dir).href}/`);
+
+	return { dir, root };
+}
 
 interface MockDataEntry {
 	assetImports?: Array<string>;

@@ -36,21 +36,13 @@ function imageCounts(code: string): Array<string | undefined> {
 }
 
 describe('imgGroupSatteriPlugin', () => {
-	test('stamps a context declared only in options', async () => {
+	test('stamps a context declared only in options and accepts a known layout', async () => {
 		const code = await compile(
-			'<ImgGroup context="masonry">\n<Img src="a" />\n<Img src="b" />\n</ImgGroup>\n',
-		);
-
-		expect(contexts(code)).toEqual(['masonry', 'masonry', 'masonry']);
-	});
-
-	test('accepts a layout on a non-default context', async () => {
-		const code = await compile(
-			'<ImgGroup context="carousel" layout="full">\n<Img src="a" />\n<Img src="b" />\n</ImgGroup>\n',
+			'<ImgGroup context="masonry" layout="full">\n<Img src="a" />\n<Img src="b" />\n</ImgGroup>\n',
 		);
 
 		expect(code).toContain('layout: "full"');
-		expect(contexts(code)).toEqual(['carousel', 'carousel', 'carousel']);
+		expect(contexts(code)).toEqual(['masonry', 'masonry', 'masonry']);
 	});
 
 	test('counts a single-image group when the context has no minimum', async () => {
@@ -103,10 +95,13 @@ describe('imgGroupSatteriPlugin', () => {
 			).rejects.toThrow(/"context" must be one of carousel, grid, masonry, received "bogus"/);
 		});
 
-		test('throws on an unknown layout', async () => {
-			await expect(
-				compile('<ImgGroup layout="bogus">\n<Img src="a" />\n</ImgGroup>\n'),
-			).rejects.toThrow(/"layout" must be one of default, wide, full, received "bogus"/);
+		test('throws on an unknown layout, naming its source position', async () => {
+			const compiling = compile('<ImgGroup layout="bogus">\n<Img src="a" />\n</ImgGroup>\n');
+
+			await expect(compiling).rejects.toThrow(
+				/"layout" must be one of default, wide, full, received "bogus"/,
+			);
+			await expect(compiling).rejects.toThrow(/test\.mdx:1:1/);
 		});
 
 		test('throws when a group contains a non-Img child', async () => {
@@ -145,12 +140,6 @@ describe('imgGroupSatteriPlugin', () => {
 					'<ImgGroup context="carousel" columns="3">\n<Img src="a" />\n<Img src="b" />\n</ImgGroup>\n',
 				),
 			).rejects.toThrow(/"columns" has no effect on carousel/);
-		});
-
-		test('reports the source position in the thrown message', async () => {
-			await expect(
-				compile('<ImgGroup layout="bogus">\n<Img src="a" />\n</ImgGroup>\n'),
-			).rejects.toThrow(/test\.mdx:1:1/);
 		});
 	});
 });

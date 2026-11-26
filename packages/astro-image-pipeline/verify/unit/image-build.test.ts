@@ -122,17 +122,14 @@ afterEach(async () => {
 });
 
 describe('prepareRenditionRender', () => {
-	test('knows the total before anything renders', async () => {
+	test('knows the total before rendering every file at the size its name states, with metadata stripped', async () => {
 		const names = await writeBuild();
 		const prepared = await prepareRenditionRender({ distPath, storePath: root });
 
 		expect(prepared.total).toBe(names.length);
 		expect(await listFiles()).toEqual([]);
-	});
 
-	test('every file is rendered at the size its name states, with metadata stripped', async () => {
-		const names = await writeBuild();
-		const counts = await render();
+		const counts = await prepared.run();
 
 		expect(counts.rendered).toBe(names.length);
 
@@ -232,6 +229,7 @@ describe('prepareRenditionRender', () => {
 
 		await expect(
 			render({
+				concurrency: 2,
 				onProgress: () => {
 					controller.abort();
 				},
@@ -292,7 +290,9 @@ describe('prepareRenditionRender guards', () => {
 			gzipSync(JSON.stringify({ buildId: 'old', files: {} })),
 		);
 
-		await expect(render()).rejects.toThrow(/version 1, not 8; rebuild first/);
+		await expect(render()).rejects.toThrow(
+			`version 1, not ${String(imageManifestVersion)}; rebuild first`,
+		);
 	});
 
 	test('refuses a dist whose build left no manifest', async () => {

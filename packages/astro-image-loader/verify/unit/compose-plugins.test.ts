@@ -1,9 +1,5 @@
 import type { LoaderContext } from 'astro/loaders';
 
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -11,7 +7,7 @@ import type { ImageLoaderDataHandler } from '../../src/types.js';
 
 import { composePlugins } from '../../src/compose-plugins.js';
 import { imageLoader } from '../../src/index.js';
-import { createMockLoaderContext } from './mock-loader-context.js';
+import { createFixtureDir, createMockLoaderContext } from './mock-loader-context.js';
 
 const handlerArgs: Parameters<ImageLoaderDataHandler>[0] = {
 	filePath: 'a.jpg',
@@ -21,19 +17,6 @@ const handlerArgs: Parameters<ImageLoaderDataHandler>[0] = {
 	logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() } as unknown as LoaderContext['logger'],
 	modifiedTime: new Date(0),
 };
-
-async function createFixtureDir(files: Array<string>) {
-	const dir = await mkdtemp(path.join(tmpdir(), 'compose-plugins-'));
-
-	for (const file of files) {
-		const filePath = path.join(dir, file);
-
-		await mkdir(path.dirname(filePath), { recursive: true });
-		await writeFile(filePath, `fixture:${file}`);
-	}
-
-	return { dir, root: new URL(`${pathToFileURL(dir).href}/`) };
-}
 
 describe('composePlugins', () => {
 	test('merges plugin schema fragments onto the base schema, last wins on collision', () => {

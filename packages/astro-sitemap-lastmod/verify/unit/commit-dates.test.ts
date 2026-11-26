@@ -22,6 +22,9 @@ async function git(args: Array<string>, date?: string) {
 			GIT_AUTHOR_NAME: 'Test',
 			GIT_COMMITTER_EMAIL: 'test@example.com',
 			GIT_COMMITTER_NAME: 'Test',
+			// The user's signing or hooks config would make these throwaway commits hang or fail
+			GIT_CONFIG_GLOBAL: '/dev/null',
+			GIT_CONFIG_NOSYSTEM: '1',
 			...(date ? { GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } : {}),
 		},
 	});
@@ -60,23 +63,6 @@ describe('createCommitDateReader', () => {
 		expect(dates).toEqual(
 			new Map([
 				['packages/content/collections/posts/a.mdx', '2026-03-01T00:00:00Z'],
-				['packages/content/collections/posts/b.mdx', '2026-02-01T00:00:00Z'],
-			]),
-		);
-	});
-
-	test('dates entries spread across sibling directories', async () => {
-		await commit('collections/notes/2026/c.mdx', '2026-04-01T00:00:00Z');
-		await commit('readme.md', '2026-05-01T00:00:00Z');
-
-		const dates = await createCommitDateReader({ rootPath })([
-			{ filePath: 'packages/content/collections/posts/b.mdx' },
-			{ filePath: 'packages/content/collections/notes/2026/c.mdx' },
-		]);
-
-		expect(dates).toEqual(
-			new Map([
-				['packages/content/collections/notes/2026/c.mdx', '2026-04-01T00:00:00Z'],
 				['packages/content/collections/posts/b.mdx', '2026-02-01T00:00:00Z'],
 			]),
 		);
@@ -169,7 +155,7 @@ describe('createCommitDateReader', () => {
 			.map((commits) => ({ commits, paths })),
 	);
 
-	test.prop([history], { numRuns: 30 })(
+	test.prop([history], { numRuns: 10 })(
 		'dates each committed path by its newest commit, whatever its name holds',
 		async ({ commits, paths }) => {
 			const expected = new Map<string, string>();

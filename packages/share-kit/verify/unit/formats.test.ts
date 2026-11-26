@@ -8,6 +8,7 @@ import {
 	shareKitX,
 } from '../../src/destinations.js';
 import {
+	getSharedRatio,
 	getShareKitImageFormats,
 	getSuggestedImage,
 	shareKitLandscapeFormat,
@@ -34,11 +35,6 @@ describe('getSuggestedImage', () => {
 
 		expect(getSuggestedImage([landscape, offByAFew], shareKitBluesky.images)).toBe(offByAFew);
 		expect(getSuggestedImage([pinIsh, portrait], shareKitPinterest.images)).toBe(portrait);
-	});
-
-	test('a landscape-only page suggests its one card everywhere', () => {
-		expect(getSuggestedImage([landscape], shareKitBluesky.images)).toBe(landscape);
-		expect(getSuggestedImage([landscape], shareKitInstagramStory.images)).toBe(landscape);
 	});
 
 	test('with nothing fitting, the image nearest the first format wins, the earlier on a tie', () => {
@@ -94,5 +90,17 @@ describe('getShareKitImageFormats', () => {
 				shareKitX,
 			]).map(({ id }) => id),
 		).toEqual(['portrait', 'story', 'pin', 'landscape']);
+	});
+});
+
+describe('getSharedRatio', () => {
+	test('gives the ratio every image shares, a lone image included', () => {
+		expect(getSharedRatio([landscape])).toBe('1200 / 630');
+		expect(getSharedRatio([portrait, { height: 1356, width: 1080 }])).toBe('1080 / 1350');
+	});
+
+	test('gives none for mixed shapes or no images', () => {
+		expect(getSharedRatio([landscape, portrait])).toBeUndefined();
+		expect(getSharedRatio([])).toBeUndefined();
 	});
 });

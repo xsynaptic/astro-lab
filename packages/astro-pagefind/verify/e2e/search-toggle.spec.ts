@@ -127,7 +127,12 @@ test('a click from a cold start opens search, and Escape returns focus to the to
 
 	await expect(getSearchInput(page)).toBeFocused();
 	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-	await expect(toggle).toHaveAttribute('aria-controls', /.+/u);
+
+	const display = await page
+		.locator('pagefind-modal')
+		.evaluate((element) => getComputedStyle(element).display);
+
+	expect(display, "the package's layered rules hold the modal's layout").toBe('contents');
 
 	await page.keyboard.press('Escape');
 
@@ -225,17 +230,6 @@ test('a result click reports the search as clicked', async ({ page }) => {
 		.toEqual([{ clicked: true, query: onePageQuery, results: 1 }]);
 });
 
-test('a search closed with Escape reports as abandoned, with its zero count', async ({ page }) => {
-	const query = 'qqqqqqqq';
-
-	await recordSearches(page);
-	await page.goto(paths.home);
-	await searchFor(page, query);
-	await page.keyboard.press('Escape');
-
-	await expect.poll(() => getSearches(page)).toEqual([{ clicked: false, query, results: 0 }]);
-});
-
 test('a search left open across a history back reports once, as abandoned', async ({
 	baseURL,
 	page,
@@ -263,24 +257,6 @@ test('a search left open across a history back reports once, as abandoned', asyn
 	await expect
 		.poll(() => getSearches(page))
 		.toEqual([{ clicked: false, query: onePageQuery, results: 1 }]);
-});
-
-test('reopening and closing without a new search reports nothing more', async ({ page }) => {
-	const toggle = getToggle(page);
-
-	await recordSearches(page);
-	await page.goto(paths.home);
-	await searchFor(page, onePageQuery);
-	await page.keyboard.press('Escape');
-	// Pagefind's close handler, which ends the search, resets this; the dialog's own focus restore comes earlier
-	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-
-	await toggle.click();
-	await expect(getSearchInput(page)).toBeFocused();
-	await page.keyboard.press('Escape');
-	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-
-	expect(await getSearches(page)).toEqual([{ clicked: false, query: onePageQuery, results: 1 }]);
 });
 
 test('closing the modal clears the input', { tag: '@webkit' }, async ({ page }) => {
@@ -312,7 +288,12 @@ test('a search landing after the modal closes is not reported', async ({ baseURL
 	expect(await getSearches(page)).toEqual([{ clicked: false, query: onePageQuery, results: 1 }]);
 });
 
-test('a match only on an image URL is not counted as a result', async ({ page }) => {
+test('a search closed with Escape reports once as abandoned, not counting an image URL match', async ({
+	page,
+}) => {
+	const toggle = getToggle(page);
+	const abandoned = [{ clicked: false, query: imageOnlyQuery, results: 0 }];
+
 	await recordSearches(page);
 	await page.goto(paths.home);
 	await searchFor(page, imageOnlyQuery);
@@ -321,9 +302,17 @@ test('a match only on an image URL is not counted as a result', async ({ page })
 	await expect(page.locator('pagefind-results a[href]')).not.toHaveCount(0);
 	await page.keyboard.press('Escape');
 
-	await expect
-		.poll(() => getSearches(page))
-		.toEqual([{ clicked: false, query: imageOnlyQuery, results: 0 }]);
+	await expect.poll(() => getSearches(page)).toEqual(abandoned);
+
+	await toggle.click();
+	await expect(getSearchInput(page)).toBeFocused();
+	await page.keyboard.press('Escape');
+	// Pagefind's close handler, which ends the search, resets this; the dialog's own focus restore comes earlier
+	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+	expect(await getSearches(page), 'reopening without a new search reports nothing more').toEqual(
+		abandoned,
+	);
 });
 
 test("Pagefind's screen reader announcer survives client-side navigation", async ({
@@ -345,18 +334,4 @@ test("Pagefind's screen reader announcer survives client-side navigation", async
 
 	await expect(announcer).toHaveCount(1);
 	await expect(announcer).toHaveAttribute('data-original', '');
-});
-
-test("the package's layered rules hold the modal's layout over Pagefind's sheet", async ({
-	page,
-}) => {
-	await page.goto(paths.home);
-	await getToggle(page).click();
-	await expect(getSearchInput(page)).toBeFocused();
-
-	const display = await page
-		.locator('pagefind-modal')
-		.evaluate((element) => getComputedStyle(element).display);
-
-	expect(display).toBe('contents');
 });

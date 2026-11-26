@@ -5,11 +5,7 @@ import type { OutputEvent } from '../../src/output/events.js';
 import type { ValidationCheck } from '../../src/validation.js';
 
 import { captureOutput } from '../../src/output/output.js';
-import {
-	reportValidationResult,
-	runValidations,
-	toReferenceValidationResult,
-} from '../../src/validation.js';
+import { reportValidationResult, runValidations } from '../../src/validation.js';
 
 function renderData(events: Array<OutputEvent>) {
 	return events.flatMap((event) =>
@@ -80,22 +76,6 @@ describe('reportValidationResult', () => {
 		});
 
 		expect(renderData(events)).toEqual(['⚠ a: overlaps b (3.0m)\n⚠ Found 1 overlap(s)']);
-	});
-});
-
-describe('toReferenceValidationResult', () => {
-	test('keeps the location as a field for structured output', () => {
-		const result = toReferenceValidationResult(
-			[{ collection: 'regions', field: 'regions', id: 'taipei', location: 'posts/a-post' }],
-			{ fail: 'Broken references', pass: 'References valid' },
-		);
-
-		expect(result.issues).toEqual([
-			{
-				location: 'posts/a-post',
-				message: 'regions references "taipei", missing from "regions"',
-			},
-		]);
 	});
 });
 

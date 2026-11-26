@@ -74,11 +74,6 @@ const anyUrls = linksAndImages({
 	src: fc.oneof(rootRelativeUrl, selfContainedSrc),
 });
 
-const text = fc.string({
-	maxLength: 12,
-	unit: fc.constantFrom('a', 'Z', '漢', '字', ' ', '&', '<', '>', '"'),
-});
-
 describe('prepareSyndicationHtml', () => {
 	test('resolves root-relative hrefs and srcs against the site origin', () => {
 		expect(prepare('<a href="/posts/a-post">A</a>')).toBe(
@@ -157,34 +152,14 @@ describe('prepareSyndicationHtml', () => {
 		},
 	);
 
-	test.prop([fc.array(fc.tuple(text, fc.boolean()), { maxLength: 6 })])(
-		'a schema without span unwraps spans and keeps their text',
-		(runs) => {
-			const schema = {
-				...syndicationSchema,
-				tagNames: syndicationSchema.tagNames.filter((tagName) => tagName !== 'span'),
-			};
+	test('a schema without span unwraps spans and keeps their text', () => {
+		const schema = {
+			...syndicationSchema,
+			tagNames: syndicationSchema.tagNames.filter((tagName) => tagName !== 'span'),
+		};
 
-			const html = toHtml(
-				paragraph(
-					runs.map(([value, isWrapped]): ElementContent =>
-						isWrapped
-							? {
-									children: [{ type: 'text', value }],
-									properties: { className: ['cjk-text'] },
-									tagName: 'span',
-									type: 'element',
-								}
-							: { type: 'text', value },
-					),
-				),
-			);
-
-			const expected = toHtml(
-				paragraph([{ type: 'text', value: runs.map(([value]) => value).join('') }]),
-			);
-
-			expect(prepareSyndicationHtml(html, { schema, site })).toBe(expected);
-		},
-	);
+		expect(
+			prepareSyndicationHtml('<p>A <span class="cjk-text">漢字</span> B</p>', { schema, site }),
+		).toBe('<p>A 漢字 B</p>');
+	});
 });

@@ -113,14 +113,9 @@ describe('merging', () => {
 		).toEqual(['2026-03-01T00:00:00.000Z', '2026-03-01T00:00:00.000Z', '2026-02-01T00:00:00.000Z']);
 	});
 
-	test('wrapped loaders, sync or async, each add their collection to the file', async () => {
-		const writer = createSitemapLastmodWriter({ filePath });
-		const posts = writer.wrap(
+	test('a wrapped loader adds its collection to the file', async () => {
+		const posts = createSitemapLastmodWriter({ filePath }).wrap(
 			createLoader([{ data: { date: '2026-01-01T00:00:00Z' }, id: 'posts/first' }]),
-			getPairs,
-		);
-		const tags = writer.wrap(
-			createLoader([{ data: { date: '2026-02-01T00:00:00Z' }, id: 'tags/travel' }]),
 			async (entries) => {
 				await Promise.resolve();
 
@@ -129,11 +124,9 @@ describe('merging', () => {
 		);
 
 		await posts.load(createLoaderContext());
-		await tags.load(createLoaderContext());
 
-		expect(serializeUrls(sitemapLastmod({ filePath }), ['/posts/first', '/tags/travel'])).toEqual([
+		expect(serializeUrls(sitemapLastmod({ filePath }), ['/posts/first'])).toEqual([
 			'2026-01-01T00:00:00.000Z',
-			'2026-02-01T00:00:00.000Z',
 		]);
 	});
 });

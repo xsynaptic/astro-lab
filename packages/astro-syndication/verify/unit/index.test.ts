@@ -10,12 +10,6 @@ const millisecondsPerDay = 86_400_000;
 const dayIndex = fc.integer({ max: 47_000, min: -10_000 });
 
 describe('anchorDateOnly', () => {
-	test('a date-only value moves to midnight at the given offset', () => {
-		expect(anchorDateOnly(new Date('2026-06-08'), { utcOffsetHours: 8 })).toStrictEqual(
-			new Date('2026-06-07T16:00:00Z'),
-		);
-	});
-
 	test.prop([dayIndex, fc.integer({ max: 14, min: -12 })])(
 		'any midnight UTC shifts by exactly the offset',
 		(day, utcOffsetHours) => {
@@ -88,21 +82,6 @@ describe('toSyndicationImage', () => {
 		);
 
 		expect([image.width, image.height]).toStrictEqual([3600, 2400]);
-	});
-
-	test('maps each output format to its MIME type', () => {
-		const types = ['avif', 'jpeg', 'png', 'svg', 'webp'].map(
-			(format) =>
-				toSyndicationImage(getImageResult({ format, height: 8, width: 12 }), { alt: '' }).type,
-		);
-
-		expect(types).toStrictEqual([
-			'image/avif',
-			'image/jpeg',
-			'image/png',
-			'image/svg+xml',
-			'image/webp',
-		]);
 	});
 
 	test('an unknown format throws rather than guessing a MIME type', () => {

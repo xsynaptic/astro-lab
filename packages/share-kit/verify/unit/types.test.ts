@@ -1,4 +1,4 @@
-import { expect, expectTypeOf, test } from 'vitest';
+import { expectTypeOf, test } from 'vitest';
 
 import type {
 	ShareKitDestination,
@@ -48,16 +48,12 @@ test('ids come out as literals, spreads and custom definitions included', () => 
 
 test('a typo in the settings fails, and a computed row is accepted', () => {
 	const ids: ReadonlyArray<Destination> = ['any', 'email'];
-	const settings: ShareKitSettings<Destination> = {
-		destinations: ids.filter((id) => id !== 'any'),
-	};
-	const typo: ShareKitSettings<Destination> = {
-		// @ts-expect-error `emial` is not a registered id
-		destinations: ['emial'],
-	};
 
-	expect(settings.destinations).toEqual(['email']);
-	expect(typo.destinations).toEqual(['emial']);
+	expectTypeOf({ destinations: ids.filter((id) => id !== 'any') }).toExtend<
+		ShareKitSettings<Destination>
+	>();
+	// @ts-expect-error `emial` is not a registered id
+	expectTypeOf({ destinations: ['emial'] as const }).toExtend<ShareKitSettings<Destination>>();
 });
 
 test('destination string keys include a hint only where the destination has one', () => {

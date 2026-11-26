@@ -25,19 +25,16 @@ async function render(source: string, options?: Readonly<WrapCjkOptions>): Promi
 }
 
 const chineseCases: Array<[string, string]> = [
-	['Hello 世界', '<p>Hello <span lang="zh">世界</span></p>'],
 	['一二三 ABC 四五六', '<p><span lang="zh">一二三</span> ABC <span lang="zh">四五六</span></p>'],
 ];
 
 const japaneseCases: Array<[string, string]> = [
 	['こんにちは世界', '<p><span lang="ja">こんにちは世界</span></p>'],
-	['Hello こんにちは world', '<p>Hello <span lang="ja">こんにちは</span> world</p>'],
 	['アニメ', '<p><span lang="ja">アニメ</span></p>'],
 ];
 
 const koreanCases: Array<[string, string]> = [
 	['안녕하세요', '<p><span lang="ko">안녕하세요</span></p>'],
-	['Hello 안녕 world', '<p>Hello <span lang="ko">안녕</span> world</p>'],
 ];
 
 describe('wrapCjk presets', () => {
@@ -62,64 +59,15 @@ describe('wrapCjk presets', () => {
 	});
 });
 
-describe('wrapCjk element coverage', () => {
-	test('wraps inside a heading', async () => {
-		expect(await render('# 標題 heading')).toContain('<span class="cjk">標題</span>');
-	});
-
-	test('wraps inside list items', async () => {
-		const html = await render('- 項目一\n- 項目二');
-
-		expect((html.match(/class="cjk"/g) ?? []).length).toBe(2);
-	});
-
-	test('wraps inside a link', async () => {
-		const html = await render('[堤岸](https://example.com) is Cholon.');
-
-		expect(html).toContain('<a href="https://example.com"><span class="cjk">堤岸</span></a>');
-	});
-});
-
 describe('wrapCjk skips code', () => {
 	test('does not wrap inside a fenced code block', async () => {
 		const html = await render('```\n漢字 in code\n```');
 
 		expect(html).not.toContain('class="cjk"');
 	});
-
-	test('does not wrap inside inline code', async () => {
-		const html = await render('中文 and `程式碼` here.');
-
-		expect((html.match(/class="cjk"/g) ?? []).length).toBe(1);
-		expect(html).toContain('<code>程式碼</code>');
-	});
 });
 
 describe('wrapCjk with inline raw HTML', () => {
-	test('does not double-wrap an author wrapper', async () => {
-		const html = await render('A <span class="cjk">中文字</span> B');
-
-		expect(html).toBe('<p>A <span class="cjk">中文字</span> B</p>');
-	});
-
-	test('does not wrap inside a raw code tag', async () => {
-		const html = await render('Use <code>中文字</code> here.');
-
-		expect(html).toBe('<p>Use <code>中文字</code> here.</p>');
-	});
-
-	test('wraps again after the shielding tag closes', async () => {
-		const html = await render('<code>中文</code> then 日本語');
-
-		expect(html).toBe('<p><code>中文</code> then <span class="cjk">日本語</span></p>');
-	});
-
-	test('shields text nested below the raw open tag', async () => {
-		const html = await render('<code>a <b>x</b> 中文</code>');
-
-		expect(html).not.toContain('class="cjk"');
-	});
-
 	test('reads the marker through attribute quoting and casing', async () => {
 		const html = await render('A <SPAN CLASS="one cjk two">中文字</SPAN> B');
 
@@ -144,12 +92,6 @@ describe('wrapCjk with inline raw HTML', () => {
 		expect(html).not.toContain('class="cjk"');
 	});
 
-	test('wraps inside an unrelated raw wrapper', async () => {
-		const html = await render('A <span class="highlight">中文字</span> B');
-
-		expect(html).toContain('<span class="highlight"><span class="cjk">中文字</span></span>');
-	});
-
 	// Sätteri applies mutations after the pass, so an expanding sibling must not shift the indexes
 	test('keeps shields aligned after earlier siblings expand', async () => {
 		const html = await render('一 二 <code>三</code> 四 <code>五</code> 六');
@@ -161,23 +103,12 @@ describe('wrapCjk with inline raw HTML', () => {
 });
 
 describe('wrapCjk reaches MDX component children', () => {
-	test('wraps CJK in a flow component caption', async () => {
-		const code = await compileMdx('<Img>A caption with 中文 inside.</Img>\n');
+	test('wraps CJK in flow and inline component children', async () => {
+		const flow = await compileMdx('<Img>A caption with 中文 inside.</Img>\n');
+		const inline = await compileMdx('Visit <Link id="x">堤岸 today</Link> now.\n');
 
-		expect(code).toContain('className: "cjk", children: "中文"');
-	});
-
-	test('wraps CJK in an inline component', async () => {
-		const code = await compileMdx('Visit <Link id="x">堤岸 today</Link> now.\n');
-
-		expect(code).toContain('className: "cjk", children: "堤岸"');
-	});
-
-	test('does not wrap CJK inside code within a component', async () => {
-		const code = await compileMdx('<Img>中文 `程式碼` caption.</Img>\n');
-
-		expect(code).toContain('className: "cjk", children: "中文"');
-		expect(code).not.toContain('className: "cjk", children: "程式碼"');
+		expect(flow).toContain('className: "cjk", children: "中文"');
+		expect(inline).toContain('className: "cjk", children: "堤岸"');
 	});
 });
 

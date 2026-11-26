@@ -10,5 +10,7 @@ export default definePlaygroundConfig(
 			{ grep: /@firefox/u, name: 'firefox', use: devices['Desktop Firefox'] },
 			{ grep: /@webkit/u, name: 'webkit', use: devices['Desktop Safari'] },
 		],
+		// The dialog's rise animation shifts its geometry between measurements
+		use: { reducedMotion: 'reduce' },
 	},
 );

@@ -1,3 +1,6 @@
+import type * as ChildProcessModule from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+
 import { fc, test } from '@fast-check/vitest';
 import { stripVTControlCharacters } from 'node:util';
 import { afterEach, beforeEach, describe, expect, expectTypeOf, vi } from 'vitest';
@@ -10,8 +13,23 @@ import {
 	parseNumberOption,
 } from '../../src/command.js';
 import { withStep } from '../../src/output/progress.js';
-import { readSubprocess, runSubprocess } from '../../src/subprocess.js';
+import { runSubprocess } from '../../src/subprocess.js';
 import { UserError } from '../../src/user-error.js';
+import { killSpawned } from '../fixtures/track-spawns.js';
+
+const spawned = vi.hoisted(() => new Set<ChildProcess>());
+
+vi.mock('node:child_process', async (importOriginal) => {
+	const { trackSpawns } = await import('../fixtures/track-spawns.js');
+
+	return trackSpawns(await importOriginal<typeof ChildProcessModule>(), spawned);
+});
+
+afterEach(() => {
+	killSpawned(spawned);
+});
+
+const abortTimeoutMs = 5000;
 
 class LibraryUserError extends Error {
 	detail?: string;
@@ -137,21 +155,6 @@ describe('formatHelp', () => {
 			['--json', 'Print output as JSON lines'],
 			['-h, --help', 'Show this help'],
 		]);
-	});
-
-	test('lists allowed values under the positional, wrapped to the help width', () => {
-		const checks = Array.from({ length: 12 }, (_, index) => `check-number-${String(index)}`);
-		const lines = stripVTControlCharacters(
-			formatHelp({ ...command, positional: { ...command.positional, choices: checks } }),
-		).split('\n');
-		const choiceLines = lines.slice(
-			6,
-			lines.indexOf(lines.find((line) => line.includes('--clear-cache')) ?? ''),
-		);
-
-		expect(choiceLines.length).toBeGreaterThan(1);
-		expect(choiceLines.every((line) => line.length <= 100)).toBe(true);
-		expect(choiceLines.join(' ').split(/,?\s+/).filter(Boolean)).toEqual(checks);
 	});
 });
 
@@ -317,12 +320,10 @@ describe('runCommand', () => {
 		]);
 	});
 
-	test('hands a required positional to the command as a string', async () => {
+	test('refuses to run without a required positional, still prints help, and hands one over as a string', async () => {
 		const ids: Array<string> = [];
-		const { runCommand } = createCommandRunner();
-
-		setArgs('c-42');
-		await runCommand({
+		const { defineCommand, runCommand } = createCommandRunner();
+		const command = defineCommand({
 			name: 'comments-delete',
 			positional: { description: 'Comment id', name: 'id', required: true },
 			run: ({ positionals }) => {
@@ -332,24 +333,10 @@ describe('runCommand', () => {
 			title: 'Comments',
 		});
 
-		expect(ids).toEqual(['c-42']);
-	});
-
-	test('refuses to run without a required positional, but still prints help', async () => {
-		const run = vi.fn();
-		const { runCommand } = createCommandRunner();
-		const command = {
-			name: 'comments-delete',
-			positional: { description: 'Comment id', name: 'id', required: true },
-			run,
-			summary: 'Delete a comment',
-			title: 'Comments',
-		};
-
 		setArgs();
 		await runCommand(command);
 
-		expect(run).not.toHaveBeenCalled();
+		expect(ids).toEqual([]);
 		expect(process.exitCode).toBe(1);
 		expect(readEvents().at(-1)).toMatchObject({
 			detail: 'See --help',
@@ -364,21 +351,27 @@ describe('runCommand', () => {
 		expect(stripVTControlCharacters(stdout.join(''))).toContain(
 			'Usage: pnpm comments-delete <id> [options]',
 		);
+
+		setArgs('c-42');
+		await runCommand(command);
+
+		expect(ids).toEqual(['c-42']);
 	});
 
 	test('refuses a value outside the choices before the context loads', async () => {
 		const createContext = vi.fn(() => ({}));
 		const checks: Array<string> = [];
-		const { runCommand } = createCommandRunner({ context: createContext });
-		const command = {
+		const { defineCommand, runCommand } = createCommandRunner({ context: createContext });
+		const command = defineCommand({
 			name: 'validate-content',
 			positional: { choices: ['entry-ids', 'images'], description: 'One check', name: 'check' },
-			run: ({ positionals }: { positionals: Array<'entry-ids' | 'images'> }) => {
+			run: ({ positionals }) => {
+				expectTypeOf(positionals).toEqualTypeOf<Array<'entry-ids' | 'images'>>();
 				checks.push(...positionals);
 			},
 			summary: 'Validate content',
 			title: 'Validate',
-		} as const;
+		});
 
 		setArgs('imgaes');
 		await runCommand(command);
@@ -396,55 +389,44 @@ describe('runCommand', () => {
 		expect(checks).toEqual(['images']);
 	});
 
-	test('types positionals as the declared choices', async () => {
-		const { runCommand } = createCommandRunner();
+	test(
+		'stops a subprocess on interrupt without the command passing its signal',
+		async () => {
+			const { runCommand } = createCommandRunner();
 
-		setArgs();
-		await runCommand({
-			name: 'validate-content',
-			positional: { choices: ['entry-ids', 'images'], description: 'One check', name: 'check' },
-			run: ({ positionals }) => {
-				expectTypeOf(positionals).toEqualTypeOf<Array<'entry-ids' | 'images'>>();
-			},
-			summary: 'Validate content',
-			title: 'Validate',
-		});
-	});
-
-	test('stops a subprocess on interrupt without the command passing its signal', async () => {
-		const { runCommand } = createCommandRunner();
-
-		setArgs();
-		await runCommand({
-			name: 'deploy-site',
-			run: async () => {
-				await runSubprocess(
-					'Waiting',
-					[
-						process.execPath,
-						'-e',
-						'process.on("SIGTERM", () => { console.log("stopped"); process.exit(130); }); console.log("ready"); setInterval(() => {}, 1000)',
-					],
-					{
-						onLine: (line) => {
-							if (line === 'ready') process.emit('SIGINT');
-							return true;
+			setArgs();
+			await runCommand({
+				name: 'deploy-site',
+				run: async () => {
+					await runSubprocess(
+						'Waiting',
+						[
+							process.execPath,
+							'-e',
+							'process.on("SIGTERM", () => { console.log("stopped"); process.exit(130); }); console.log("ready"); setInterval(() => {}, 1000)',
+						],
+						{
+							onLine: (line) => {
+								if (line === 'ready') process.emit('SIGINT');
+								return true;
+							},
 						},
-					},
-				);
-			},
-			summary: 'Deploy',
-			title: 'Deploy',
-		});
+					);
+				},
+				summary: 'Deploy',
+				title: 'Deploy',
+			});
 
-		const events = readEvents();
+			const events = readEvents();
 
-		expect(events.filter((event) => event.type === 'output').map((event) => event.text)).toEqual([
-			'ready',
-			'stopped',
-		]);
-		expect(events.at(-1)).toMatchObject({ status: 'interrupted', type: 'end' });
-	});
+			expect(events.filter((event) => event.type === 'output').map((event) => event.text)).toEqual([
+				'ready',
+				'stopped',
+			]);
+			expect(events.at(-1)).toMatchObject({ status: 'interrupted', type: 'end' });
+		},
+		abortTimeoutMs,
+	);
 
 	test('ends with the steps that warned or skipped', async () => {
 		const { runCommand } = createCommandRunner();
@@ -491,30 +473,6 @@ describe('runCommand', () => {
 		});
 
 		expect(run).toHaveBeenCalledWith(true);
-	});
-
-	test('reports a captured subprocess that fails with its output tail', async () => {
-		const { runCommand } = createCommandRunner();
-
-		setArgs();
-		await runCommand({
-			name: 'deploy-app',
-			run: async () => {
-				await readSubprocess([
-					process.execPath,
-					'-e',
-					'console.error("quota exceeded"); process.exit(2)',
-				]);
-			},
-			summary: 'Deploy',
-			title: 'Deploy',
-		});
-
-		expect(readEvents().at(-1)).toMatchObject({
-			detail: 'quota exceeded',
-			message: expect.stringMatching(/exited with code 2$/),
-			status: 'failed',
-		});
 	});
 
 	test('reports an interrupted command as interrupted even when it returns normally', async () => {

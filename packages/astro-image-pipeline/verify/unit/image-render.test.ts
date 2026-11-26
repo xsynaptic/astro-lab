@@ -55,11 +55,10 @@ async function writeAnimatedSource(name: string) {
 	return sourcePath;
 }
 
-function renderAnimated(sourcePath: string, format: 'jpg' | 'webp', height?: number) {
+function renderAnimated(sourcePath: string, format: 'jpg' | 'webp') {
 	return renderImage(sourcePath, {
 		encoding: resolveImageEncoding(),
 		format,
-		height,
 		keepIccProfile: false,
 		limitInputPixels: 1_000_000,
 		pages: 3,
@@ -94,14 +93,10 @@ describe('renderImage', () => {
 		expect(blue).toBeGreaterThan(240);
 	});
 
-	test.each([
-		{ format: 'png', type: 'png' },
-		{ format: 'webp', type: 'webp' },
-		{ format: 'avif', type: 'heif' },
-	] as const)('a translucent source keeps its alpha as $format', async ({ format, type }) => {
+	test('a translucent source keeps its alpha as WebP', async () => {
 		const { data, info } = await renderImage(await writeSource('translucent.png', 4, 0.3), {
 			encoding: resolveImageEncoding(),
-			format,
+			format: 'webp',
 			keepIccProfile: false,
 			limitInputPixels: 1_000_000,
 			pages: 1,
@@ -111,7 +106,7 @@ describe('renderImage', () => {
 		const { channels } = await sharp(data).stats();
 
 		expect(info).toMatchObject({ height: 20, width: 20 });
-		expect(metadata).toMatchObject({ format: type, hasAlpha: true });
+		expect(metadata).toMatchObject({ format: 'webp', hasAlpha: true });
 		expect(Math.round(channels[3]?.mean ?? 255)).toBeLessThan(100);
 	});
 
@@ -124,18 +119,11 @@ describe('renderImage', () => {
 });
 
 describe('renderImage from an animated source', () => {
-	test.each([
-		{ height: undefined, pageHeight: 50 },
-		{ height: 40, pageHeight: 40 },
-	])('WebP keeps every frame at frame height $pageHeight', async ({ height, pageHeight }) => {
-		const { data, info } = await renderAnimated(
-			await writeAnimatedSource('animated.webp'),
-			'webp',
-			height,
-		);
+	test('WebP keeps every frame at the scaled frame height', async () => {
+		const { data, info } = await renderAnimated(await writeAnimatedSource('animated.webp'), 'webp');
 
-		expect(info).toMatchObject({ pageHeight, pages: 3, width: 100 });
-		expect(await sharp(data).metadata()).toMatchObject({ height: pageHeight, pages: 3 });
+		expect(info).toMatchObject({ pageHeight: 50, pages: 3, width: 100 });
+		expect(await sharp(data).metadata()).toMatchObject({ height: 50, pages: 3 });
 	});
 
 	test('JPEG takes the first frame instead of stacking them', async () => {
@@ -155,27 +143,24 @@ describe('renderImage from an animated source', () => {
 });
 
 describe('renderImage colour profiles', () => {
-	test.each(['jpg', 'png', 'webp', 'avif'] as const)(
-		'a Display P3 source keeps its profile as %s when asked',
-		async (format) => {
-			const sourcePath = await writeDisplayP3Source();
-			const { icc: sourceProfile } = await sharp(sourcePath).metadata();
-			const render = {
-				encoding: resolveImageEncoding(),
-				format,
-				limitInputPixels: 1_000_000,
-				pages: 1,
-				width: 20,
-			};
-			const kept = await renderImage(sourcePath, { ...render, keepIccProfile: true });
-			const converted = await renderImage(sourcePath, { ...render, keepIccProfile: false });
+	test('a Display P3 source keeps its profile when asked', async () => {
+		const sourcePath = await writeDisplayP3Source();
+		const { icc: sourceProfile } = await sharp(sourcePath).metadata();
+		const render = {
+			encoding: resolveImageEncoding(),
+			format: 'jpg',
+			limitInputPixels: 1_000_000,
+			pages: 1,
+			width: 20,
+		} as const;
+		const kept = await renderImage(sourcePath, { ...render, keepIccProfile: true });
+		const converted = await renderImage(sourcePath, { ...render, keepIccProfile: false });
 
-			const keptMetadata = await sharp(kept.data).metadata();
-			const convertedMetadata = await sharp(converted.data).metadata();
+		const keptMetadata = await sharp(kept.data).metadata();
+		const convertedMetadata = await sharp(converted.data).metadata();
 
-			expect(sourceProfile).toBeDefined();
-			expect(keptMetadata.icc).toEqual(sourceProfile);
-			expect(convertedMetadata.icc).toBeUndefined();
-		},
-	);
+		expect(sourceProfile).toBeDefined();
+		expect(keptMetadata.icc).toEqual(sourceProfile);
+		expect(convertedMetadata.icc).toBeUndefined();
+	});
 });

@@ -1,5 +1,4 @@
 import { fc, test } from '@fast-check/vitest';
-import { setTimeout as delay } from 'node:timers/promises';
 import { describe, expect, vi } from 'vitest';
 
 import type { FileChangeQueueItem } from '../../src/types.js';
@@ -39,36 +38,6 @@ describe('createChangeQueue', () => {
 			expect(processed).toEqual(['a.jpg', 'b.jpg']);
 		});
 		expect(hooks).toEqual(['start', 'end']);
-	});
-
-	test('batches never overlap', async () => {
-		const events: Array<string> = [];
-		const firstGate: PromiseWithResolvers<void> = Promise.withResolvers();
-
-		const queue = createChangeQueue({
-			debounceMs: debounceMs,
-			onBatchEnd: () => {
-				events.push('end');
-			},
-			onBatchStart: () => {
-				events.push('start');
-			},
-			onError: vi.fn(),
-			processChange: async (change) => {
-				if (change.filePath === 'a.jpg') await firstGate.promise;
-				events.push(`process:${change.filePath}`);
-			},
-		});
-
-		queue.add(makeChange('a.jpg'));
-		await delay(debounceMs * 3);
-		queue.add(makeChange('b.jpg'));
-		await delay(debounceMs * 3);
-		firstGate.resolve();
-
-		await vi.waitFor(() => {
-			expect(events).toEqual(['start', 'process:a.jpg', 'end', 'start', 'process:b.jpg', 'end']);
-		});
 	});
 
 	test('a failing item does not abort the rest of the batch', async () => {

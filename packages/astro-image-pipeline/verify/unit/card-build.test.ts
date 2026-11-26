@@ -126,7 +126,7 @@ describe('prepareCardRender', () => {
 		expect(existsSync(path.join(directory, 'gone.jpg'))).toBe(false);
 	});
 
-	test('omitting a missing photo draws its cards without art and names it with its cards', async () => {
+	test('omitting a missing photo draws its cards without art and names every card it leaves bare', async () => {
 		const prepared = await prepare({ missingImage: 'omit' });
 		const counts = await prepared.run({ onFailure: 'report' });
 
@@ -135,14 +135,12 @@ describe('prepareCardRender', () => {
 		expect(await fs.readFile(path.join(prepared.directory, 'gone.jpg'), 'utf8')).toBe(
 			'"Gone"|none',
 		);
-	});
 
-	test('names every card a missing photo leaves without art, across treatments', async () => {
 		await fs.rm(path.join(mediaPath, 'photo.jpg'));
 
-		const prepared = await prepare({ missingImage: 'omit' });
+		const withoutPhoto = await prepare({ missingImage: 'omit' });
 
-		expect(prepared.missingImages).toEqual([
+		expect(withoutPhoto.missingImages).toEqual([
 			{ cards: ['gone.jpg'], path: 'gone.jpg' },
 			{ cards: ['posts-a.jpg', 'posts-b.jpg', 'posts-c.jpg'], path: 'photo.jpg' },
 		]);

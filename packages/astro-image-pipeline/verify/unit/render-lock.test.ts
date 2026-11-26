@@ -81,42 +81,53 @@ describe('withRenderLock', () => {
 	test('a takeover that read the dead pid before another render claimed leaves that render’s lock alone', async () => {
 		const directory = path.join(root, 'renditions');
 		const lockPath = `${directory}.lock`;
+		const deadPid = String(getDeadPid());
 		const readFile = fs.readFile.bind(fs);
+		const { promise: paused, resolve: pause } = Promise.withResolvers<string>();
 		const { promise: holding, resolve: hold } = Promise.withResolvers<undefined>();
 		let lockReads = 0;
 		let holders = 0;
 		let peak = 0;
 
-		await fs.writeFile(lockPath, String(getDeadPid()));
+		await fs.writeFile(lockPath, deadPid);
 
 		vi.spyOn(fs, 'readFile').mockImplementation(async (...args: Parameters<typeof readFile>) => {
 			const content = await readFile(...args);
 
-			if (args[0] === lockPath && ++lockReads === 2) await Promise.race([holding, delay(1000)]);
+			if (args[0] === lockPath && ++lockReads === 1) {
+				pause(String(content));
+				await holding;
+			}
 
 			return content;
 		});
 
-		async function run() {
-			holders++;
-			peak = Math.max(peak, holders);
-			hold(undefined);
-			await delay(100);
-			holders--;
+		function run(release: Promise<unknown>) {
+			return async () => {
+				holders++;
+				peak = Math.max(peak, holders);
+				hold(undefined);
+				await release;
+				holders--;
+			};
 		}
 
-		const results = await Promise.allSettled([
-			withRenderLock(directory, run),
-			withRenderLock(directory, run),
-		]);
+		const late = withRenderLock(directory, run(Promise.resolve()));
 
-		expect(lockReads).toBeGreaterThanOrEqual(2);
+		expect(await paused).toBe(deadPid);
+
+		async function claimEarly() {
+			try {
+				await withRenderLock(directory, run(Promise.allSettled([late])));
+			} finally {
+				hold(undefined);
+			}
+		}
+
+		const results = await Promise.allSettled([late, claimEarly()]);
+
 		expect(peak).toBe(1);
-		expect(
-			results
-				.map((result) => result.status)
-				.toSorted((first, second) => first.localeCompare(second)),
-		).toEqual(['fulfilled', 'rejected']);
+		expect(results.map((result) => result.status)).toEqual(['rejected', 'fulfilled']);
 	});
 
 	test('refuses to take over while a dead breaker’s lock remains, and names it', async () => {

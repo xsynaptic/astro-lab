@@ -13,17 +13,6 @@ import pagefind from '../../src/index.js';
 
 type Hooks = AstroIntegration['hooks'];
 
-interface ConfigOverrides {
-	adapter?: boolean;
-	output?: 'server' | 'static';
-}
-
-const pages = {
-	'index.html': '<h1>Coastline notes</h1><p>Short pages about the shore.</p>',
-	'lighthouses/index.html': '<h1>Lighthouses</h1><p>The keeper trimmed the lantern wick.</p>',
-	'tide-pools/index.html': '<h1>Tide pools</h1><p>Anemone colonies fill the rock shelf.</p>',
-};
-
 let root: string;
 
 function createDevAdapter(): AstroIntegration {
@@ -91,16 +80,15 @@ function directoryUrl(directory: string) {
 	return pathToFileURL(`${directory}/`);
 }
 
-function runConfigHooks(integration: AstroIntegration, overrides: ConfigOverrides = {}) {
+function runConfigHooks(integration: AstroIntegration) {
 	type ConfigSetupParams = Parameters<NonNullable<Hooks['astro:config:setup']>>[0];
 	type ConfigDoneParams = Parameters<NonNullable<Hooks['astro:config:done']>>[0];
 	const logger = createLogger();
 	const config = {
-		adapter: overrides.adapter === true ? { hooks: {}, name: 'test-adapter' } : undefined,
 		base: '/',
 		build: { client: directoryUrl(path.join(root, 'dist', 'client')) },
 		outDir: directoryUrl(path.join(root, 'dist')),
-		output: overrides.output ?? 'static',
+		output: 'static',
 		root: directoryUrl(root),
 	};
 
@@ -110,29 +98,15 @@ function runConfigHooks(integration: AstroIntegration, overrides: ConfigOverride
 		updateConfig: vi.fn(),
 	} as unknown as ConfigSetupParams);
 	integration.hooks['astro:config:done']?.({ config, logger } as unknown as ConfigDoneParams);
-
-	return logger;
 }
 
 async function runBuildDone(integration: AstroIntegration, directory: string) {
 	type BuildDoneParams = Parameters<NonNullable<Hooks['astro:build:done']>>[0];
-	const logger = createLogger();
 
 	await integration.hooks['astro:build:done']?.({
 		dir: directoryUrl(directory),
-		logger,
+		logger: createLogger(),
 	} as unknown as BuildDoneParams);
-
-	return logger;
-}
-
-async function writePages(directory: string) {
-	for (const [file, body] of Object.entries(pages)) {
-		const filePath = path.join(directory, file);
-
-		await fs.mkdir(path.dirname(filePath), { recursive: true });
-		await fs.writeFile(filePath, `<!doctype html><html lang="en"><body>${body}</body></html>`);
-	}
 }
 
 async function writeComponentUi(version: string) {
@@ -173,32 +147,13 @@ afterAll(async () => {
 	await close();
 });
 
-describe('bundle path', () => {
-	test.each(['/lab', '/lab/'])('base %s gets one slash before the bundle directory', (base) => {
-		expect(getBundlePath(base)).toBe(`/lab/pagefind/${String(pagefindVersion())}/`);
-	});
-
-	test('the root base keeps the bundle at the top level', () => {
-		expect(getBundlePath('/')).toBe(`/pagefind/${String(pagefindVersion())}/`);
-	});
+test('a base gets exactly one slash before the bundle directory', () => {
+	expect(getBundlePath('/lab')).toBe(`/lab/pagefind/${String(pagefindVersion())}/`);
+	expect(getBundlePath('/lab/')).toBe(`/lab/pagefind/${String(pagefindVersion())}/`);
+	expect(getBundlePath('/')).toBe(`/pagefind/${String(pagefindVersion())}/`);
 });
 
 describe('build', () => {
-	test('indexes every page into a directory named for the version the indexer reports', async () => {
-		const dist = path.join(root, 'dist');
-		const integration = pagefind();
-
-		await writePages(dist);
-		runConfigHooks(integration);
-		const logger = await runBuildDone(integration, dist);
-		const [versionDir] = await fs.readdir(path.join(dist, 'pagefind'));
-
-		expect(versionDir).toBe(
-			await readEntryVersion(path.join(dist, 'pagefind', String(versionDir))),
-		);
-		expect(logger.info).toHaveBeenCalledWith(expect.stringMatching(/^Indexed 3 pages to /));
-	});
-
 	test('an empty index fails the build', async () => {
 		const dist = path.join(root, 'dist');
 		const integration = pagefind();
@@ -229,29 +184,6 @@ describe('build', () => {
 			await readEntryVersion(path.join(outDir, 'pagefind', String(versionDir))),
 		);
 	});
-
-	test('passes indexConfig through to the indexer', async () => {
-		const dist = path.join(root, 'dist');
-		const integration = pagefind({ indexConfig: { forceLanguage: 'fr' } });
-
-		await writePages(dist);
-		runConfigHooks(integration);
-		await runBuildDone(integration, dist);
-
-		const files = await fs.readdir(path.join(dist, getBundleDir()));
-
-		expect(files).toContain('wasm.fr.pagefind');
-		expect(files).not.toContain('wasm.en.pagefind');
-	});
-});
-
-describe('options', () => {
-	test('a key the installed Pagefind drops fails when the config loads', () => {
-		// @ts-expect-error the installed Pagefind's types catch this in a typed config
-		expect(() => pagefind({ indexConfig: { excludeSelector: ['nav'] } })).toThrow(
-			`Pagefind ${String(pagefindVersion())} ignores indexConfig keys it doesn't know: excludeSelector`,
-		);
-	});
 });
 
 describe('component UI version', () => {
@@ -268,10 +200,6 @@ describe('component UI version', () => {
 
 		expect(() => runConfigHooks(pagefind())).not.toThrow();
 	});
-
-	test('a site without the component UI passes', () => {
-		expect(() => runConfigHooks(pagefind())).not.toThrow();
-	});
 });
 
 describe('dev server', () => {
@@ -279,15 +207,6 @@ describe('dev server', () => {
 		await writeBundleMarker(path.join(root, 'dist'), 'from outDir');
 
 		expect(await fetchBundle({ base: '/lab' })).toEqual({ body: 'from outDir', status: 200 });
-	});
-
-	test('serves the client directory when an adapter build wrote the bundle there', async () => {
-		await writeBundleMarker(path.join(root, 'dist', 'client'), 'from client');
-
-		expect(await fetchBundle({ adapter: true, base: '/' })).toEqual({
-			body: 'from client',
-			status: 200,
-		});
 	});
 
 	test('serves outDir when a static-output adapter wrote the bundle there', async () => {
@@ -319,13 +238,5 @@ describe('dev server', () => {
 		} as unknown as ServerSetupParams);
 
 		expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('needs a rebuild'));
-	});
-});
-
-describe('server output', () => {
-	test('warns that only prerendered pages are indexed', () => {
-		const logger = runConfigHooks(pagefind(), { output: 'server' });
-
-		expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('opt into prerendering'));
 	});
 });

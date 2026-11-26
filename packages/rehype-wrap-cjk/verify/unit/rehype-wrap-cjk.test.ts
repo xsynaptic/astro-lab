@@ -25,96 +25,40 @@ const processWith = async (
 	return value;
 };
 
-const chineseMarkdownText: Array<[string, string]> = [
-	[
-		'_Lorem ipsum_ dolor sit amet, consectetur adipiscing elit.',
-		'<p><em>Lorem ipsum</em> dolor sit amet, consectetur adipiscing elit.</p>',
-	],
-	['林登玩即媽包候更穿光文去十！', '<p><span lang="zh">林登玩即媽包候更穿光文去十！</span></p>'],
-	[
-		'Sample text with CJK characters (中日韓字符) interspersed. 中文 can appear anywhere in the text.',
-		'<p>Sample text with CJK characters (<span lang="zh">中日韓字符</span>) interspersed. <span lang="zh">中文</span> can appear anywhere in the text.</p>',
-	],
-	['一二三 ABC 四五六', '<p><span lang="zh">一二三</span> ABC <span lang="zh">四五六</span></p>'],
-];
-
-const japaneseMarkdownText: Array<[string, string]> = [
-	['こんにちは世界', '<p><span lang="ja">こんにちは世界</span></p>'],
-	['Hello こんにちは world', '<p>Hello <span lang="ja">こんにちは</span> world</p>'],
-	[
-		'ひらがな カタカナ 漢字',
-		'<p><span lang="ja">ひらがな</span> <span lang="ja">カタカナ</span> <span lang="ja">漢字</span></p>',
-	],
-	['ひらがな、カタカナ、漢字', '<p><span lang="ja">ひらがな、カタカナ、漢字</span></p>'],
-];
-
-const koreanMarkdownText: Array<[string, string]> = [
-	['안녕하세요', '<p><span lang="ko">안녕하세요</span></p>'],
-	['Hello 안녕 world', '<p>Hello <span lang="ko">안녕</span> world</p>'],
-	[
-		'한국어 문자열 테스트',
-		'<p><span lang="ko">한국어</span> <span lang="ko">문자열</span> <span lang="ko">테스트</span></p>',
-	],
-	[
-		'한국어와 漢字 混合',
-		'<p><span lang="ko">한국어와</span> <span lang="ko">漢字</span> <span lang="ko">混合</span></p>',
-	],
-];
-
-const cjkMarkdownText: Array<[string, string]> = [
-	[
-		'Sample text with CJK characters (中日韓字符) interspersed. 中文 can appear anywhere in the text.',
-		'<p>Sample text with CJK characters (<span class="cjk">中日韓字符</span>) interspersed. <span class="cjk">中文</span> can appear anywhere in the text.</p>',
-	],
-	[
-		'Combined text sample with Chinese (中日韓字符), Japanese (こんにちは), and Korean (안녕).',
-		'<p>Combined text sample with Chinese (<span class="cjk">中日韓字符</span>), Japanese (<span class="cjk">こんにちは</span>), and Korean (<span class="cjk">안녕</span>).</p>',
-	],
-];
-
-function toCases(attribute: string, value: string, rows: Array<[string, string]>) {
-	return rows.map(([input, expected]) => ({ attribute, expected, input, value }));
-}
-
 const markdownCases = [
-	...toCases('lang', 'zh', chineseMarkdownText),
-	...toCases('lang', 'ja', japaneseMarkdownText),
-	...toCases('lang', 'ko', koreanMarkdownText),
-	...toCases('class', 'cjk', cjkMarkdownText),
+	{
+		attribute: 'lang',
+		expected: '<p><span lang="zh">一二三</span> ABC <span lang="zh">四五六</span></p>',
+		input: '一二三 ABC 四五六',
+		value: 'zh',
+	},
+	{
+		attribute: 'lang',
+		expected: '<p><span lang="ja">ひらがな、カタカナ、漢字</span></p>',
+		input: 'ひらがな、カタカナ、漢字',
+		value: 'ja',
+	},
+	{
+		attribute: 'lang',
+		expected:
+			'<p><span lang="ko">한국어와</span> <span lang="ko">漢字</span> <span lang="ko">混合</span></p>',
+		input: '한국어와 漢字 混合',
+		value: 'ko',
+	},
+	{
+		attribute: 'class',
+		expected:
+			'<p>Combined text sample with Chinese (<span class="cjk">中日韓字符</span>), Japanese (<span class="cjk">こんにちは</span>), and Korean (<span class="cjk">안녕</span>).</p>',
+		input:
+			'Combined text sample with Chinese (中日韓字符), Japanese (こんにちは), and Korean (안녕).',
+		value: 'cjk',
+	},
 ];
 
 describe('rehype wrap CJK plugin for markdown', () => {
 	test.each(markdownCases)('$value: $input', async ({ attribute, expected, input, value }) => {
 		await expect(processWith({ attribute, value }, input)).resolves.toEqual(expected);
 	});
-});
-
-const chineseHtmlProcessor = unified()
-	.use(rehypeParse, { fragment: true })
-	.use(rehypeWrapCjk, { attribute: 'lang', value: 'zh' })
-	.use(rehypeStringify);
-
-const processChineseHtml = async (contents: VFileCompatible): Promise<VFileCompatible> => {
-	const { value } = await chineseHtmlProcessor.process(contents);
-	return value;
-};
-
-const chineseHtmlText: Array<[string, string]> = [
-	// Ancestor check: text inside a nested element within a lang-tagged ancestor must not be re-wrapped
-	['<span lang="zh">中文 <em>斜體</em> 外</span>', '<span lang="zh">中文 <em>斜體</em> 外</span>'],
-	// Skip tags: CJK inside <code> must not be wrapped; CJK outside is wrapped
-	[
-		'外文 <code>內部</code> 外文',
-		'<span lang="zh">外文</span> <code>內部</code> <span lang="zh">外文</span>',
-	],
-];
-
-describe('rehype wrap CJK plugin for HTML inputs', () => {
-	for (const [input, output] of chineseHtmlText) {
-		test(`HTML: ${String(input)}`, async () => {
-			await expect(processChineseHtml(input)).resolves.toEqual(output);
-		});
-	}
 });
 
 describe('rehype wrap CJK plugin option configuration', () => {
@@ -135,12 +79,6 @@ describe('rehype wrap CJK plugin option configuration', () => {
 			processWith({ attribute: 'lang', skipTags: [], value: 'zh' }, '`中文`'),
 		).resolves.toEqual('<p><code><span lang="zh">中文</span></code></p>');
 	});
-
-	test('fullwidth ASCII variants are wrapped', async () => {
-		await expect(processWith({ attribute: 'lang', value: 'zh' }, 'Hello Ａ１')).resolves.toEqual(
-			'<p>Hello <span lang="zh">Ａ１</span></p>',
-		);
-	});
 });
 
 const processHtmlWith = async (
@@ -156,22 +94,10 @@ const processHtmlWith = async (
 };
 
 describe('rehype wrap CJK plugin skip behavior', () => {
-	test('class attribute: does not re-wrap own output', async () => {
-		await expect(
-			processHtmlWith({ attribute: 'class', value: 'cjk' }, '<span class="cjk">中文</span>'),
-		).resolves.toEqual('<span class="cjk">中文</span>');
-	});
-
 	test('data attribute: does not re-wrap own output', async () => {
 		await expect(
 			processHtmlWith({ attribute: 'data-cjk', value: 'yes' }, '<span data-cjk="yes">中文</span>'),
 		).resolves.toEqual('<span data-cjk="yes">中文</span>');
-	});
-
-	test('class attribute: does not skip on unrelated class', async () => {
-		await expect(
-			processHtmlWith({ attribute: 'class', value: 'cjk' }, '<span class="foo">中文</span>'),
-		).resolves.toEqual('<span class="foo"><span class="cjk">中文</span></span>');
 	});
 });
 

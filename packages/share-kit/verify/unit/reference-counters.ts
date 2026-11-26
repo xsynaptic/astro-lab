@@ -12,10 +12,6 @@ export function countLikeMastodon(text: string) {
 	return length(countable);
 }
 
-export function countLikeX(text: string) {
-	return twitter.parseTweet(text).weightedLength;
-}
-
 // Copied from social-app src/lib/strings/url-helpers.ts at 7f064ab
 function toShortUrl(url: string): string {
 	try {

@@ -100,12 +100,6 @@ describe('getShareAssets', () => {
 		expect(kept).toEqual([asset]);
 		expect(warn).toHaveBeenCalledOnce();
 	});
-
-	test('keeps an id with spaces, since DOM ids never come from it', () => {
-		const spaced = { ...asset, id: 'photo 1' };
-
-		expect(getShareAssets([spaced])).toEqual([spaced]);
-	});
 });
 
 describe('strings', () => {

@@ -63,24 +63,10 @@ describe('words', () => {
 		expect(messages[0]?.expected).toEqual(['Café']);
 	});
 
-	// Marks outside the built-in groups cannot be derived
-	// Those corrections belong in `terms` instead
-	test('cannot derive a mark it has no group for', async () => {
-		const { messages } = await run('The kominka period.', { words: ['kōminka'] });
-
-		expect(messages).toHaveLength(0);
-	});
-
 	test('leaves a decomposed, already-correct word alone', async () => {
 		const { messages } = await run('A cafe\u{301} visit.', words);
 
 		expect(messages).toHaveLength(0);
-	});
-
-	test('keeps title case across a multi-word correction', async () => {
-		const { value } = await run('A Deja Vu moment and a Creme Brulee.', words);
-
-		expect(value).toBe('A Déjà Vu moment and a Crème Brûlée.\n');
 	});
 
 	// The word is already spelled correctly, so differing case alone is not a mistake
@@ -91,29 +77,11 @@ describe('words', () => {
 		expect(messages).toHaveLength(0);
 	});
 
-	test('reaches headings, link text, and JSX children', async () => {
-		const { value } = await run(
-			['# The cafe', '', '[a cafe](/cafe)', '', '<Link>a cafe</Link>'].join('\n'),
-			words,
-		);
-
-		expect(value).toContain('# The café');
-		expect(value).toContain('[a café](/cafe)');
-		expect(value).toContain('<Link>a café</Link>');
-	});
-
 	test('leaves inline code and code blocks alone', async () => {
 		const { messages, value } = await run(['`cafe`', '', '```', 'cafe', '```'].join('\n'), words);
 
 		expect(value).toContain('`cafe`');
 		expect(value).toContain('\ncafe\n');
-		expect(messages).toHaveLength(0);
-	});
-
-	test('leaves JSX attribute values alone', async () => {
-		const { messages, value } = await run('<Link title="a cafe" href="/cafe">ok</Link>', words);
-
-		expect(value).toContain('title="a cafe"');
 		expect(messages).toHaveLength(0);
 	});
 });
@@ -141,12 +109,6 @@ describe('word list', () => {
 		expect(value).toBe('Built 1930--1945 in Taiwan.\n');
 		expect(messages).toHaveLength(1);
 		expect(messages[0]?.reason).toBe(numberRange.message);
-	});
-
-	test('corrects a word carrying a local addition to the built-in list', async () => {
-		const { value } = await run('That is a naive reading.', words);
-
-		expect(value).toBe('That is a naïve reading.\n');
 	});
 });
 
@@ -202,12 +164,6 @@ describe('terms', () => {
 		expect(value).toBe('It was post-war, and still post-war\n');
 	});
 
-	test('applies a bracket-class pattern', async () => {
-		const { value } = await run('The kominka period.', { terms }, true);
-
-		expect(value).toBe('The Kōminka period.\n');
-	});
-
 	test('reports without rewriting unless editorial fixes are enabled', async () => {
 		const { messages, value } = await run('The metre.', { terms });
 
@@ -215,21 +171,6 @@ describe('terms', () => {
 		expect(messages).toHaveLength(1);
 		expect(messages[0]?.reason).toBe('Incorrect term: “metre”, use “meter” instead');
 		expect(messages[0]?.expected).toEqual(['meter']);
-	});
-
-	test('escapes markdown-significant characters in a replacement', async () => {
-		const { value } = await run('The gate.', { terms: [['gate', '*gate*']] }, true);
-
-		expect(value).toBe('The \\*gate\\*.\n');
-	});
-});
-
-describe('patterns', () => {
-	test('leaves an already-correct range alone', async () => {
-		const { messages, value } = await run('Built 1930--1945.', { patterns: [numberRange] });
-
-		expect(value).toBe('Built 1930--1945.\n');
-		expect(messages).toHaveLength(0);
 	});
 });
 

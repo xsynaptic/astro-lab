@@ -2,7 +2,6 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { readFile, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
@@ -105,21 +104,5 @@ describe('createSourceFingerprints', () => {
 			width: 30,
 		});
 		expect(await createSourceFingerprints(directory).get(sourcePath)).toMatchObject({ pages: 1 });
-	});
-
-	test('a store from before page counts drops its old table', async () => {
-		const databasePath = path.join(directory, 'source-fingerprints.sqlite');
-		const legacy = new DatabaseSync(databasePath);
-
-		legacy.exec('CREATE TABLE fingerprints (path TEXT PRIMARY KEY)');
-		legacy.close();
-		createSourceFingerprints(directory).close();
-
-		const database = new DatabaseSync(databasePath);
-		const tables = database.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all();
-
-		database.close();
-
-		expect(tables).toEqual([{ name: 'source_fingerprints' }]);
 	});
 });

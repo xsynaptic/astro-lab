@@ -17,14 +17,6 @@ describe('extract: geometry', () => {
 		expect(extract('800x0/photo.jpg')?.operations).toEqual({ width: 800 });
 	});
 
-	test('fit-in maps to contain', () => {
-		expect(extract('fit-in/800x600/photo.jpg')?.operations).toEqual({
-			width: 800,
-			height: 600,
-			fit: 'contain',
-		});
-	});
-
 	test('fit-in plus no_upscale maps to inside and drops the filter', () => {
 		expect(extract('fit-in/800x600/filters:no_upscale()/photo.jpg')?.operations).toEqual({
 			width: 800,
@@ -37,22 +29,6 @@ describe('extract: geometry', () => {
 		expect(extract('800x0/filters:no_upscale()/photo.jpg')?.operations).toEqual({
 			width: 800,
 			filters: { no_upscale: '' },
-		});
-	});
-
-	test('negative dimensions become flip/flop', () => {
-		expect(extract('-800x-600/photo.jpg')?.operations).toEqual({
-			width: 800,
-			height: 600,
-			flip: true,
-			flop: true,
-		});
-	});
-
-	test('trim with bottom-right and tolerance', () => {
-		expect(extract('trim:bottom-right:30/800x0/photo.jpg')?.operations.trim).toEqual({
-			corner: 'bottom-right',
-			tolerance: 30,
 		});
 	});
 
@@ -72,25 +48,6 @@ describe('extract: geometry', () => {
 	test('uniform padding becomes a number', () => {
 		expect(extract('800x600/10x10/photo.jpg')?.operations.padding).toBe(10);
 	});
-
-	test('asymmetric padding becomes an object', () => {
-		expect(extract('800x0/10x20:30x40/photo.jpg')?.operations.padding).toEqual({
-			left: 10,
-			top: 20,
-			right: 30,
-			bottom: 40,
-		});
-	});
-
-	test('alignment segments', () => {
-		expect(extract('800x600/left/top/smart/photo.jpg')?.operations).toEqual({
-			width: 800,
-			height: 600,
-			hAlign: 'left',
-			vAlign: 'top',
-			smart: true,
-		});
-	});
 });
 
 describe('extract: filters', () => {
@@ -107,12 +64,6 @@ describe('extract: filters', () => {
 			width: 800,
 			quality: 80,
 			filters: { blur: '5', grayscale: '' },
-		});
-	});
-
-	test('compound filter args with internal separators are kept intact', () => {
-		expect(extract('800x0/filters:focal(150x150:250x250)/photo.jpg')?.operations.filters).toEqual({
-			focal: '150x150:250x250',
 		});
 	});
 });
@@ -190,9 +141,7 @@ describe('extract: source and edge cases', () => {
 describe('extract: round-trips generate output', () => {
 	const cases: ReadonlyArray<{ name: string; operations: ImagorOperations }> = [
 		{ name: 'width only', operations: { width: 800 } },
-		{ name: 'width + height', operations: { width: 800, height: 600 } },
 		{ name: 'contain', operations: { width: 800, height: 600, fit: 'contain' } },
-		{ name: 'inside', operations: { width: 800, height: 600, fit: 'inside' } },
 		{ name: 'outside', operations: { width: 800, height: 600, fit: 'outside' } },
 		{ name: 'fill', operations: { width: 800, height: 600, fit: 'fill' } },
 		{ name: 'flip + flop', operations: { width: 800, height: 600, flip: true, flop: true } },

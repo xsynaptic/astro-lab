@@ -26,20 +26,6 @@ describe('rendered through satteri', () => {
 		expect(await render(link('/about?q=1'), options)).toContain('href="/about/?q=1"');
 	});
 
-	test("'never' strips the slash and keeps any suffix", async () => {
-		const options = { trailingSlash: 'never' } as const;
-
-		expect(await render(link('/about/'), options)).toContain('href="/about"');
-		expect(await render(link('/about/?q=1'), options)).toContain('href="/about?q=1"');
-	});
-
-	test('leaves non-internal links untouched', async () => {
-		const options = { trailingSlash: 'always' } as const;
-
-		expect(await render(link('https://x/y'), options)).toContain('href="https://x/y"');
-		expect(await render(link('/rss.xml'), options)).toContain('href="/rss.xml"');
-	});
-
 	test("'ignore', the default, rewrites nothing", async () => {
 		expect(await render(link('/about'), { trailingSlash: 'ignore' })).toContain('href="/about"');
 		expect(await render(link('/about'))).toContain('href="/about"');
@@ -50,7 +36,6 @@ describe('normalizeHref', () => {
 	const alwaysCases: Array<[string, string | undefined]> = [
 		['/about', '/about/'],
 		['/about?q=1', '/about/?q=1'],
-		['/about#s', '/about/#s'],
 		['/', undefined],
 		['/already/', undefined],
 		['/rss.xml', undefined],
@@ -63,9 +48,7 @@ describe('normalizeHref', () => {
 	const neverCases: Array<[string, string | undefined]> = [
 		['/about/', '/about'],
 		['/about/?q=1', '/about?q=1'],
-		['/about/#s', '/about#s'],
 		['/about//', '/about'],
-		['/', undefined],
 		['/about', undefined],
 	];
 

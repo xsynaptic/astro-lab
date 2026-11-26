@@ -120,9 +120,13 @@ describe('createDevImageResolver', () => {
 			const rendered = await renderImage(...args);
 
 			if (render.mock.calls.length === 1) {
+				const saved = new Date(Date.now() + 60_000);
+
 				await sharp({ create: { background: '#ff0000', channels: 3, height: 800, width: 1200 } })
 					.jpeg()
 					.toFile(sourcePath);
+				// A coarse filesystem clock can stamp the rewrite with the mtime the resolver already read
+				utimesSync(sourcePath, saved, saved);
 			}
 
 			return rendered;

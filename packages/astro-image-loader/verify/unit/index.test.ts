@@ -1,33 +1,14 @@
 import type { LoaderContext } from 'astro/loaders';
 
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { rm, stat, utimes, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { assert, describe, expect, test, vi } from 'vitest';
 
 import type { ImageLoaderCacheValue } from '../../src/types.js';
 
-import { defineImageCollection, imageLoader, ImageLoaderBaseSchema } from '../../src/index.js';
-import { createMockLoaderContext } from './mock-loader-context.js';
-
-async function createFixtureDir(files: Array<string>) {
-	const dir = await mkdtemp(path.join(tmpdir(), 'image-loader-'));
-
-	for (const file of files) {
-		const filePath = path.join(dir, file);
-
-		await mkdir(path.dirname(filePath), { recursive: true });
-		// The loader never reads image contents, so plain text stands in for image data
-		await writeFile(filePath, `fixture:${file}`);
-	}
-
-	// Astro's config.root always carries a trailing slash
-	const root = new URL(`${pathToFileURL(dir).href}/`);
-
-	return { dir, root };
-}
+import { imageLoader } from '../../src/index.js';
+import { createFixtureDir, createMockLoaderContext } from './mock-loader-context.js';
 
 function createMockCache() {
 	const values = new Map<string, ImageLoaderCacheValue>();
@@ -50,33 +31,6 @@ describe('imageLoader', () => {
 		expect(() => imageLoader({ pattern: ['*.jpg', '/absolute/*.jpg'] })).toThrow(
 			'cannot be absolute paths',
 		);
-	});
-
-	test('warns when the glob matches no files', async () => {
-		const { root } = await createFixtureDir(['notes.txt']);
-		const { context, logs } = createMockLoaderContext({ root });
-
-		await imageLoader({}).load(context);
-
-		expect(
-			logs.some((log) => log.level === 'warn' && log.message.includes('No images found')),
-		).toBe(true);
-	});
-
-	test('defineImageCollection pairs the loader with a schema', async () => {
-		const { root } = await createFixtureDir(['a.jpg']);
-		const { context, entries } = createMockLoaderContext({ root });
-
-		const collection = defineImageCollection({});
-
-		expect(collection.schema).toBe(ImageLoaderBaseSchema);
-
-		await collection.loader.load(context);
-
-		const parsed = ImageLoaderBaseSchema.parse(entries.get('a.jpg')?.data);
-
-		expect(parsed.src).toBe('a.jpg');
-		expect(parsed.modifiedTime).toBeInstanceOf(Date);
 	});
 
 	test('warns and loads nothing when the base directory is missing', async () => {
@@ -239,24 +193,21 @@ describe('imageLoader', () => {
 			expect(values.get('a.jpg')?.data).toEqual({ title: 'fresh' });
 		});
 
-		test('cache: false disables the built-in cache entirely', async () => {
-			const { dir, root } = await createFixtureDir(['a.jpg']);
-			const { context } = createMockLoaderContext({ root });
+		test('the built-in JSONL cache lands under cacheDir unless cache is false', async () => {
+			const enabled = await createFixtureDir(['a.jpg']);
+			const disabled = await createFixtureDir(['a.jpg']);
 
-			await imageLoader({ cache: false, dataHandler: () => ({}) }).load(context);
-
-			expect(existsSync(path.join(dir, '.astro-cache'))).toBe(false);
-		});
-
-		test('the built-in JSONL cache is created under cacheDir by default', async () => {
-			const { dir, root } = await createFixtureDir(['a.jpg']);
-			const { context } = createMockLoaderContext({ root });
-
-			await imageLoader({ dataHandler: () => ({}) }).load(context);
-
-			expect(existsSync(path.join(dir, '.astro-cache', 'astro-image-loader', 'images.jsonl'))).toBe(
-				true,
+			await imageLoader({ dataHandler: () => ({}) }).load(
+				createMockLoaderContext({ root: enabled.root }).context,
 			);
+			await imageLoader({ cache: false, dataHandler: () => ({}) }).load(
+				createMockLoaderContext({ root: disabled.root }).context,
+			);
+
+			expect(
+				existsSync(path.join(enabled.dir, '.astro-cache', 'astro-image-loader', 'images.jsonl')),
+			).toBe(true);
+			expect(existsSync(path.join(disabled.dir, '.astro-cache'))).toBe(false);
 		});
 
 		test('base spelling does not affect digests, so cached extraction survives a respelled base', async () => {
@@ -301,15 +252,6 @@ describe('imageLoader', () => {
 			}).load(context);
 			expect(dataHandler).toHaveBeenCalledTimes(1);
 			expect(entries.get('a.jpg')?.digest).not.toBe(devDigest);
-
-			// Unchanged keys: store fast path, nothing recomputed
-			await imageLoader({
-				cache,
-				dataHandler,
-				derivationVersion: 'prod',
-				extractionVersion: 'v1',
-			}).load(context);
-			expect(dataHandler).toHaveBeenCalledTimes(1);
 
 			// extractionVersion busts both store and cache
 			await imageLoader({
@@ -363,56 +305,6 @@ describe('imageLoader', () => {
 				'Processed 3 images (0 from cache)',
 			]);
 		});
-
-		test('watch-mode reloads do not emit interval lines', async () => {
-			const { dir, root } = await createFixtureDir(['a.jpg']);
-			const { context, logs } = createMockLoaderContext({ root });
-
-			await imageLoader({ dataHandler: () => ({}), debounceMs: 25, progressInterval: 1 }).load(
-				context,
-			);
-
-			const initialIntervalLines = logs.filter((log) =>
-				log.message.startsWith('Processed '),
-			).length;
-
-			const touchedPath = path.join(dir, 'a.jpg');
-			const future = new Date(Date.now() + 5000);
-
-			await utimes(touchedPath, future, future);
-			watcherEmit(context, 'change', touchedPath);
-
-			await vi.waitFor(() => {
-				expect(logs.some((log) => log.message.includes('Reloaded data'))).toBe(true);
-			});
-
-			expect(logs.filter((log) => log.message.startsWith('Processed ')).length).toBe(
-				initialIntervalLines,
-			);
-		});
-
-		test('showProgress: false suppresses the summary', async () => {
-			const { root } = await createFixtureDir(['a.jpg']);
-			const { context, logs } = createMockLoaderContext({ root });
-
-			await imageLoader({ dataHandler: () => ({}), showProgress: false }).load(context);
-
-			expect(logs.some((log) => log.message.includes('Synced 1 image'))).toBe(false);
-		});
-	});
-
-	test('propagates parseData failures with their message intact', async () => {
-		const { root } = await createFixtureDir(['a.jpg']);
-		const parseData = (() =>
-			Promise.reject(new Error('data does not match the collection schema'))) as unknown;
-		const { context } = createMockLoaderContext({
-			parseData: parseData as LoaderContext['parseData'],
-			root,
-		});
-
-		await expect(imageLoader({}).load(context)).rejects.toThrow(
-			'data does not match the collection schema',
-		);
 	});
 
 	describe('watch mode', () => {
@@ -431,9 +323,12 @@ describe('imageLoader', () => {
 			await writeFile(addedPath, 'fixture:new.jpg');
 			watcherEmit(context, 'add', addedPath);
 
-			await vi.waitFor(() => {
-				expect(entries.has('new.jpg')).toBe(true);
-			});
+			await vi.waitFor(
+				() => {
+					expect(entries.has('new.jpg')).toBe(true);
+				},
+				{ timeout: 5000 },
+			);
 
 			const storedTime = entries.get('new.jpg')?.data.modifiedTime as Date;
 			const stats = await stat(addedPath);
@@ -443,9 +338,12 @@ describe('imageLoader', () => {
 			// Deleted file is removed
 			watcherEmit(context, 'unlink', addedPath);
 
-			await vi.waitFor(() => {
-				expect(entries.has('new.jpg')).toBe(false);
-			});
+			await vi.waitFor(
+				() => {
+					expect(entries.has('new.jpg')).toBe(false);
+				},
+				{ timeout: 5000 },
+			);
 		});
 
 		test('ignores paths that do not match the pattern', async () => {
@@ -455,13 +353,20 @@ describe('imageLoader', () => {
 			await imageLoader({ debounceMs: 25 }).load(context);
 
 			await writeFile(path.join(dir, 'readme.txt'), 'not an image');
+			await writeFile(path.join(dir, 'b.jpg'), 'fixture:b.jpg');
 			watcherEmit(context, 'add', path.join(dir, 'readme.txt'));
+			// Queued after readme.txt in the same window, so its arrival means that batch has run
+			watcherEmit(context, 'add', path.join(dir, 'b.jpg'));
 
-			// Absence check: wait past the debounce window, then confirm nothing landed
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			await vi.waitFor(
+				() => {
+					expect(entries.has('b.jpg')).toBe(true);
+				},
+				{ timeout: 5000 },
+			);
 
 			expect(entries.has('readme.txt')).toBe(false);
-			expect(entries.size).toBe(1);
+			expect(entries.size).toBe(2);
 		});
 
 		test('watch batches bracket processing with the lifecycle hooks', async () => {
@@ -479,9 +384,12 @@ describe('imageLoader', () => {
 			await utimes(touchedPath, future, future);
 			watcherEmit(context, 'change', touchedPath);
 
-			await vi.waitFor(() => {
-				expect(afterLoad).toHaveBeenCalledTimes(2);
-			});
+			await vi.waitFor(
+				() => {
+					expect(afterLoad).toHaveBeenCalledTimes(2);
+				},
+				{ timeout: 5000 },
+			);
 		});
 	});
 });

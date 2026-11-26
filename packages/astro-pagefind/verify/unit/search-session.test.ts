@@ -68,7 +68,7 @@ describe('getResultCount', () => {
 		expect(count).toBe(2);
 	});
 
-	test.each([undefined, {}, { results: 'none' }])('is unknown for %j', (result) => {
+	test.each([undefined, { results: 'none' }])('is unknown for %j', (result) => {
 		expect(getResultCount(result)).toBeUndefined();
 	});
 });

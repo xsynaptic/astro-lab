@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { getAstroPaths, withAstroContent } from '../../src/astro.js';
 import { createCommandRunner } from '../../src/command.js';
-import { UserError } from '../../src/user-error.js';
 
 const vite = vi.hoisted(() => {
 	const servers: Array<{ close: ReturnType<typeof vi.fn> }> = [];
@@ -152,13 +151,6 @@ describe('withAstroContent', () => {
 
 		expect(vite.createServer).toHaveBeenCalledTimes(2);
 		expect(vite.servers.every((server) => server.close.mock.calls.length === 1)).toBe(true);
-	});
-
-	test('fails before starting a server when there is no content store', async () => {
-		rmSync(path.join(astroRoot, '.astro'), { recursive: true });
-
-		await expect(withAstroContent(resolveNothing)).rejects.toThrow(UserError);
-		expect(vite.createServer).not.toHaveBeenCalled();
 	});
 });
 

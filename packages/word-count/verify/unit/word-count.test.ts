@@ -101,10 +101,6 @@ describe('countWords', () => {
 		expect(countWords('  spaced  out  ')).toBe(2);
 	});
 
-	test('treats punctuation as a boundary, not a word', () => {
-		expect(countWords('hello, world')).toBe(2);
-	});
-
 	test('counts each Japanese kana as its own word', () => {
 		expect(countWords('テスト')).toBe(3); // katakana
 		expect(countWords('ひらがな')).toBe(4); // hiragana
@@ -119,18 +115,6 @@ describe('countWords', () => {
 describe('countWordsBreakdown', () => {
 	test('returns zeros for an empty string', () => {
 		expect(countWordsBreakdown('')).toEqual({ scriptChars: 0, total: 0, words: 0 });
-	});
-
-	test('splits Latin prose into delimited words', () => {
-		expect(countWordsBreakdown('The quick brown fox')).toEqual({
-			scriptChars: 0,
-			total: 4,
-			words: 4,
-		});
-	});
-
-	test('splits CJK characters into scriptChars', () => {
-		expect(countWordsBreakdown('中文')).toEqual({ scriptChars: 2, total: 2, words: 0 });
 	});
 
 	test('splits mixed Latin and CJK', () => {

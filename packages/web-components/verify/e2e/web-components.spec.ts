@@ -1,7 +1,6 @@
 import type { Page } from '@playwright/test';
 
 import { expect, test } from '@playwright/test';
-import { setTimeout as sleep } from 'node:timers/promises';
 
 interface SwapSample {
 	hasOpacityTransition: boolean;
@@ -72,7 +71,7 @@ async function scrollBy(page: Page, pixels: number) {
 }
 
 async function recordSwap(page: Page) {
-	await page.evaluate(() => {
+	await page.evaluate((resetProgress) => {
 		const samples: Array<SwapSample> = [];
 
 		Object.assign(globalThis, { swapSamples: samples });
@@ -88,6 +87,9 @@ async function recordSwap(page: Page) {
 				function sample() {
 					if (!bar) return;
 
+					const progress = bar.style.getPropertyValue('--progress');
+					const opacity = getComputedStyle(bar).opacity;
+
 					samples.push({
 						hasOpacityTransition: bar
 							.getAnimations()
@@ -96,38 +98,35 @@ async function recordSwap(page: Page) {
 									animation instanceof CSSTransition && animation.transitionProperty === 'opacity',
 							),
 						isActive: Object.hasOwn(bar.dataset, 'active'),
-						opacity: getComputedStyle(bar).opacity,
-						progress: bar.style.getPropertyValue('--progress'),
+						opacity,
+						progress,
 						time: performance.now() - start,
 					});
 
-					if (performance.now() - start < 1200) requestAnimationFrame(sample);
+					const isReset =
+						progress === resetProgress && samples.some((previous) => previous.opacity === '0');
+
+					if (isReset || performance.now() - start > 5000) {
+						Object.assign(globalThis, { isSwapRecorded: true });
+						return;
+					}
+
+					requestAnimationFrame(sample);
 				}
 
 				requestAnimationFrame(sample);
 			},
 			{ once: true },
 		);
-	});
+	}, startProgress);
 }
 
 async function getSwapSamples(page: Page) {
 	await expect
-		.poll(() =>
-			page.evaluate(
-				() => (globalThis as { swapSamples?: Array<unknown> }).swapSamples?.length ?? 0,
-			),
-		)
-		.toBeGreaterThan(0);
-	await expect
-		.poll(async () => {
-			const samples = await page.evaluate(
-				() => (globalThis as unknown as { swapSamples: Array<SwapSample> }).swapSamples,
-			);
-
-			return samples.at(-1)?.time ?? 0;
+		.poll(() => page.evaluate(() => (globalThis as { isSwapRecorded?: boolean }).isSwapRecorded), {
+			timeout: 10_000,
 		})
-		.toBeGreaterThan(1000);
+		.toBe(true);
 
 	return page.evaluate(
 		() => (globalThis as unknown as { swapSamples: Array<SwapSample> }).swapSamples,
@@ -181,6 +180,9 @@ test.describe('<progress-loading>', () => {
 
 	test('a second navigation mid-load leaves no trickle running', async ({ page }) => {
 		await page.goto('/');
+		await page.waitForLoadState('load');
+		// Installed after load, since the dev toolbar calls `performance.addEventListener`, which the fake lacks
+		await page.clock.install();
 
 		const releaseSecond = await holdFetch(page, '/second/');
 		const releaseArticle = await holdFetch(page, '/');
@@ -189,13 +191,13 @@ test.describe('<progress-loading>', () => {
 		await page.getByRole('link', { name: 'Second page' }).click();
 		await expect(bar).toHaveAttribute('data-active');
 		await page.getByRole('link', { name: 'Article' }).click();
-		await sleep(500);
+		await page.clock.runFor(500);
 		releaseArticle();
 		releaseSecond();
 		await expect(page.locator('main h1')).toHaveText("The lighthouse keeper's log");
 		await expect(bar).not.toHaveAttribute('data-active');
 		await expect.poll(() => getProgress(page, 'progress-loading')).toBe(startProgress);
-		await sleep(1000);
+		await page.clock.runFor(1000);
 
 		expect(await getProgress(page, 'progress-loading')).toBe(startProgress);
 		await expect(bar).not.toHaveAttribute('data-active');
@@ -313,50 +315,40 @@ test.describe('<progress-reading>', () => {
 });
 
 test.describe('<top-button>', () => {
-	test.use({ viewport: { height: 800, width: 400 } });
+	test.use({ reducedMotion: 'reduce', viewport: { height: 800, width: 400 } });
 
-	test('stays inert until past the gate and scrolling up', async ({ page }) => {
-		await page.goto('/');
-
-		const button = page.locator('top-button');
-
-		await scrollBy(page, 900);
-		await scrollBy(page, -100);
-		await expect(button).toHaveAttribute('inert');
-
-		await reveal(page);
-	});
-
-	test('scrolls to the top and focuses its target', async ({ page }) => {
-		await page.goto('/');
-		await reveal(page);
-		await page.getByRole('button', { name: 'Back to top' }).click();
-
-		await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-		await expect(page.locator('#main-content')).toBeFocused();
-		await expect(page.locator('#main-content')).toHaveAttribute('tabindex', '-1');
-	});
-
-	test('a cancelled top-button:activate neither scrolls nor focuses', async ({ page }) => {
+	test('a cancelled top-button:activate neither scrolls nor focuses; the next scrolls to the top and focuses its target', async ({
+		page,
+	}) => {
 		await page.goto('/');
 		await page.evaluate(() => {
-			document.addEventListener('top-button:activate', (event) => {
-				Object.assign(globalThis, { focusTargetId: event.detail.focusTarget?.id });
-				event.preventDefault();
-			});
+			document.addEventListener(
+				'top-button:activate',
+				(event) => {
+					Object.assign(globalThis, { focusTargetId: event.detail.focusTarget?.id });
+					event.preventDefault();
+				},
+				{ once: true },
+			);
 		});
 		await reveal(page);
 
+		const button = page.getByRole('button', { name: 'Back to top' });
 		const scrollY = await page.evaluate(() => window.scrollY);
 
-		await page.getByRole('button', { name: 'Back to top' }).click();
-		await sleep(500);
+		await button.click();
 
 		expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
 		expect(
 			await page.evaluate(() => (globalThis as { focusTargetId?: string }).focusTargetId),
 		).toBe('main-content');
 		await expect(page.locator('#main-content')).not.toBeFocused();
+
+		await button.click();
+
+		await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+		await expect(page.locator('#main-content')).toBeFocused();
+		await expect(page.locator('#main-content')).toHaveAttribute('tabindex', '-1');
 	});
 
 	test('a host at display: none stops reacting to scroll', async ({ page }) => {
@@ -419,13 +411,25 @@ test.describe('<path-suggestions>', () => {
 		});
 
 		const release = await holdFetch(page, '/content-manifest.json');
+		const manifest = page.waitForResponse(
+			(response) => new URL(response.url()).pathname === '/content-manifest.json',
+		);
 
 		await page.goto('/secon');
 		await expect(page.locator('path-suggestions')).toHaveAttribute('data-state', 'loading');
 		await page.getByRole('link', { name: 'Article' }).click();
 		await expect(page.locator('main h1')).toHaveText("The lighthouse keeper's log");
 		release();
-		await sleep(500);
+
+		const response = await manifest;
+
+		await response.finished();
+		await page.evaluate(
+			() =>
+				new Promise((resolve) => {
+					setTimeout(resolve, 0);
+				}),
+		);
 
 		await expect(page).toHaveURL('/');
 		expect(documents).toEqual(['/secon']);

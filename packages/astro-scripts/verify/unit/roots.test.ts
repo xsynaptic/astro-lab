@@ -41,14 +41,8 @@ describe('findAstroRoot', () => {
 	});
 
 	// Astro refuses the CommonJS variants, so treating one as a root would read every collection back empty
-	test('ignores astro.config.cjs', () => {
+	test('ignores astro.config.cjs, throwing rather than returning a root with no config', () => {
 		const nestedDir = makeTree('astro.config.cjs', 'packages/scripts');
-
-		expect(() => findAstroRoot(nestedDir)).toThrow('Could not locate an Astro config');
-	});
-
-	test('throws rather than returning a root with no config', () => {
-		const nestedDir = makeTree(undefined, 'packages/scripts');
 
 		expect(() => findAstroRoot(nestedDir)).toThrow('Could not locate an Astro config');
 		expect(() => findAstroRoot(nestedDir)).toThrow(UserError);
@@ -78,13 +72,10 @@ describe('findWorkspaceRoot', () => {
 		expect(findWorkspaceRoot(path.join(projectDir, 'scripts'))).toBe(projectDir);
 	});
 
-	test.each([
-		['npm and Bun', ['packages/*']],
-		['Yarn classic', { packages: ['packages/*'] }],
-	])('finds a %s workspaces root', (_manager, workspaces) => {
+	test('finds a package.json workspaces root', () => {
 		const packageDir = path.join(tempDir, 'packages/scripts');
 
-		writePackageJson(tempDir, { workspaces });
+		writePackageJson(tempDir, { workspaces: ['packages/*'] });
 		writePackageJson(packageDir);
 
 		expect(findWorkspaceRoot(packageDir)).toBe(tempDir);

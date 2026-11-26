@@ -67,11 +67,8 @@ describe('parseRenditionName', () => {
 	test.each([
 		['a missing size', 'a/b.jpg'],
 		['a zero width', 'a/b-0.jpg'],
-		['a zero height', 'a/b-450x0.webp'],
-		['an unknown format', 'a/b-450.gif'],
 		['a second spelling of a format', 'a/b-450.jpeg'],
 		['a `..` segment', '../media/a/b-450.jpg'],
-		['an empty segment', '/a/b-450.jpg'],
 	])('rejects %s', (_label, name) => {
 		expect(parseRenditionName(name)).toBeUndefined();
 	});

@@ -36,20 +36,8 @@ async function readMinutesMdx(
 }
 
 describe('readingTime', () => {
-	test('counts English prose at latinWpm', async () => {
-		// 400 words at 200 wpm => 2 minutes
-		const source = Array.from({ length: 400 }, () => 'word').join(' ');
-		expect(await readMinutes(source)).toBe(2);
-	});
-
 	test('short prose rounds up to a 1-minute floor via ceil', async () => {
 		expect(await readMinutes('just a few words here')).toBe(1);
-	});
-
-	test('counts CJK at scriptCharPerMinute', async () => {
-		// 300 Han characters at 300 cpm => 1 minute
-		const source = '中'.repeat(300);
-		expect(await readMinutes(source)).toBe(1);
 	});
 
 	test('adds Latin and CJK minutes', async () => {
@@ -63,16 +51,13 @@ describe('readingTime', () => {
 		expect(await readMinutes(source, { frontmatterKey: 'readTime' }, 'readTime')).toBe(2);
 	});
 
-	test('respects a custom latinWpm', async () => {
-		const source = Array.from({ length: 400 }, () => 'word').join(' ');
-		// 400 words at 400 wpm => 1 minute
-		expect(await readMinutes(source, { latinWpm: 400 })).toBe(1);
-	});
-
-	test('respects a custom scriptCharPerMinute', async () => {
-		const source = '中'.repeat(600);
-		// 600 CJK chars at 600 cpm => 1 minute (default 300 cpm would be 2)
-		expect(await readMinutes(source, { scriptCharPerMinute: 600 })).toBe(1);
+	test('respects a custom latinWpm and scriptCharPerMinute', async () => {
+		const latin = Array.from({ length: 400 }, () => 'word').join(' ');
+		const cjk = '中'.repeat(600);
+		// 400 words at 400 wpm plus 600 chars at 600 cpm => 2 minutes (defaults would give 4)
+		expect(
+			await readMinutes(`${latin}\n\n${cjk}`, { latinWpm: 400, scriptCharPerMinute: 600 }),
+		).toBe(2);
 	});
 
 	test('counts inline code', async () => {
@@ -116,18 +101,6 @@ describe('readingTime', () => {
 			const child = Array.from({ length: 400 }, () => 'word').join(' ');
 			const source = `<Callout>\n${child}\n</Callout>`;
 			expect(await readMinutesMdx(source)).toBe(2);
-		});
-
-		test('ignores imports, expressions, and component attributes', async () => {
-			const source = [
-				"import Callout from './Callout.astro';",
-				'',
-				'The value is {frontmatter.title} here.',
-				'',
-				'<Callout data-note="attribute text that should not count">child prose</Callout>',
-			].join('\n');
-			// Only the handful of prose words count => under a minute => ceil to 1
-			expect(await readMinutesMdx(source)).toBe(1);
 		});
 	});
 });

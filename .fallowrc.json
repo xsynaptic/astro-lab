@@ -1,0 +1,36 @@
+{
+	"$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+	"entry": [
+		"packages/analytics/verify/types/*.ts",
+		"packages/astro-pagefind/src/search-toggle.css"
+	],
+	"ignorePatterns": [
+		"packages/astro-pagefind/verify/fixtures/**",
+		"packages/astro-scripts/verify/fixtures/**"
+	],
+	"dynamicallyLoaded": [
+		"playground/satteri-auto-import/src/components/*.astro",
+		"playground/share-kit/src/lib/icons.ts",
+		"playground/share-kit/src/og/card-renderer.ts"
+	],
+	"ignoreDependencies": [
+		"@double-great/stylelint-a11y",
+		"postcss-html",
+		"stylelint-config-recess-order",
+		"stylelint-config-standard",
+		"stylelint-plugin-defensive-css"
+	],
+	"usedClassMembers": [
+		"adoptedCallback",
+		"attributeChangedCallback",
+		"connectedCallback",
+		"connectedMoveCallback",
+		"disconnectedCallback"
+	],
+	"overrides": [
+		{
+			"files": ["packages/astro-font-devtools/src/client/target-row.ts"],
+			"rules": { "unused-class-members": "off" }
+		}
+	]
+}
