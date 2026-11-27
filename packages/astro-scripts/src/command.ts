@@ -115,11 +115,29 @@ export function getCommandSignal() {
 	return activeScope?.signal;
 }
 
-export function parseNumberOption(value: string, name: string) {
-	const parsed = Number(value);
+interface NumberOptionRules {
+	integer?: boolean;
+	min?: number;
+}
 
-	if (value.trim() === '' || !Number.isFinite(parsed))
-		throw new UserError(`--${name} expects a number, got "${value}"`);
+export function parseNumberOption(
+	value: string,
+	name: string,
+	{ integer = false, min }: NumberOptionRules = {},
+) {
+	const parsed = Number(value);
+	const isValid =
+		value.trim() !== '' &&
+		Number.isFinite(parsed) &&
+		(!integer || Number.isSafeInteger(parsed)) &&
+		(min === undefined || parsed >= min);
+
+	if (!isValid) {
+		const kind = integer ? 'a whole number' : 'a number';
+		const bound = min === undefined ? '' : ` of at least ${String(min)}`;
+
+		throw new UserError(`--${name} expects ${kind}${bound}, got "${value}"`);
+	}
 
 	return parsed;
 }

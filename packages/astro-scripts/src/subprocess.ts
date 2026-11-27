@@ -1,9 +1,9 @@
 import type { ChildProcess } from 'node:child_process';
-import type { Readable } from 'node:stream';
 
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
+import { finished, Readable } from 'node:stream';
 import { stripVTControlCharacters } from 'node:util';
 
 import type { OutputStream } from './output/events.js';
@@ -39,8 +39,13 @@ interface SpawnSubprocessOptions extends SubprocessOptions {
 	onLine?: LineFilter;
 }
 
-interface ReadSubprocessOptions extends SubprocessOptions {
+interface ReadSubprocessOptions extends Omit<SubprocessOptions, 'input'> {
 	allowFailure?: boolean;
+	input?: Readable | string;
+}
+
+interface StreamSubprocessOptions extends ReadSubprocessOptions {
+	onStdout: (chunk: Buffer) => void;
 }
 
 export interface SubprocessResult {
@@ -124,8 +129,33 @@ function getSubprocessEnv(env: SubprocessOptions['env'], extra: Record<string, s
 	return { ...process.env, ...env, ...extra };
 }
 
-function writeInput(subprocess: ChildProcess, input: string | undefined) {
-	if (input !== undefined) subprocess.stdin?.end(input);
+// A tool may stop reading early (ffmpeg leaves an AIFF's trailing tag chunk unread), so a failed write defers to its exit code
+// A failed source still throws when the tool exits 0, since it may have exited on a short read
+function writeInput(subprocess: ChildProcess, input: ReadSubprocessOptions['input']) {
+	const { stdin } = subprocess;
+	let sourceError: Error | undefined;
+
+	if (input === undefined || !stdin) return () => sourceError;
+
+	const source = typeof input === 'string' ? Readable.from([input]) : input;
+	let isStdinDone = false;
+
+	function onStdinDone() {
+		isStdinDone = true;
+		source.destroy();
+	}
+
+	stdin.on('error', onStdinDone);
+	stdin.once('close', onStdinDone);
+	finished(source, (error) => {
+		if (!error) return;
+		if (!isStdinDone) sourceError = error;
+
+		stdin.destroy();
+	});
+	source.pipe(stdin);
+
+	return () => sourceError;
 }
 
 const forceStopDelayMs = 5000;
@@ -207,7 +237,6 @@ async function spawnSubprocess(
 	}
 
 	const stopForwarding = forwardAbort(subprocess, signal);
-
 	writeInput(subprocess, input);
 
 	const relays = [
@@ -256,16 +285,27 @@ export async function runSubprocess(
 	return 'capture' in options ? stdout : undefined;
 }
 
+async function readChunks(input: null | Readable, onStdout: StreamSubprocessOptions['onStdout']) {
+	if (!input) return;
+
+	for await (const chunk of input) onStdout(chunk as Buffer);
+}
+
 export async function readSubprocess(
 	argv: Argv,
-	{
-		allowFailure = false,
-		cwd,
-		env,
-		input,
-		signal = getCommandSignal(),
-	}: ReadSubprocessOptions = {},
-): Promise<SubprocessResult> {
+	options: StreamSubprocessOptions,
+): Promise<Omit<SubprocessResult, 'stdout'>>;
+export async function readSubprocess(
+	argv: Argv,
+	options?: ReadSubprocessOptions,
+): Promise<SubprocessResult>;
+export async function readSubprocess(
+	argv: Argv,
+	options: ReadSubprocessOptions | StreamSubprocessOptions = {},
+): Promise<Omit<SubprocessResult, 'stdout'> | SubprocessResult> {
+	const { allowFailure = false, cwd, env, input, signal = getCommandSignal() } = options;
+	const onStdout = 'onStdout' in options ? options.onStdout : undefined;
+
 	signal?.throwIfAborted();
 
 	const [file, ...args] = argv;
@@ -275,15 +315,14 @@ export async function readSubprocess(
 		stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
 	});
 	const stopForwarding = forwardAbort(subprocess, signal);
-
-	writeInput(subprocess, input);
+	const getSourceError = writeInput(subprocess, input);
 
 	try {
-		const [stdout, stderr, [exitCode, exitSignal]] = (await Promise.all([
-			readStream(subprocess.stdout),
+		const [stdout = '', stderr, [exitCode, exitSignal]] = (await Promise.all([
+			onStdout ? readChunks(subprocess.stdout, onStdout) : readStream(subprocess.stdout),
 			readStream(subprocess.stderr),
 			once(subprocess, 'close'),
-		])) as [string, string, [null | number, ExitSignal]];
+		])) as [string | undefined, string, [null | number, ExitSignal]];
 
 		signal?.throwIfAborted();
 
@@ -291,7 +330,11 @@ export async function readSubprocess(
 			throw new SubprocessError(argv, { exitCode, signal: exitSignal }, { stderr, stdout });
 		}
 
-		return { exitCode, stderr, stdout };
+		const sourceError = getSourceError();
+
+		if (exitCode === 0 && sourceError) throw sourceError;
+
+		return onStdout ? { exitCode, stderr } : { exitCode, stderr, stdout };
 	} finally {
 		stopForwarding();
 	}

@@ -1,5 +1,11 @@
 # @xsynaptic/astro-scripts
 
+## 0.18.0
+
+### Minor Changes
+
+- `readSubprocess` takes a `Readable` as `input` and an `onStdout` callback for streaming. `parseNumberOption` takes `integer` and `min`. A subprocess that exits before reading all its input no longer crashes with `EPIPE`.
+
 ## 0.17.1
 
 ### Patch Changes

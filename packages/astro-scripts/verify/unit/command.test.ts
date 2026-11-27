@@ -125,6 +125,16 @@ describe('parseNumberOption', () => {
 	test.each(['  ', 'ten'])('refuses %j rather than reading it as a number', (value) => {
 		expect(() => parseNumberOption(value, 'limit')).toThrow(UserError);
 	});
+
+	test.each(['0', '2.5'])('refuses %j as a whole number of at least 1', (value) => {
+		expect(() => parseNumberOption(value, 'jobs', { integer: true, min: 1 })).toThrow(
+			`--jobs expects a whole number of at least 1, got "${value}"`,
+		);
+	});
+
+	test('accepts a whole number at its minimum', () => {
+		expect(parseNumberOption('1', 'jobs', { integer: true, min: 1 })).toBe(1);
+	});
 });
 
 describe('formatHelp', () => {

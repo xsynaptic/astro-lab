@@ -3,6 +3,7 @@ import type { ChildProcess } from 'node:child_process';
 
 import { fc, test } from '@fast-check/vitest';
 import { spawnSync } from 'node:child_process';
+import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
 import { afterEach, describe, expect, vi } from 'vitest';
@@ -31,6 +32,15 @@ const abortTimeoutMs = 5000;
 
 function node(script: string): [string, ...Array<string>] {
 	return [process.execPath, '-e', script];
+}
+
+function createFailingSource() {
+	const input = new PassThrough();
+
+	input.write('partial');
+	setImmediate(() => input.destroy(new Error('inflate failed')));
+
+	return input;
 }
 
 function outputs(events: Array<OutputEvent>, stream?: SubprocessOutputEvent['stream']) {
@@ -354,6 +364,60 @@ describe('readSubprocess', () => {
 			message: expect.stringMatching(/exited with code 1$/),
 		});
 	});
+
+	test('resolves when the subprocess exits 0 before reading its input', async () => {
+		const result = await readSubprocess(node('process.exit(0)'), { input: 'x'.repeat(1_000_000) });
+
+		expect(result.exitCode).toBe(0);
+	});
+
+	test('streams a Readable in and every stdout byte out undecoded, though the subprocess exits with its input unfinished', async () => {
+		const bytes = Buffer.from(Array.from({ length: 256 }, (_, index) => index));
+		const input = new PassThrough();
+		const chunks: Array<Buffer> = [];
+
+		input.write(bytes);
+
+		const result = await readSubprocess(
+			node(
+				'process.stdin.once("data", (chunk) => process.stdout.write(chunk.subarray(0, 256), () => process.exit(0)))',
+			),
+			{
+				input,
+				onStdout: (chunk) => {
+					chunks.push(chunk);
+				},
+			},
+		);
+
+		expect(Buffer.concat(chunks)).toEqual(bytes);
+		expect(result).toEqual({ exitCode: 0, stderr: '' });
+	});
+
+	test(
+		'rejects with the input error when its source fails and the subprocess still exits 0',
+		async () => {
+			await expect(
+				readSubprocess(node('process.stdin.resume().on("end", () => process.exit(0))'), {
+					input: createFailingSource(),
+				}),
+			).rejects.toThrow('inflate failed');
+		},
+		abortTimeoutMs,
+	);
+
+	test(
+		'lets a failed exit code stand over a failed source',
+		async () => {
+			const result = await readSubprocess(
+				node('process.stdin.resume().on("end", () => process.exit(3))'),
+				{ allowFailure: true, input: createFailingSource() },
+			);
+
+			expect(result.exitCode).toBe(3);
+		},
+		abortTimeoutMs,
+	);
 
 	test(
 		'stops the subprocess on abort',
