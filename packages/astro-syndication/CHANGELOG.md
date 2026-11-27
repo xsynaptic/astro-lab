@@ -1,5 +1,11 @@
 # @xsynaptic/astro-syndication
 
+## 0.3.0
+
+### Minor Changes
+
+- Add an optional `guid` to `SyndicationItem`.
+
 ## 0.2.1
 
 ### Patch Changes

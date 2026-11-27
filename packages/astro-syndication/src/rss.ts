@@ -45,8 +45,14 @@ function getCreator({ name }: SyndicationAuthor) {
 	return `<dc:creator>${escapeXml(name)}</dc:creator>`;
 }
 
-function getItemData({ authors = [], image }: SyndicationItem, site: URL) {
+// Replaces the permalink guid `@astrojs/rss` derives from the link
+function getGuid(guid: string) {
+	return `<guid isPermaLink="false">${escapeXml(guid)}</guid>`;
+}
+
+function getItemData({ authors = [], guid, image }: SyndicationItem, site: URL) {
 	return [
+		guid === undefined ? '' : getGuid(guid),
 		...authors.map((author) => getCreator(author)),
 		image ? getMediaContent(image, site) : '',
 	].join('');

@@ -96,6 +96,13 @@ describe('getRssResponse items', () => {
 		expect(await renderItem(itemBare)).toContain(`<pubDate>${dateCreated.toUTCString()}</pubDate>`);
 	});
 
+	test('a guid replaces the permalink guid rather than joining it', async () => {
+		const item = await renderItem({ ...itemBare, guid: 'item-1' });
+
+		expect(item).toContain('<guid isPermaLink="false">item-1</guid>');
+		expect(item).not.toContain('isPermaLink="true"');
+	});
+
 	test('a root-relative image url resolves against the site', async () => {
 		const item = await renderItem({
 			...itemFull,

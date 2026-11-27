@@ -19,6 +19,7 @@ export interface SyndicationItem {
 	dateCreated: Date;
 	dateUpdated?: Date;
 	description?: string;
+	guid?: string;
 	image?: SyndicationImage;
 	tags: Array<string>;
 	title: string;
